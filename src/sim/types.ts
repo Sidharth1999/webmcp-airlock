@@ -1,0 +1,121 @@
+// Trace & event schema v1 — docs/schema.md (SIGNED OFF 2026-08-28).
+// Changes here require a dated amendment block in docs/schema.md + Sid ping.
+
+export type Actor = 'sim' | 'human' | 'agent' | 'system';
+
+export type EventKind =
+  // world
+  | 'deploy.started'
+  | 'deploy.finished'
+  | 'deploy.failed'
+  | 'traffic.tick'
+  | 'service.health'
+  | 'migration.applied'
+  | 'cache.state'
+  | 'queue.state'
+  | 'user.impact'
+  | 'log.line'
+  // actions (writes — always via tools, always gated)
+  | 'action.proposed'
+  | 'action.approved'
+  | 'action.rejected'
+  | 'action.executed'
+  | 'action.blocked'
+  // agent lifecycle
+  | 'tool.called'
+  | 'mode.changed'
+  | 'selection.changed'
+  // meta
+  | 'scenario.seeded'
+  | 'annotation.added';
+
+export interface Event {
+  seq: number; // monotonic, the ordering truth
+  t: number; // sim-time ms (deterministic, from seeded clock — never Date.now)
+  kind: EventKind;
+  actor: Actor;
+  data: Record<string, unknown>; // kind-specific payload
+  causedBy?: number; // seq of the causing event — the causality thread
+}
+
+export type HealthStatus = 'ok' | 'degraded' | 'down';
+
+export interface Service {
+  id: string;
+  name: string;
+  deps: string[];
+  health: HealthStatus;
+  version: string;
+}
+
+export interface Deploy {
+  id: string;
+  service: string;
+  version: string;
+  at: number;
+  author: string; // sim persona
+  changedAreas: string[]; // human-legible: ['checkout', 'session-cache']
+  containsMigration: boolean; // THE flagship-scenario bit
+  migrationReversible?: boolean;
+  flagsTouched: string[];
+  diffstat: { files: number; plus: number; minus: number };
+  canaryDelta?: { errRate: number; p95: number };
+  note?: string; // sim persona's commit message — flavor + red herrings
+  status: 'live' | 'rolled_back' | 'superseded';
+}
+
+export interface Flag {
+  id: string;
+  name: string;
+  state: 'on' | 'off' | number; // number = pct rollout
+  touchedByDeploy?: string;
+}
+
+export interface EnvVar {
+  key: string;
+  valueRedacted: string;
+  changedAt: number;
+}
+
+export interface Route {
+  id: string;
+  path: string;
+  target: string;
+  tier: 'dns' | 'route';
+}
+
+export interface Migration {
+  id: string;
+  appliedByDeploy: string;
+  reversible: boolean;
+}
+
+export interface TrafficState {
+  rps: number;
+  errRate: number;
+  p95: number;
+  byRoute: Record<string, { rps: number; errRate: number }>;
+}
+
+export interface DamageState {
+  usersErrored: number;
+  ticketsOpened: number;
+  revenueLost: number; // Σ rps * errRate * valuePerReq — formula visible in user.impact events
+}
+
+export interface World {
+  services: Service[];
+  deploys: Deploy[];
+  flags: Flag[];
+  envVars: EnvVar[];
+  routes: Route[];
+  migrations: Migration[];
+  traffic: TrafficState;
+  damage: DamageState;
+}
+
+export interface SeedSpec {
+  templateId: string;
+  seed: number;
+  params: Record<string, unknown>;
+}

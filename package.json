@@ -8,11 +8,15 @@
     "build": "vite build",
     "preview": "vite preview --port 8918 --strictPort",
     "typecheck": "tsc --noEmit",
+    "test": "vitest run",
+    "lint:sim": "node tools/lint-sim.mjs",
     "smoke": "node tools/smoke.mjs"
   },
   "devDependencies": {
+    "@types/node": "^26.4.0",
     "playwright": "^1.46.0",
     "typescript": "^5.5.4",
-    "vite": "^5.4.0"
+    "vite": "^5.4.0",
+    "vitest": "^2.1.9"
   }
 }

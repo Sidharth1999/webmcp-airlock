@@ -1,0 +1,49 @@
+/// <reference lib="webworker" />
+import { Engine } from './engine';
+import type { Event, World } from './types';
+
+// Message-driven on purpose: the engine owns sim-time; pacing (real-time
+// setInterval) stays on the main thread so the Worker holds zero wall-clock.
+
+export type SimRequest =
+  | { type: 'seed'; templateId: string; seed: number; params?: Record<string, unknown> }
+  | { type: 'step'; ticks?: number }
+  | { type: 'snapshot' };
+
+export type SimResponse =
+  | { type: 'seeded'; templateId: string; seed: number; params: Record<string, unknown> }
+  | { type: 'events'; events: Event[]; world: World }
+  | { type: 'snapshot'; events: readonly Event[]; world: World }
+  | { type: 'error'; message: string };
+
+let engine: Engine | null = null;
+
+self.onmessage = (e: MessageEvent<SimRequest>) => {
+  const msg = e.data;
+  try {
+    switch (msg.type) {
+      case 'seed': {
+        engine = new Engine(msg);
+        self.postMessage({ type: 'seeded', ...engine.spec } satisfies SimResponse);
+        break;
+      }
+      case 'step': {
+        if (!engine) throw new Error('step before seed');
+        const events = engine.step(msg.ticks ?? 1);
+        self.postMessage({ type: 'events', events, world: engine.world } satisfies SimResponse);
+        break;
+      }
+      case 'snapshot': {
+        if (!engine) throw new Error('snapshot before seed');
+        self.postMessage({
+          type: 'snapshot',
+          events: engine.events,
+          world: engine.world,
+        } satisfies SimResponse);
+        break;
+      }
+    }
+  } catch (err) {
+    self.postMessage({ type: 'error', message: String(err) } satisfies SimResponse);
+  }
+};

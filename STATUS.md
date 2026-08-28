@@ -1,14 +1,15 @@
 # STATUS — live audit log
 
-**Updated:** 2026-08-28 (evening session) · **Milestone:** M1 CLOSED (5/5) → M2 next · **Progress: M0 68.8% · M1 100% · overall 13.5%** (run `python3 tools/progress.py`; RUNBOOK rule: report both %s at every session start and milestone close)
+**Updated:** 2026-08-28 (late session) · **Milestone:** M2 in progress (2/7) · **Progress: M2 28.6% · overall 19.2%** (run `python3 tools/progress.py`; RUNBOOK rule: report both %s at every session start and milestone close)
 **Full context:** war room artifact https://claude.ai/code/artifact/798206ed-bc4f-44fd-b48c-874de5dfdcc0 · memory: project_webmcp_challenge
 
-## This session (2026-08-28 evening)
-- **SCHEMA v1 SIGNED OFF by Sid** (interactive checklist): all 4 items agreed. Amendments: `Deploy.note` (commit-message flavor field), `log.line` EventKind (SPEC's untrusted prompt-injection line requires it — was a real gap); dual-key `keyHolder` deferred to M3 as `data.keyHolder` on `action.approved`. **Autonomous build is now unblocked.**
-- features.json populated M1–M7 (43 entries total) — progress % now meaningful across the whole plan
-- M1 built: Vite + vanilla TS scaffold (stack decision recorded in PLAN), tokens.css (registered @property health-hue, oklch, ok=195/degraded=80/down=25, spring family, actor colors), console shell (masthead + #console/#site-pane/#tool-rail), webmcp/shim.ts (modelContext feature-detect + Chrome-151 JSON-string executeTool shim)
-- `npm run smoke` GREEN: typecheck, build, preview on 8918, three regions hit-tested, hue animation verified INCLUDING mid-transition samples (113→56→36→28), zero page errors
-- **M1 CLOSED**: fresh-boot RUNBOOK test passed via clean subagent (no improvisation, smoke GREEN first try); its one finding (report-%s rule cited in STATUS but missing from RUNBOOK) fixed → RUNBOOK ritual step 4
+## This session (2026-08-28 late)
+- **M2-01 DONE** — event log + pure reducer per schema v1: `src/sim/{types,log,reducer}.ts`. EventLog enforces monotonic time + valid causedBy back-refs, exposes `chainOf()` (causality thread). Reducer is pure (deep-freeze-proof in tests), total over all 20 EventKinds (explicit no-ops for kinds that don't touch World yet — M2-03/M3 extend).
+- **M2-02 DONE** — deterministic seeded sim: mulberry32 (`rng.ts`), SimClock (`clock.ts`, 1 tick = 1s sim-time), Engine (`engine.ts`, folds world incrementally, `(templateId, seed, params)` = full replay key carried in event 0 `scenario.seeded`), message-driven Worker (`worker.ts` — zero wall-clock; pacing lives on the main thread). Lint ban ACTIVE: `tools/lint-sim.mjs` (TS-AST walk) bans Date.now/Math.random/new Date/performance.now in src/sim; self-tested (fixture with violations must fail).
+- `baseline` template (`templates.ts`): benign steady state + one scripted self-healing deploy blip — exists so determinism/causedBy tests run on a real stream before the flagship migration-trap (M2-04). causedBy threads verified: deploy.started → deploy.finished → user.impact / service.health flap.
+- **20 unit tests green** (vitest, new devDep + @types/node): rng, log invariants, reducer purity/determinism/incremental==batch, damage-from-formula, deploy supersede, byte-identical replay (same seed, step-batching invariance, params in replay key), causedBy chains, lint self-test.
+- Console pane now renders the live event stream (Run/Pause control, status line, styled kinds, damage lines in red); masthead health is sim-driven (worst service) once running. Visual check saved: `log/m2-console-stream.png` — full incident arc visible.
+- `npm run smoke` now = typecheck + **lint-sim + unit tests** + build + preview + 12 Playwright checks (16 gates total) incl. in-page byte-identical digest + worker stream flowing. GREEN.
 
 ## Observed facts (M0, Chrome 151 flagged)
 - modelContext on document; registerTool/getTools/executeTool all present
@@ -17,26 +18,28 @@
 - toolchange fires per registration
 - Chrome flag requires full relaunch to take effect (bit us once)
 - Port 8899 occupied by pre-existing service; dev serves on 8917, smoke/preview on 8918
-- M0 spike server retired (was `python -m http.server 8917 --directory spike`, killed 8/28 evening — it was masking the real app on 8917). For remaining M0 probes, re-serve it on **8919**: `python3 -m http.server 8919 --directory spike`
+- M0 spike server retired; for remaining M0 probes re-serve on **8919**: `python3 -m http.server 8919 --directory spike`
 
 ## Current state
-- Environment: node 20 ✓, gh authed ✓, Playwright ✓ (chromium headless shell 151 installed for repo), Chrome 151 + WebMCP flag ENABLED ✓, ChatGPT desktop DOWNLOADED (login/verify pending), disk 92G free ✓
-- Not yet: deploy CLI auth (deferred until a deploy is actually needed), OPENAI_API_KEY (deferred to M4)
+- Environment: node 20 ✓, gh authed ✓, Playwright ✓, Chrome 151 + WebMCP flag ENABLED ✓, ChatGPT desktop DOWNLOADED (login/verify pending), disk ✓
+- Not yet: deploy CLI auth (deferred until needed), OPENAI_API_KEY (deferred to M4)
 - Stealth intact: no git remotes, nothing deployed
+- Sim scaffolding note: page boots the Worker seeded-but-paused; smoke's hue test uses the manual masthead buttons BEFORE starting the sim (deterministic, no race). Manual health buttons become dev-only once M2-06 lands.
 
 ## Next actions (fresh session boots here)
-1. M2-01/02: event log + pure reducer per signed schema v1, seeded Worker sim (mulberry32 + sim-clock, lint ban on Date.now/Math.random in sim code)
-2. Then M2-03 world systems → M2-04 flagship migration-trap template
-3. Remaining M0 probes when convenient: M0-05 airlock iframe, M0-06 in-flight semantics, M0-07 readOnlyHint retest with a scary-looking write
-4. ChatGPT desktop evidence continues to land in log/m0-*.png
+1. M2-03: world systems — flags/env/routes state transitions (need event vocabulary inside action.executed per schema Tool I/O contract), cache/queue state, richer traffic/damage model
+2. M2-04: flagship migration-trap scenario template (naive rollback catastrophic; flag-off + roll-forward correct; template declares solution set; both paths verified by scripted run)
+3. Then M2-05 (human-playable console UI) + M2-06 (living site pane)
+4. Remaining M0 probes when convenient (spike on 8919 + attended ChatGPT desktop)
 
 ## Blocked / waiting on Sid
 - ChatGPT desktop: launch + log in once; then the M0 localhost retests (attended, ~10 min)
-- M2-07 feel review #1 (D3): Sid resolves the flagship incident himself
+- M2-07 feel review #1 (~D3, Sun 8/30-ish): Sid resolves the flagship incident himself
 
 ## Known issues
-- (none)
+- "Run sim" button label wraps to two lines in the console header — cosmetic, fix in M2-05 UI pass
 
 ## How to run/demo
-- `npm run dev` → http://localhost:8917 (console shell + health-hue token demo in masthead)
-- `npm run smoke` → full e2e sanity, exits 0 when green
+- `npm run dev` → http://localhost:8917 → click **Run sim** (seed 20260828): watch the scripted deploy blip arc (deploy at 5s → degraded + user.impact → recovery at 11s)
+- `npm run smoke` → full gate (typecheck, lint-sim, unit tests, build, 12 browser checks), exits 0 when green
+- `npm test` → 20 unit tests · `npm run lint:sim` → determinism ban

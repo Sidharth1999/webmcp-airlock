@@ -1,5 +1,6 @@
-# Trace & Event Schema — v0 draft (AWAITING SID SIGN-OFF)
+# Trace & Event Schema — v1 (SIGNED OFF)
 
+> **SIGNED OFF by Sid 2026-08-28** (interactive checklist, this session). All four items agreed with two amendments: `Deploy.note` added (item 2), `log.line` EventKind added (item 4). Dual-key `keyHolder` representation deferred to M3 as `data.keyHolder` on `action.approved` — non-breaking, no new kind. Schema changes from here require a dated amendment block + Sid ping.
 > The foundational data model. Per RUNBOOK, no autonomous build sessions until Sid signs off.
 > Design goals: (1) superset of both possible skins (deploy console is locked, but the schema shouldn't preclude richer sims), (2) deterministic replay, (3) decision-grade metadata in every read-tool response, (4) one stream feeds ALL consumers: UI, agent tools, eval harness, flight recorder, postmortem generator.
 
@@ -25,6 +26,7 @@ type EventKind =
   | 'migration.applied'
   | 'cache.state' | 'queue.state'
   | 'user.impact'             // {usersErrored, ticketsOpened, revenueLostFormula: {rps, errRate, valuePerReq}}
+  | 'log.line'                // {service, level: debug|info|warn|error, msg, untrusted?: boolean} — untrusted lines surface via readOnly log tool with untrustedContentHint; the seeded prompt-injection line lives here
   // actions (writes — always via tools, always gated)
   | 'action.proposed'         // {tool, input, tier, diffSummary} — creates a pending approval
   | 'action.approved' | 'action.rejected'   // {by: 'human', proposalSeq}
@@ -65,6 +67,7 @@ type Deploy = {
   flagsTouched: string[];
   diffstat: {files: number, plus: number, minus: number};
   canaryDelta?: {errRate: number, p95: number};   // decision-grade: what canary saw
+  note?: string;                     // sim persona's commit message — scenario flavor + red herrings live here
   status: 'live' | 'rolled_back' | 'superseded';
 }
 ```
@@ -88,8 +91,8 @@ type Deploy = {
 - damage$: Σ user.impact via the visible formula
 - agentOverhead: Σ tool.called durations, result bytes (meta-observability pane)
 
-## Sign-off checklist for Sid
-- [ ] One event log as single source of truth — agree?
-- [ ] Deploy metadata fields sufficient for "the obvious move is wrong" scenarios? (esp. containsMigration/reversible/canaryDelta)
-- [ ] causedBy threading enough for the thread-of-agency UI?
-- [ ] Anything missing you'd want queryable by the agent?
+## Sign-off checklist for Sid — COMPLETED 2026-08-28
+- [x] One event log as single source of truth — **agreed as written**
+- [x] Deploy metadata fields sufficient for "the obvious move is wrong" scenarios — **agreed + `note` field added**
+- [x] causedBy threading enough for the thread-of-agency UI — **agreed, single-parent; rare multi-cause named in `data`**
+- [x] Anything missing queryable by the agent — **`log.line` kind added (SPEC's untrusted injection line requires it); dual-key `keyHolder` deferred to M3 as `data.keyHolder` on `action.approved`**

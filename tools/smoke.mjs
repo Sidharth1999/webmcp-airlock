@@ -23,6 +23,8 @@ function step(name, cmd, args) {
 }
 
 step('typecheck', 'npx', ['tsc', '--noEmit']);
+step('lint-sim (determinism ban)', 'node', ['tools/lint-sim.mjs']);
+step('unit tests', 'npx', ['vitest', 'run', '--reporter', 'dot']);
 step('build', 'npx', ['vite', 'build', '--logLevel', 'error']);
 
 const preview = spawn('npx', ['vite', 'preview', '--port', String(PORT), '--strictPort'], {
@@ -90,6 +92,25 @@ try {
   check('data-health flipped to down', await page.evaluate(
     () => document.documentElement.dataset.health === 'down'
   ));
+
+  // sim (M2-01/02): in-page engine determinism + live Worker stream
+  const [d1, d2, d3] = await page.evaluate(() => [
+    window.__sim.digest(42, 50),
+    window.__sim.digest(42, 50),
+    window.__sim.digest(43, 50),
+  ]);
+  check('in-page engine byte-identical on same seed', d1 === d2);
+  check('different seed → different stream', d1 !== d3);
+
+  await page.getByTestId('sim-run').click();
+  await page.waitForFunction(() => window.__sim.stats.events > 5, null, { timeout: 10_000 });
+  const stats = await page.evaluate(() => window.__sim.stats);
+  check(`worker stream flowing (ticks=${stats.ticks}, events=${stats.events})`, stats.events > 5);
+  check('console renders the stream', (await page.locator('#event-stream li').count()) > 3);
+  check(
+    'sim status line live',
+    /tick \d+ · \d+ events/.test(await page.getByTestId('sim-status').textContent())
+  );
 
   check('no page errors', pageErrors.length === 0);
   if (pageErrors.length) console.error('[smoke] page errors:', pageErrors);

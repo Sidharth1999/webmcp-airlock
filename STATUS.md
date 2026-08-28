@@ -1,6 +1,6 @@
 # STATUS — live audit log
 
-**Updated:** 2026-08-28 (evening session) · **Milestone:** M1 nearly closed (4/5) → M2 next · **Progress: M0 68.8% · M1 80% · overall 11.9%** (run `python3 tools/progress.py`; RUNBOOK rule: report both %s at every session start and milestone close)
+**Updated:** 2026-08-28 (evening session) · **Milestone:** M1 CLOSED (5/5) → M2 next · **Progress: M0 68.8% · M1 100% · overall 13.5%** (run `python3 tools/progress.py`; RUNBOOK rule: report both %s at every session start and milestone close)
 **Full context:** war room artifact https://claude.ai/code/artifact/798206ed-bc4f-44fd-b48c-874de5dfdcc0 · memory: project_webmcp_challenge
 
 ## This session (2026-08-28 evening)
@@ -8,6 +8,7 @@
 - features.json populated M1–M7 (43 entries total) — progress % now meaningful across the whole plan
 - M1 built: Vite + vanilla TS scaffold (stack decision recorded in PLAN), tokens.css (registered @property health-hue, oklch, ok=195/degraded=80/down=25, spring family, actor colors), console shell (masthead + #console/#site-pane/#tool-rail), webmcp/shim.ts (modelContext feature-detect + Chrome-151 JSON-string executeTool shim)
 - `npm run smoke` GREEN: typecheck, build, preview on 8918, three regions hit-tested, hue animation verified INCLUDING mid-transition samples (113→56→36→28), zero page errors
+- **M1 CLOSED**: fresh-boot RUNBOOK test passed via clean subagent (no improvisation, smoke GREEN first try); its one finding (report-%s rule cited in STATUS but missing from RUNBOOK) fixed → RUNBOOK ritual step 4
 
 ## Observed facts (M0, Chrome 151 flagged)
 - modelContext on document; registerTool/getTools/executeTool all present
@@ -23,11 +24,10 @@
 - Stealth intact: no git remotes, nothing deployed
 
 ## Next actions (fresh session boots here)
-1. M1-05: fresh-session RUNBOOK boot test (a clean session/subagent follows RUNBOOK verbatim to green smoke) — closes M1
-2. M2-01/02: event log + pure reducer per signed schema v1, seeded Worker sim (mulberry32 + sim-clock, lint ban on Date.now/Math.random in sim code)
-3. Then M2-03 world systems → M2-04 flagship migration-trap template
-4. Remaining M0 probes when convenient: M0-05 airlock iframe, M0-06 in-flight semantics, M0-07 readOnlyHint retest with a scary-looking write
-5. ChatGPT desktop evidence continues to land in log/m0-*.png
+1. M2-01/02: event log + pure reducer per signed schema v1, seeded Worker sim (mulberry32 + sim-clock, lint ban on Date.now/Math.random in sim code)
+2. Then M2-03 world systems → M2-04 flagship migration-trap template
+3. Remaining M0 probes when convenient: M0-05 airlock iframe, M0-06 in-flight semantics, M0-07 readOnlyHint retest with a scary-looking write
+4. ChatGPT desktop evidence continues to land in log/m0-*.png
 
 ## Blocked / waiting on Sid
 - ChatGPT desktop: launch + log in once; then the M0 localhost retests (attended, ~10 min)

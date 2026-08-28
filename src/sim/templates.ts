@@ -1,15 +1,24 @@
 import type { SimCtx } from './engine';
+import { migrationTrap } from './migration-trap';
 import { jitter, pickInt } from './rng';
-import type { Deploy } from './types';
+import type { Deploy, Event } from './types';
 
 export interface TemplateInstance {
   setup(ctx: SimCtx): void;
   tick(ctx: SimCtx): void;
+  /** React to an external action.executed (already folded into world). */
+  onAction?(ctx: SimCtx, event: Event): void;
 }
 
 export interface TemplateFactory {
   id: string;
   defaultParams: Record<string, unknown>;
+  /**
+   * Declared answer key (schema v1 correctPath metric): each entry in
+   * `solutions` is an ordered action sequence (`tool:key=value` strings) that
+   * resolves the scenario; `traps` are actions that make it worse.
+   */
+  meta?: { solutions: string[][]; traps: string[] };
   create(params: Record<string, unknown>): TemplateInstance;
 }
 
@@ -170,6 +179,7 @@ const baseline: TemplateFactory = {
 
 const registry: Record<string, TemplateFactory> = {
   [baseline.id]: baseline,
+  [migrationTrap.id]: migrationTrap,
 };
 
 export function getTemplate(id: string): TemplateFactory {

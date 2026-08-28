@@ -63,6 +63,24 @@ export class Engine {
     };
   }
 
+  /**
+   * External action (human console click or agent tool call) entering the
+   * stream. Emits action.executed and lets the template react. Determinism
+   * still holds: replay = same (templateId, seed, params) + same act()
+   * schedule. The proposed/approved gate for agent writes wraps this in M3.
+   */
+  act(
+    tool: string,
+    input: Record<string, unknown>,
+    actor: 'human' | 'agent' = 'human',
+    causedBy?: number
+  ): Event {
+    const ctx = this.ctx();
+    const event = ctx.emit('action.executed', actor, { tool, input, result: { ok: true } }, causedBy);
+    this.template.onAction?.(this.ctx(), event);
+    return event;
+  }
+
   /** Advance n ticks; returns the events emitted by this call. */
   step(n = 1): Event[] {
     const before = this.log.length;

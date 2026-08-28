@@ -1,4 +1,14 @@
-import type { Deploy, Event, HealthStatus, Migration, Service, TrafficState, World } from './types';
+import type {
+  Deploy,
+  Event,
+  Flag,
+  HealthStatus,
+  Migration,
+  Route,
+  Service,
+  TrafficState,
+  World,
+} from './types';
 
 /**
  * Pure reducer: World is derived ONLY by folding events (schema v1).
@@ -49,8 +59,17 @@ export function reduce(world: World, event: Event): World {
     case 'deploy.finished': {
       const d = event.data as unknown as Omit<Deploy, 'status' | 'at'>;
       const deploy: Deploy = { ...d, at: event.t, status: 'live' };
+      // flags named in flagsTouched materialize (default on) and get stamped
+      let flags = world.flags;
+      for (const flagId of deploy.flagsTouched) {
+        const existing = flags.find((f) => f.id === flagId);
+        flags = existing
+          ? flags.map((f) => (f.id === flagId ? { ...f, touchedByDeploy: deploy.id } : f))
+          : [...flags, { id: flagId, name: flagId, state: 'on' as const, touchedByDeploy: deploy.id }];
+      }
       return {
         ...world,
+        flags,
         deploys: [
           ...world.deploys.map((p) =>
             p.service === deploy.service && p.status === 'live'
@@ -92,9 +111,85 @@ export function reduce(world: World, event: Event): World {
       return { ...world, migrations: [...world.migrations, d] };
     }
 
-    // Kinds that carry information but don't change World (yet): the log
-    // itself is their home; read tools and UI query it directly. M2-03/M3
-    // extend the world cases (flags/env/routes via action.executed).
+    // action.executed is the ONLY world-mutation vocabulary for non-sim-world
+    // state (flags/env/routes/rollbacks) — the same shape whether the actor is
+    // 'sim' (scenario setup), 'human' (console UI), or 'agent' (WebMCP tools,
+    // M3 — where the proposed/approved gate precedes it). Decision 2026-08-28.
+    case 'action.executed': {
+      const { tool, input } = event.data as { tool: string; input: Record<string, unknown> };
+      switch (tool) {
+        case 'flag.set': {
+          const i = input as { id: string; state: Flag['state']; name?: string };
+          const existing = world.flags.find((f) => f.id === i.id);
+          const next: Flag = {
+            id: i.id,
+            name: i.name ?? existing?.name ?? i.id,
+            state: i.state,
+            ...(existing?.touchedByDeploy ? { touchedByDeploy: existing.touchedByDeploy } : {}),
+          };
+          return {
+            ...world,
+            flags: existing
+              ? world.flags.map((f) => (f.id === i.id ? next : f))
+              : [...world.flags, next],
+          };
+        }
+        case 'env.set': {
+          const i = input as { key: string; value: string };
+          const redacted =
+            i.value.length <= 4 ? '••••' : `${i.value.slice(0, 2)}••••${i.value.slice(-2)}`;
+          const entry = { key: i.key, valueRedacted: redacted, changedAt: event.t };
+          const exists = world.envVars.some((v) => v.key === i.key);
+          return {
+            ...world,
+            envVars: exists
+              ? world.envVars.map((v) => (v.key === i.key ? entry : v))
+              : [...world.envVars, entry],
+          };
+        }
+        case 'route.set': {
+          const i = input as { id: string; target: string; path?: string; tier?: Route['tier'] };
+          const existing = world.routes.find((r) => r.id === i.id);
+          const next: Route = {
+            id: i.id,
+            path: i.path ?? existing?.path ?? `/${i.id}`,
+            target: i.target,
+            tier: i.tier ?? existing?.tier ?? 'route',
+          };
+          return {
+            ...world,
+            routes: existing
+              ? world.routes.map((r) => (r.id === i.id ? next : r))
+              : [...world.routes, next],
+          };
+        }
+        case 'deploy.rollback': {
+          const i = input as { deployId: string };
+          const target = world.deploys.find((d) => d.id === i.deployId);
+          if (!target || target.status !== 'live') return world;
+          // most recent superseded deploy for the service becomes live again
+          const previous = [...world.deploys]
+            .reverse()
+            .find((d) => d.service === target.service && d.status === 'superseded');
+          return {
+            ...world,
+            deploys: world.deploys.map((d) => {
+              if (d.id === target.id) return { ...d, status: 'rolled_back' as const };
+              if (previous && d.id === previous.id) return { ...d, status: 'live' as const };
+              return d;
+            }),
+            services: world.services.map((s) =>
+              s.id === target.service ? { ...s, version: previous?.version ?? s.version } : s
+            ),
+          };
+        }
+        default:
+          return world; // unknown tools execute without world effect (template may react)
+      }
+    }
+
+    // Kinds that carry information but don't change World: the log itself is
+    // their home; read tools and UI query it directly.
     case 'deploy.started':
     case 'deploy.failed':
     case 'cache.state':
@@ -103,7 +198,6 @@ export function reduce(world: World, event: Event): World {
     case 'action.proposed':
     case 'action.approved':
     case 'action.rejected':
-    case 'action.executed':
     case 'action.blocked':
     case 'tool.called':
     case 'mode.changed':

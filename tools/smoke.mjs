@@ -54,11 +54,12 @@ const check = (name, ok) => {
 };
 
 const browser = await chromium.launch();
+const pageErrors = [];
 try {
   const page = await browser.newPage();
-  const pageErrors = [];
   page.on('pageerror', (e) => pageErrors.push(e.message));
-  await page.goto(URL, { waitUntil: 'networkidle' });
+  // dev=1: manual health buttons are dev-only since M2-06
+  await page.goto(URL + '?dev=1', { waitUntil: 'networkidle' });
 
   // the three instruments render and are visible
   for (const id of ['console', 'site-pane', 'tool-rail']) {
@@ -111,6 +112,86 @@ try {
     'sim status line live',
     /tick \d+ · \d+ events/.test(await page.getByTestId('sim-status').textContent())
   );
+
+  // ---- M2-05: human resolves the flagship scenario via UI clicks only ----
+  // (fast pacing via ?tick= so the run is seconds, not minutes; every state
+  // assertion is on rendered DOM — nothing reaches into the engine)
+  const play = await browser.newPage();
+  play.on('pageerror', (e) => pageErrors.push(e.message));
+  await play.goto(URL + '?tick=50', { waitUntil: 'networkidle' });
+
+  const healthIs = (p, state) =>
+    p.waitForFunction((s) => document.documentElement.dataset.health === s, state, { timeout: 15_000 });
+  const siteIs = (p, state) =>
+    p.waitForFunction(
+      (s) => document.querySelector('#storefront')?.dataset.state === s,
+      state,
+      { timeout: 15_000 }
+    );
+
+  check(
+    'deck seeded pre-run (flag row + backstory deploy card)',
+    (await play.getByTestId('flag-toggle-new-checkout').isVisible()) &&
+      (await play.getByTestId('deploy-card-d-200').isVisible())
+  );
+
+  await play.getByTestId('sim-run').click();
+  await play.getByTestId('deploy-card-d-201').waitFor({ timeout: 15_000 });
+  await healthIs(play, 'degraded');
+  check(
+    'trap deploy card shows decision-grade metadata (irreversible migration badge)',
+    /migration · irreversible/.test(await play.getByTestId('deploy-card-d-201').textContent())
+  );
+  await siteIs(play, 'broken');
+  check('site pane visibly breaks when the trap fires', await play.getByTestId('sf-banner').isVisible());
+
+  await play.getByTestId('flag-toggle-new-checkout').click(); // mitigate: flag off
+  await healthIs(play, 'ok');
+  await siteIs(play, 'ok');
+  check('flag-off mitigates (health ok, site healed)', true);
+
+  await play.getByTestId('rollforward-api').click(); // resolve: roll forward
+  await play.getByTestId('deploy-card-d-202').waitFor({ timeout: 15_000 });
+  await play.waitForFunction(
+    () => document.querySelector('#event-stream').textContent.includes('v2.0.1 serving'),
+    null,
+    { timeout: 15_000 }
+  );
+  check(
+    'roll-forward resolves via UI clicks only (d-202 live, v2.0.1 serving)',
+    (await play.evaluate(() => document.documentElement.dataset.health)) === 'ok'
+  );
+  check(
+    'human actions threaded into the stream (actor=human)',
+    (await play.locator('#event-stream li[data-actor="human"]').count()) >= 2
+  );
+  await play.close();
+
+  // ---- M2-06 trap path: naive rollback breaks the site, roll-forward heals --
+  const trap = await browser.newPage();
+  trap.on('pageerror', (e) => pageErrors.push(e.message));
+  await trap.goto(URL + '?tick=50', { waitUntil: 'networkidle' });
+  await trap.getByTestId('sim-run').click();
+  await trap.getByTestId('deploy-card-d-201').waitFor({ timeout: 15_000 });
+  await healthIs(trap, 'degraded');
+
+  await trap.getByTestId('rollback-d-201').click(); // THE TRAP
+  await healthIs(trap, 'down');
+  await siteIs(trap, 'down');
+  check('naive rollback goes catastrophic (health down)', true);
+  check('site pane shows the outage (502 overlay visible)', await trap.getByTestId('sf-outage').isVisible());
+  check(
+    'clue surfaces in the stream (irreversible schema mismatch)',
+    await trap.evaluate(() =>
+      document.querySelector('#event-stream').textContent.includes('SchemaMismatch')
+    )
+  );
+
+  await trap.getByTestId('rollforward-api').click(); // dig out
+  await healthIs(trap, 'ok');
+  await siteIs(trap, 'ok');
+  check('roll-forward heals the site from catastrophic', true);
+  await trap.close();
 
   check('no page errors', pageErrors.length === 0);
   if (pageErrors.length) console.error('[smoke] page errors:', pageErrors);

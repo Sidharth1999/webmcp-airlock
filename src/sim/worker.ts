@@ -8,11 +8,12 @@ import type { Event, World } from './types';
 export type SimRequest =
   | { type: 'seed'; templateId: string; seed: number; params?: Record<string, unknown> }
   | { type: 'step'; ticks?: number }
+  | { type: 'act'; tool: string; input: Record<string, unknown> }
   | { type: 'snapshot' };
 
 export type SimResponse =
   | { type: 'seeded'; templateId: string; seed: number; params: Record<string, unknown> }
-  | { type: 'events'; events: Event[]; world: World }
+  | { type: 'events'; origin: 'step' | 'act'; events: Event[]; world: World }
   | { type: 'snapshot'; events: readonly Event[]; world: World }
   | { type: 'error'; message: string };
 
@@ -30,7 +31,17 @@ self.onmessage = (e: MessageEvent<SimRequest>) => {
       case 'step': {
         if (!engine) throw new Error('step before seed');
         const events = engine.step(msg.ticks ?? 1);
-        self.postMessage({ type: 'events', events, world: engine.world } satisfies SimResponse);
+        self.postMessage({ type: 'events', origin: 'step', events, world: engine.world } satisfies SimResponse);
+        break;
+      }
+      case 'act': {
+        if (!engine) throw new Error('act before seed');
+        // act() emits the action event plus whatever the template reacts with;
+        // slice the log so the response carries all of them, not just the first
+        const before = engine.events.length;
+        engine.act(msg.tool, msg.input, 'human');
+        const events = engine.events.slice(before) as Event[];
+        self.postMessage({ type: 'events', origin: 'act', events, world: engine.world } satisfies SimResponse);
         break;
       }
       case 'snapshot': {

@@ -151,6 +151,53 @@ describe('migration-trap: correct path (flag-off + roll-forward) resolves', () =
   });
 });
 
+describe('migration-trap: world state is the authority for action effects (review findings 2026-08-28)', () => {
+  it('a rollback the reducer rejected does not trigger the trap', () => {
+    // roll forward first: d-202 supersedes d-201, so a late rollback of
+    // d-201 must be a world no-op — and the phase machine must agree
+    const engine = toIncident();
+    engine.act('deploy.rollforward', { service: 'api' });
+    const rejected = engine.act('deploy.rollback', { deployId: 'd-201' }); // inside the heal window
+    // the trap must not fire even transiently: no down/crashloop caused by it
+    expect(
+      engine.events.some((e) => e.kind === 'service.health' && e.causedBy === rejected.seq)
+    ).toBe(false);
+    expect(engine.world.services.find((s) => s.id === 'api')!.health).not.toBe('down');
+    engine.step(4);
+
+    const w = engine.world;
+    expect(w.deploys.find((d) => d.id === 'd-201')!.status).toBe('superseded');
+    expect(w.services.find((s) => s.id === 'api')!.health).toBe('ok');
+    expect(w.services.find((s) => s.id === 'api')!.version).toBe('2.0.1');
+    expect(w.services.find((s) => s.id === 'web')!.health).toBe('ok');
+  });
+
+  it('rollback with no superseded predecessor is rejected outright', () => {
+    // at seed time d-200 is the only api deploy: nothing to revert to
+    const engine = new Engine({ templateId: 'migration-trap', seed: 42 });
+    const before = engine.world;
+    engine.act('deploy.rollback', { deployId: 'd-200' });
+    const w = engine.world;
+    expect(w.deploys.find((d) => d.id === 'd-200')!.status).toBe('live');
+    expect(w.services.find((s) => s.id === 'api')!.version).toBe(
+      before.services.find((s) => s.id === 'api')!.version
+    );
+  });
+
+  it('roll-forward is not re-entrant: a double act ships exactly one d-202', () => {
+    const engine = toIncident();
+    engine.act('flag.set', { id: 'new-checkout', state: 'off' });
+    engine.act('deploy.rollforward', { service: 'api' });
+    engine.act('deploy.rollforward', { service: 'api' });
+    engine.step(4);
+
+    const w = engine.world;
+    expect(w.deploys.filter((d) => d.id === 'd-202')).toHaveLength(1);
+    expect(w.deploys.find((d) => d.id === 'd-202')!.status).toBe('live');
+    expect(w.services.every((s) => s.health === 'ok')).toBe(true);
+  });
+});
+
 describe('migration-trap: determinism with an action schedule', () => {
   const scripted = (seed: number): string => {
     const engine = new Engine({ templateId: 'migration-trap', seed });

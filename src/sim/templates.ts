@@ -182,6 +182,10 @@ const registry: Record<string, TemplateFactory> = {
   [migrationTrap.id]: migrationTrap,
 };
 
+export function templateIds(): string[] {
+  return Object.keys(registry);
+}
+
 export function getTemplate(id: string): TemplateFactory {
   const t = registry[id];
   if (!t) throw new Error(`unknown template: ${id}`);

@@ -1,15 +1,16 @@
 # STATUS — live audit log
 
-**Updated:** 2026-08-28 (overnight session, ~2:40am) · **Milestone:** M2 in progress (4/7) · **Progress: M2 57.1% · overall 24.9%** (run `python3 tools/progress.py`; RUNBOOK rule: report both %s at every session start and milestone close)
+**Updated:** 2026-08-28 (early-morning session) · **Milestone:** M2 in progress (6/7 — all Claude-side work done, only Sid's feel review open) · **Progress: M2 85.7% · overall 30.6%** (run `python3 tools/progress.py`; RUNBOOK rule: report both %s at every session start and milestone close)
 **Full context:** war room artifact https://claude.ai/code/artifact/798206ed-bc4f-44fd-b48c-874de5dfdcc0 · memory: project_webmcp_challenge
 
-## This session (2026-08-28 overnight, continued after a usage-limit cut)
-- **M2-01 DONE** — event log + pure reducer per schema v1 (`src/sim/{types,log,reducer}.ts`): EventLog enforces monotonic time + valid causedBy, exposes `chainOf()`; reducer pure (deep-freeze-proof), total over all 20 EventKinds.
-- **M2-02 DONE** — mulberry32 + SimClock + Engine (replay key in event 0, byte-identical proven incl. step-batching invariance) + message-driven Worker (zero wall-clock). Determinism lint ACTIVE and self-tested (`tools/lint-sim.mjs`: bans Date.now/Math.random/new Date/performance.now in src/sim).
-- **M2-03 DONE** — world systems via the `action.executed` vocabulary (PLAN decision 2026-08-28): flag.set / env.set (values stored REDACTED) / route.set / deploy.rollback (revert-to-superseded semantics); deploy.finished materializes flagsTouched flags; Engine.act() = external-action entry; templates react via onAction().
-- **M2-04 DONE** — flagship `migration-trap` template (`src/sim/migration-trap.ts`): d-201 ships checkout-v2 flag + irreversible sessions migration; declared answer key in meta (solutions: flag-off → roll-forward; trap: rollback). **Both paths verified by scripted runs**: rollback → api DOWN + web degraded ripple + >3× damage vs doing nothing, flag-off can't rescue it; correct path mitigates (damage stops, recovery event threads causedBy to the human action) then resolves on d-202. Errors concentrate on /checkout (decision-grade byRoute); clue log lines drip causedBy-threaded to the deploy. Deterministic under a scripted act() schedule across seeds.
-- **32 unit tests green** (2 files); `npm run smoke` = 16 gates GREEN. Console pane renders the live stream (Run/Pause); visual check at `log/m2-console-stream.png`.
-- **RECORD CORRECTION (Sid caught it):** ChatGPT desktop is INSTALLED + LOGGED IN and M0-01/02 were verified IN ChatGPT desktop on localhost — evidence `log/m0-01-live-invocation.png`, `m0-01-tool-discovery.png`, `m0-02-toolchange-flip.png` (01:37 8/28). Prior STATUS "login/verify pending" was stale carry-forward. Only the attended M0-05/06/07 probe session remains.
+## This session (2026-08-28 early morning)
+- **M2-05 DONE** — human-playable console. Worker gained an `act` message (origin-tagged so act responses don't advance the tick counter); the control deck renders from World with keyed in-place updates (clicks never land on rebuilt nodes): flag toggle rows, per-service roll-forward rows (version + health live), deploy cards carrying the decision-grade metadata (note, migration·irreversible badge, canary Δ, diffstat, live/superseded/rolled-back status; Roll back disabled unless live). `migration-trap` is now the default template; header select swaps to baseline; `?tick=` paces the sim (tests run fast), `?dev=1` gates the old manual health buttons (dev-only as planned).
+- **M2-06 DONE** — living site pane: "aperture supply co." storefront renders from World. Trap fires → red banner ("Checkout is failing — N% of payments erroring"), checkout button flips to Payment failed + shake, feed counts failing checkouts. Naive rollback → full 502 outage overlay. Resolution → heals to confirming orders. Thresholds: api down ⇒ outage; `/checkout` errRate > 5% ⇒ broken.
+- **Smoke 16 → 26 gates, all GREEN**: added full resolution run through UI clicks ONLY (deck seeded pre-run → trap card w/ irreversible-migration badge → site broken → flag-off mitigates → roll-forward resolves, human actions threaded actor=human) and the trap path (rollback → health down + 502 + SchemaMismatch clue → roll-forward heals). 32 unit tests unchanged, green.
+- Fixed the "Run sim" label wrap; sim status line moved to the Controls row (was clipped in the console header).
+- Evidence screenshots: `log/m2-05-deck-seeded.png`, `m2-06-incident-site-broken.png`, `m2-06-catastrophic-outage.png`, `m2-05-resolved.png` (capture tool: `tools/capture-m2-states.mjs`, needs preview on 8918).
+- **M2-close clean-context review DONE** (high effort, full c5a9d37^..HEAD diff): 10 findings. Fixed same-session, each behind a new test or smoke gate: reducer rejects rollbacks with no superseded predecessor (was half-applying); the trap now checks the WORLD applied the rollback, not just phase (a reducer-rejected rollback no longer fires it); roll-forward latched non-re-entrant (double-click shipped two d-202s); template re-seed fully resets pacer/deck/health/storefront (was leaking across scenarios); `?template=` validated against the registry (typo used to wedge the page); hidden tabs pause the pacer (append-only log no longer grinds in forgotten tabs — matters now the dev server is always-on); rollback button requires a revert target to enable; smoke deck-seeded race + capture-tool no-wait fixed; M2 ledger entries backfilled with observed-evidence per the file's own convention. Two architecture findings deferred BY DECISION (dated in PLAN): site-pane scenario binding → M4 template meta; engine-level rollforward semantics → M3 tool vocabulary. Unit tests 32 → 35, smoke 26 → 27 gates, all GREEN.
+- **Always-on dev server**: 8917 now launchd-managed (`com.sidharth.webmcp-airlock-dev`, KeepAlive) so Sid can play the latest working tree anytime — see RUNBOOK (don't `npm run dev`).
 
 ## Observed facts (M0, Chrome 151 flagged + ChatGPT desktop)
 - modelContext on document; registerTool/getTools/executeTool all present; ChatGPT desktop discovers + invokes tools on localhost (M0-01/02 evidence in log/)
@@ -19,26 +20,24 @@
 - Port 8899 occupied; dev 8917, smoke/preview 8918, spike re-serves on 8919 when needed
 
 ## Current state
-- Environment: node 20 ✓, gh authed ✓, Playwright ✓, Chrome 151 + WebMCP flag ENABLED ✓, **ChatGPT desktop installed + logged in ✓** (M0-01/02 done in it), disk ✓
+- Environment: node 20 ✓, gh authed ✓, Playwright ✓, Chrome 151 + WebMCP flag ENABLED ✓, ChatGPT desktop installed + logged in ✓ (M0-01/02 done in it), disk ✓
 - Not yet: deploy CLI auth (deferred until needed), OPENAI_API_KEY (deferred to M4)
 - Stealth intact: no git remotes, nothing deployed
-- Sim scaffolding: page boots Worker seeded-but-paused (baseline template); smoke's hue test uses manual masthead buttons BEFORE starting the sim (no race). Manual health buttons become dev-only in M2-06.
 - Untrusted prompt-injection log.line (schema supports via `untrusted?`) intentionally deferred to M3 when the readOnly log tool exists to surface it.
 
 ## Next actions (fresh session boots here)
-1. M2-05: human-playable console UI — surface act() verbs (flag toggle, rollback, roll-forward) as console controls on the migration-trap template; Playwright hit-tested full resolution through UI clicks only
-2. M2-06: living site pane — simulated product visibly breaks when the trap fires, heals on resolution (Playwright-asserted)
-3. M2-07: Sid's feel review #1 (~Sun 8/30) + b-roll start
-4. M0-05/06/07 attended probes (spike on 8919 + ChatGPT desktop, ~10 min)
-5. At M2 close: clean-context review pass of the full M2 diff (RUNBOOK rule)
+1. M2-07: Sid's feel review #1 (~Sun 8/30) — he resolves the incident himself at http://localhost:8917 (npm run dev → Run sim); b-roll capture starts
+2. M0-05/06/07 attended probes (spike on 8919 + ChatGPT desktop, ~10 min)
+3. M3 start (after feel review): 8–12 tools wired to sim state, mode-gated registration, approval diff-cards — plus the synthetic-agent harness pulled forward (PLAN decision 2026-08-28 late)
 
 ## Blocked / waiting on Sid
+- M2-07 feel review #1: resolve the flagship incident yourself; verdict in STATUS; b-roll starts
 - M0-05/06/07 attended probe session (~10 min, ChatGPT desktop already logged in)
-- M2-07 feel review #1: resolve the flagship incident yourself; b-roll starts
 
 ## Known issues
-- "Run sim" button label wraps to two lines in the console header — cosmetic, fix in M2-05 UI pass
+- (none)
 
 ## How to run/demo
-- `npm run dev` → http://localhost:8917 → **Run sim** (baseline seed 20260828): scripted deploy blip arc. Trap template runs headless for now (`migration-trap` wired to UI in M2-05); see scripted runs in `src/sim/migration-trap.test.ts`
-- `npm run smoke` → 16 gates (typecheck, lint-sim, 32 unit tests, build, 12 browser checks) · `npm test` · `npm run lint:sim`
+- http://localhost:8917 is ALWAYS UP (launchd-managed dev server, see RUNBOOK — don't `npm run dev`) → **Run sim** (migration-trap is the default template, seed 20260828). Play it: watch d-201 land, checkout break in the site pane; flag-off then Roll forward = correct path; Roll back d-201 = the trap (502). `?template=baseline` for the benign arc, `?tick=120` for faster pacing, `?dev=1` for manual health buttons.
+- `npm run smoke` → 27 gates (typecheck, lint-sim, 35 unit tests, build, 23 browser checks incl. full human playthrough of both paths) · `npm test` · `npm run lint:sim`
+- `node tools/capture-m2-states.mjs` (with preview on 8918) → refreshes the four state screenshots in log/

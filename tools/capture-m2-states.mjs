@@ -18,6 +18,8 @@ const shot = (name) => page.screenshot({ path: `log/${name}.png` });
 
 // resolution path
 await page.goto(URL + '?tick=120', { waitUntil: 'networkidle' });
+// deck renders on the worker's async snapshot reply — wait before shooting
+await page.getByTestId('deploy-card-d-200').waitFor({ timeout: 15_000 });
 await shot('m2-05-deck-seeded');
 await page.getByTestId('sim-run').click();
 await page.getByTestId('deploy-card-d-201').waitFor({ timeout: 15_000 });

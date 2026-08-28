@@ -167,10 +167,12 @@ export function reduce(world: World, event: Event): World {
           const i = input as { deployId: string };
           const target = world.deploys.find((d) => d.id === i.deployId);
           if (!target || target.status !== 'live') return world;
-          // most recent superseded deploy for the service becomes live again
+          // most recent superseded deploy for the service becomes live again;
+          // no predecessor → nothing to revert to → the rollback is rejected
           const previous = [...world.deploys]
             .reverse()
             .find((d) => d.service === target.service && d.status === 'superseded');
+          if (!previous) return world;
           return {
             ...world,
             deploys: world.deploys.map((d) => {

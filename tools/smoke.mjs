@@ -129,11 +129,10 @@ try {
       { timeout: 15_000 }
     );
 
-  check(
-    'deck seeded pre-run (flag row + backstory deploy card)',
-    (await play.getByTestId('flag-toggle-new-checkout').isVisible()) &&
-      (await play.getByTestId('deploy-card-d-200').isVisible())
-  );
+  // the deck renders on the worker's async snapshot reply — wait, don't poll-once
+  await play.getByTestId('flag-toggle-new-checkout').waitFor({ timeout: 15_000 });
+  await play.getByTestId('deploy-card-d-200').waitFor({ timeout: 15_000 });
+  check('deck seeded pre-run (flag row + backstory deploy card)', true);
 
   await play.getByTestId('sim-run').click();
   await play.getByTestId('deploy-card-d-201').waitFor({ timeout: 15_000 });
@@ -164,6 +163,20 @@ try {
   check(
     'human actions threaded into the stream (actor=human)',
     (await play.locator('#event-stream li[data-actor="human"]').count()) >= 2
+  );
+
+  // template switch fully resets the console (pacer, deck, status) — the
+  // migration-trap flag row must not survive into baseline
+  await play.getByTestId('template-pick').selectOption('baseline');
+  await play.waitForFunction(
+    () => document.querySelector('#flag-controls').children.length === 0,
+    null,
+    { timeout: 5_000 }
+  );
+  check(
+    're-seed resets pacer + status (paused, Run sim)',
+    (await play.getByTestId('sim-status').textContent()) === 'seeded · paused' &&
+      (await play.getByTestId('sim-run').textContent()) === 'Run sim'
   );
   await play.close();
 

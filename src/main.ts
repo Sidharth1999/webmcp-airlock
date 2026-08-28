@@ -1,17 +1,22 @@
 import './styles/tokens.css';
 import './styles/shell.css';
 import { Engine } from './sim/engine';
+import { templateIds } from './sim/templates';
 import type { SimRequest, SimResponse } from './sim/worker';
 import type { Deploy, Event, Flag, World } from './sim/types';
 import { hasWebMCP } from './webmcp/shim';
 
 type Health = 'ok' | 'degraded' | 'down';
 const HEALTH_STATES: Health[] = ['ok', 'degraded', 'down'];
+const DEFAULT_TEMPLATE = 'migration-trap';
 
 // ?template= picks the scenario, ?tick= paces the sim (ms/tick, tests run
 // fast), ?dev=1 shows the manual health buttons (token demo, M1 leftover).
 const params = new URLSearchParams(location.search);
-const TEMPLATE_ID = params.get('template') ?? 'migration-trap';
+const requestedTemplate = params.get('template') ?? DEFAULT_TEMPLATE;
+const TEMPLATE_ID = templateIds().includes(requestedTemplate)
+  ? requestedTemplate
+  : DEFAULT_TEMPLATE;
 const TICK_INTERVAL_MS = Number(params.get('tick')) || 500;
 const DEV_MODE = params.get('dev') === '1';
 
@@ -39,8 +44,9 @@ app.innerHTML = `
       <header>
         Console
         <select id="template-pick" data-testid="template-pick" title="scenario template">
-          <option value="migration-trap">migration-trap</option>
-          <option value="baseline">baseline</option>
+          ${templateIds()
+            .map((id) => `<option value="${id}">${id}</option>`)
+            .join('')}
         </select>
         <button type="button" id="sim-run" data-testid="sim-run" aria-pressed="false">Run sim</button>
       </header>
@@ -130,6 +136,7 @@ const streamEl = document.querySelector<HTMLOListElement>('#event-stream')!;
 const statusEl = document.querySelector('#sim-status')!;
 const runBtn = document.querySelector<HTMLButtonElement>('#sim-run')!;
 const templatePick = document.querySelector<HTMLSelectElement>('#template-pick')!;
+let running = false;
 let pacer: number | undefined;
 let eventCount = 0;
 let tickCount = 0;
@@ -137,17 +144,45 @@ let world: World | null = null;
 
 templatePick.value = TEMPLATE_ID;
 
+// One source of truth for pacing: tick while running and the tab is visible.
+// A hidden tab pauses (the event log is append-only and unbounded — a
+// forgotten background tab must not grind forever); sim-time is unaffected.
+function syncPacer(): void {
+  const shouldTick = running && !document.hidden;
+  if (shouldTick && pacer === undefined) {
+    pacer = window.setInterval(() => send({ type: 'step' }), TICK_INTERVAL_MS);
+  } else if (!shouldTick && pacer !== undefined) {
+    window.clearInterval(pacer);
+    pacer = undefined;
+  }
+  runBtn.textContent = running ? 'Pause sim' : 'Run sim';
+  runBtn.setAttribute('aria-pressed', String(running));
+}
+document.addEventListener('visibilitychange', syncPacer);
+
+// Full reset: a re-seed swaps worlds, so every piece of rendered state from
+// the old scenario (pacer, deck rows, header health, storefront) goes too.
 function seed(templateId: string): void {
+  running = false;
+  syncPacer();
   streamEl.innerHTML = '';
+  flagControls.innerHTML = '';
+  serviceControls.innerHTML = '';
+  deployControls.innerHTML = '';
   eventCount = 0;
   tickCount = 0;
   world = null;
+  orderNo = ORDER_NO_START;
+  storefront.dataset.state = 'ok';
+  sfBanner.textContent = '';
+  sfBuy.textContent = 'Checkout — $48.00';
+  sfFeed.textContent = '';
+  setHealth('ok');
   statusEl.textContent = 'seeded · paused';
   send({ type: 'seed', templateId, seed: SEED });
   // setup events aren't streamed by 'seed'; pull them so the deck has state
   send({ type: 'snapshot' });
 }
-seed(TEMPLATE_ID);
 
 templatePick.addEventListener('change', () => seed(templatePick.value));
 
@@ -227,7 +262,7 @@ function renderFlagRow(flag: Flag): void {
   btn.textContent = on ? 'Turn off' : 'Turn on';
 }
 
-function renderDeployCard(deploy: Deploy): void {
+function renderDeployCard(deploy: Deploy, canRollback: boolean): void {
   let card = deployControls.querySelector<HTMLDivElement>(`[data-deploy-id="${deploy.id}"]`);
   if (!card) {
     card = document.createElement('div');
@@ -267,7 +302,7 @@ function renderDeployCard(deploy: Deploy): void {
   }
   card.dataset.deployStatus = deploy.status;
   card.querySelector('.dc-status')!.textContent = deploy.status.replace('_', ' ');
-  card.querySelector<HTMLButtonElement>('.dc-rollback')!.disabled = deploy.status !== 'live';
+  card.querySelector<HTMLButtonElement>('.dc-rollback')!.disabled = !canRollback;
 }
 
 const serviceControls = document.querySelector<HTMLDivElement>('#service-controls')!;
@@ -294,7 +329,14 @@ function renderServiceRow(svc: World['services'][number]): void {
 function renderDeck(w: World): void {
   for (const flag of w.flags) renderFlagRow(flag);
   for (const svc of w.services) renderServiceRow(svc);
-  for (const deploy of w.deploys.slice(-MAX_DEPLOY_CARDS)) renderDeployCard(deploy);
+  for (const deploy of w.deploys.slice(-MAX_DEPLOY_CARDS)) {
+    // rollback is only a real affordance when the world can honor it:
+    // the deploy is live AND a superseded predecessor exists to revert to
+    const canRollback =
+      deploy.status === 'live' &&
+      w.deploys.some((d) => d.service === deploy.service && d.status === 'superseded');
+    renderDeployCard(deploy, canRollback);
+  }
   // drop cards that fell out of the window (keeps the deck decision-sized)
   const keep = new Set(w.deploys.slice(-MAX_DEPLOY_CARDS).map((d) => d.id));
   deployControls.querySelectorAll<HTMLDivElement>('[data-deploy-id]').forEach((c) => {
@@ -329,7 +371,8 @@ const sfBanner = document.querySelector<HTMLDivElement>('.sf-banner')!;
 const sfBuy = document.querySelector<HTMLButtonElement>('.sf-buy')!;
 const sfFeed = document.querySelector<HTMLDivElement>('.sf-feed')!;
 const CHECKOUT_BROKEN_ERR = 0.05;
-let orderNo = 4021;
+const ORDER_NO_START = 4021;
+let orderNo = ORDER_NO_START;
 
 function renderSite(w: World): void {
   const api = w.services.find((s) => s.id === 'api');
@@ -359,6 +402,14 @@ function renderSite(w: World): void {
 
 // ---- stream rendering ----------------------------------------------------
 
+function applyHealth(w: World): void {
+  const worst = w.services.reduce<Health>(
+    (acc, s) => (SEVERITY[s.health] > SEVERITY[acc] ? s.health : acc),
+    'ok'
+  );
+  if (document.documentElement.dataset.health !== worst) setHealth(worst);
+}
+
 function renderEvents(events: Event[], w: World): void {
   world = w;
   for (const e of events) {
@@ -378,12 +429,7 @@ function renderEvents(events: Event[], w: World): void {
 
   renderDeck(w);
   renderSite(w);
-
-  const worst = w.services.reduce<Health>(
-    (acc, s) => (SEVERITY[s.health] > SEVERITY[acc] ? s.health : acc),
-    'ok'
-  );
-  if (document.documentElement.dataset.health !== worst) setHealth(worst);
+  applyHealth(w);
 }
 
 worker.onmessage = (e: MessageEvent<SimResponse>) => {
@@ -396,23 +442,20 @@ worker.onmessage = (e: MessageEvent<SimResponse>) => {
     world = msg.world;
     renderDeck(msg.world);
     renderSite(msg.world);
+    applyHealth(msg.world);
   } else if (msg.type === 'error') {
     statusEl.textContent = `sim error: ${msg.message}`;
   }
 };
 
 runBtn.addEventListener('click', () => {
-  if (pacer === undefined) {
-    pacer = window.setInterval(() => send({ type: 'step' }), TICK_INTERVAL_MS);
-    runBtn.textContent = 'Pause sim';
-    runBtn.setAttribute('aria-pressed', 'true');
-  } else {
-    window.clearInterval(pacer);
-    pacer = undefined;
-    runBtn.textContent = 'Run sim';
-    runBtn.setAttribute('aria-pressed', 'false');
-  }
+  running = !running;
+  syncPacer();
 });
+
+// boot: seed() touches deck + storefront elements, so it runs after every
+// element ref above is initialized
+seed(TEMPLATE_ID);
 
 // Test hooks (smoke): in-page determinism probe + live stream counters.
 declare global {

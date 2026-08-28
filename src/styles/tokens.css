@@ -1,0 +1,85 @@
+/* ============================================================
+   Design tokens — Release Airlock instrument console
+   Frozen direction (SPEC): flight deck, not SaaS dashboard.
+   One health hue drives the whole console; one spring family
+   drives all motion (agent motion gets its own signature).
+   ============================================================ */
+
+/* --- Health hue: the console-wide instrument -------------- */
+/* Registered so hue transitions ANIMATE (teal sweeps through
+   amber on its way to red — the needle moves, never teleports). */
+@property --health-hue {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 195;
+}
+@property --health-chroma {
+  syntax: "<number>";
+  inherits: true;
+  initial-value: 0.11;
+}
+
+:root {
+  /* health states set the needle; everything else derives */
+  --health-hue: 195;      /* teal — nominal */
+  --health-chroma: 0.11;
+  transition:
+    --health-hue 900ms var(--ease-settle),
+    --health-chroma 900ms var(--ease-settle);
+}
+:root[data-health="degraded"] {
+  --health-hue: 80;       /* amber */
+  --health-chroma: 0.14;
+}
+:root[data-health="down"] {
+  --health-hue: 25;       /* red */
+  --health-chroma: 0.17;
+}
+
+:root {
+  /* --- derived health colors ------------------------------ */
+  --health: oklch(72% var(--health-chroma) var(--health-hue));
+  --health-bright: oklch(80% 0.16 var(--health-hue));
+  --health-dim: oklch(45% 0.08 var(--health-hue));
+  --health-glow: oklch(70% 0.15 var(--health-hue) / 0.22);
+  --health-surface: oklch(24% 0.03 var(--health-hue));
+
+  /* --- surfaces (instrument dark, slightly cool) ---------- */
+  --bg: oklch(16% 0.012 240);
+  --panel: oklch(20% 0.014 240);
+  --panel-raised: oklch(23% 0.016 240);
+  --line: oklch(30% 0.015 240);
+  --line-strong: oklch(38% 0.02 240);
+
+  /* --- ink ------------------------------------------------ */
+  --ink: oklch(90% 0.01 240);
+  --ink-dim: oklch(68% 0.015 240);
+  --ink-faint: oklch(50% 0.015 240);
+
+  /* --- actor colors (thread of agency) -------------------- */
+  --actor-human: oklch(75% 0.10 250);   /* cool blue — the human hand */
+  --actor-agent: oklch(75% 0.12 310);   /* violet — the agent's presence */
+  --actor-sim: var(--ink-faint);        /* the world just happening */
+
+  /* --- type ----------------------------------------------- */
+  --font-instrument: ui-monospace, "SF Mono", "Cascadia Code", Menlo, monospace;
+  --font-prose: -apple-system, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  --text-xs: 0.6875rem;
+  --text-sm: 0.8125rem;
+  --text-md: 0.9375rem;
+  --text-lg: 1.125rem;
+  --tracking-label: 0.08em;
+
+  /* --- one spring family (SPEC: single motion physics) ---- */
+  --ease-snap: cubic-bezier(0.2, 0.9, 0.25, 1.05);   /* human-initiated: quick, slight overshoot */
+  --ease-settle: cubic-bezier(0.3, 0.7, 0.2, 1);     /* world settling: no overshoot */
+  --dur-snap: 180ms;
+  --dur-settle: 420ms;
+  /* agent motion signature: same family, deliberate and legible */
+  --ease-agent: cubic-bezier(0.4, 0.05, 0.2, 1);
+  --dur-agent: 650ms;
+
+  /* --- spacing / radii ------------------------------------ */
+  --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px; --sp-6: 32px;
+  --r-sm: 4px; --r-md: 8px; --r-lg: 12px;
+}

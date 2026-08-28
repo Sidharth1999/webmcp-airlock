@@ -1,0 +1,122 @@
+/* Console shell: masthead over three instruments —
+   console (left) / site pane (center) / tool rail (right). */
+
+* { box-sizing: border-box; margin: 0; }
+
+html, body, #app { height: 100%; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-prose);
+  font-size: var(--text-md);
+  overflow: hidden;
+}
+
+.shell {
+  height: 100%;
+  display: grid;
+  grid-template-rows: 48px 1fr;
+  grid-template-columns: minmax(300px, 26%) 1fr minmax(260px, 22%);
+  grid-template-areas:
+    "masthead masthead masthead"
+    "console  site     rail";
+  gap: 1px;
+  background: var(--line);
+}
+
+/* --- masthead: the health strip IS the instrument --------- */
+.masthead {
+  grid-area: masthead;
+  background: var(--panel);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: 0 var(--sp-4);
+  border-bottom: 2px solid var(--health);
+  transition: border-color var(--dur-settle) var(--ease-settle);
+}
+.masthead .wordmark {
+  font-family: var(--font-instrument);
+  font-size: var(--text-sm);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--ink-dim);
+}
+.masthead .health-lamp {
+  width: 10px; height: 10px;
+  border-radius: 50%;
+  background: var(--health);
+  box-shadow: 0 0 12px 2px var(--health-glow);
+  transition: background var(--dur-settle) var(--ease-settle),
+              box-shadow var(--dur-settle) var(--ease-settle);
+}
+.masthead .health-word {
+  font-family: var(--font-instrument);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--health-bright);
+}
+.masthead .spacer { flex: 1; }
+
+/* dev-only token demo control (M1); real state drives this from M2 */
+.health-demo { display: flex; gap: var(--sp-1); }
+.health-demo button {
+  font-family: var(--font-instrument);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--ink-dim);
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  padding: var(--sp-1) var(--sp-2);
+  cursor: pointer;
+  transition: color var(--dur-snap) var(--ease-snap),
+              border-color var(--dur-snap) var(--ease-snap);
+}
+.health-demo button:hover { color: var(--ink); }
+.health-demo button[aria-pressed="true"] {
+  color: var(--health-bright);
+  border-color: var(--health-dim);
+}
+
+/* --- the three instruments -------------------------------- */
+.pane {
+  background: var(--panel);
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+}
+.pane > header {
+  font-family: var(--font-instrument);
+  font-size: var(--text-xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  padding: var(--sp-3) var(--sp-4);
+  border-bottom: 1px solid var(--line);
+}
+.pane > .body {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+  padding: var(--sp-4);
+  color: var(--ink-dim);
+  font-size: var(--text-sm);
+}
+
+#console   { grid-area: console; }
+#site-pane { grid-area: site; background: var(--bg); }
+#tool-rail { grid-area: rail; }
+
+.placeholder {
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-md);
+  padding: var(--sp-5);
+  color: var(--ink-faint);
+  font-family: var(--font-instrument);
+  font-size: var(--text-sm);
+  line-height: 1.6;
+}

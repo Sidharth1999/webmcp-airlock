@@ -17,6 +17,7 @@
 - toolchange fires per registration
 - Chrome flag requires full relaunch to take effect (bit us once)
 - Port 8899 occupied by pre-existing service; dev serves on 8917, smoke/preview on 8918
+- M0 spike server retired (was `python -m http.server 8917 --directory spike`, killed 8/28 evening — it was masking the real app on 8917). For remaining M0 probes, re-serve it on **8919**: `python3 -m http.server 8919 --directory spike`
 
 ## Current state
 - Environment: node 20 ✓, gh authed ✓, Playwright ✓ (chromium headless shell 151 installed for repo), Chrome 151 + WebMCP flag ENABLED ✓, ChatGPT desktop DOWNLOADED (login/verify pending), disk 92G free ✓

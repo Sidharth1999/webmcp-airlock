@@ -44,10 +44,18 @@ describe('mode derivation and surface diff (M3-02)', () => {
   });
 });
 
+/** M3-04: proposals are mode-gated in the ENGINE — tests enter a mode first. */
+function enterMode(engine: Engine, to: 'diagnosis' | 'recovery', from = 'triage'): void {
+  engine.record('mode.changed', 'human', {
+    from, to, toolsAdded: [], toolsRemoved: [], reason: 'test setup',
+  });
+}
+
 describe('proposals carry the vocabulary tier + human diff (M3-02)', () => {
   it('flag proposal describes the state transition', () => {
     const engine = new Engine({ templateId: 'migration-trap', seed: 42 });
     engine.step(12); // flag is on mid-incident
+    enterMode(engine, 'recovery');
     const ev = engine.propose('flag.set', { id: 'new-checkout', state: 'off' });
     expect(ev.kind).toBe('action.proposed');
     expect(ev.actor).toBe('agent');
@@ -59,6 +67,7 @@ describe('proposals carry the vocabulary tier + human diff (M3-02)', () => {
   it('rollback proposal names the predecessor that would go live', () => {
     const engine = new Engine({ templateId: 'migration-trap', seed: 42 });
     engine.step(12);
+    enterMode(engine, 'recovery');
     const ev = engine.propose('deploy.rollback', { deployId: 'd-201' });
     expect(ev.data.tier).toBe(1);
     expect(ev.data.diffSummary).toContain('2.0.0 → 1.9.3');
@@ -67,6 +76,7 @@ describe('proposals carry the vocabulary tier + human diff (M3-02)', () => {
 
   it('rollback proposal is honest when there is nothing to revert to', () => {
     const engine = new Engine({ templateId: 'migration-trap', seed: 42 });
+    enterMode(engine, 'recovery');
     const ev = engine.propose('deploy.rollback', { deployId: 'd-200' });
     expect(ev.data.diffSummary).toContain('would be rejected');
   });
@@ -74,6 +84,7 @@ describe('proposals carry the vocabulary tier + human diff (M3-02)', () => {
   it('proposals do not mutate the world', () => {
     const engine = new Engine({ templateId: 'migration-trap', seed: 42 });
     engine.step(12);
+    enterMode(engine, 'recovery');
     const before = JSON.stringify(engine.world);
     engine.propose('flag.set', { id: 'new-checkout', state: 'off' });
     expect(JSON.stringify(engine.world)).toBe(before);
@@ -81,6 +92,7 @@ describe('proposals carry the vocabulary tier + human diff (M3-02)', () => {
 
   it('off-vocabulary proposals throw; record() rejects non-meta kinds', () => {
     const engine = new Engine({ templateId: 'migration-trap', seed: 42 });
+    enterMode(engine, 'recovery');
     expect(() => engine.propose('rm.rf', {})).toThrow(/unknown write tool/);
     expect(() => engine.record('deploy.finished', 'agent', {})).toThrow(/does not accept/);
     expect(writeAction('route.set').tier).toBe(4);
@@ -90,7 +102,8 @@ describe('proposals carry the vocabulary tier + human diff (M3-02)', () => {
 describe('approval flow: proposed → approved → executed, causedBy-chained (M3-03)', () => {
   it('approve executes the write as the agent and threads the full chain', () => {
     const engine = new Engine({ templateId: 'migration-trap', seed: 42 });
-    engine.step(12); // incident live, flag on
+    engine.step(12);
+    enterMode(engine, 'recovery'); // incident live, flag on
     const proposal = engine.propose('flag.set', { id: 'new-checkout', state: 'off' });
     const emitted = engine.decide(proposal.seq, 'approve');
 
@@ -115,6 +128,7 @@ describe('approval flow: proposed → approved → executed, causedBy-chained (M
   it('reject leaves the world untouched and closes the proposal', () => {
     const engine = new Engine({ templateId: 'migration-trap', seed: 42 });
     engine.step(12);
+    enterMode(engine, 'recovery');
     const proposal = engine.propose('deploy.rollback', { deployId: 'd-201' });
     const before = JSON.stringify(engine.world);
     const emitted = engine.decide(proposal.seq, 'reject');
@@ -136,8 +150,74 @@ describe('approval flow: proposed → approved → executed, causedBy-chained (M
   it('an approved rollback proposal still hits the trap — the gate is the human, not magic', () => {
     const engine = new Engine({ templateId: 'migration-trap', seed: 42 });
     engine.step(12);
+    enterMode(engine, 'recovery');
     const proposal = engine.propose('deploy.rollback', { deployId: 'd-201' });
     engine.decide(proposal.seq, 'approve');
     expect(engine.world.services.find((s) => s.id === 'api')!.health).toBe('down');
+  });
+});
+
+describe('write-escalation ladder + dual key (M3-04)', () => {
+  it('any write proposed in triage is blocked with a machine-readable reason', () => {
+    const engine = new Engine({ templateId: 'migration-trap', seed: 42 });
+    engine.step(12);
+    const before = JSON.stringify(engine.world);
+    const ev = engine.propose('flag.set', { id: 'new-checkout', state: 'off' });
+    expect(ev.kind).toBe('action.blocked');
+    expect(ev.data).toMatchObject({ reason: 'not-available-in-mode', mode: 'triage', tier: 3 });
+    expect(JSON.stringify(engine.world)).toBe(before);
+  });
+
+  it('diagnosis allows only the flag tier (mitigate-first doctrine)', () => {
+    const engine = new Engine({ templateId: 'migration-trap', seed: 42 });
+    engine.step(12);
+    enterMode(engine, 'diagnosis');
+    expect(engine.propose('flag.set', { id: 'new-checkout', state: 'off' }).kind).toBe('action.proposed');
+    expect(engine.propose('deploy.rollback', { deployId: 'd-201' }).kind).toBe('action.blocked');
+    expect(engine.propose('env.set', { key: 'X', value: 'y' }).kind).toBe('action.blocked');
+    expect(engine.propose('route.set', { id: 'checkout', target: 'web' }).kind).toBe('action.blocked');
+  });
+
+  it('tier-4 approval without the key is blocked; the proposal survives', () => {
+    const engine = new Engine({ templateId: 'migration-trap', seed: 42 });
+    engine.step(12);
+    enterMode(engine, 'recovery');
+    const proposal = engine.propose('route.set', { id: 'checkout', target: 'web' });
+    const target = () => engine.world.routes.find((r) => r.id === 'checkout')!.target;
+
+    const attempt = engine.decide(proposal.seq, 'approve'); // no key
+    expect(attempt.map((e) => e.kind)).toEqual(['action.blocked']);
+    expect(attempt[0]!.data).toMatchObject({ reason: 'dual-key-required', proposalSeq: proposal.seq });
+    expect(target()).toBe('api'); // untouched
+
+    // the Turn of the Key: same proposal, key held
+    const emitted = engine.decide(proposal.seq, 'approve', 'operator');
+    const approved = emitted.find((e) => e.kind === 'action.approved')!;
+    expect((approved.data as { keyHolder: string }).keyHolder).toBe('operator');
+    expect(emitted.some((e) => e.kind === 'action.executed')).toBe(true);
+    expect(target()).toBe('web');
+  });
+
+  it('lower tiers execute on approval alone; keyHolder is only stamped when given', () => {
+    const engine = new Engine({ templateId: 'migration-trap', seed: 42 });
+    engine.step(12);
+    enterMode(engine, 'recovery');
+    const proposal = engine.propose('flag.set', { id: 'new-checkout', state: 'off' });
+    const emitted = engine.decide(proposal.seq, 'approve');
+    const approved = emitted.find((e) => e.kind === 'action.approved')!;
+    expect('keyHolder' in (approved.data as object)).toBe(false);
+    expect(emitted.some((e) => e.kind === 'action.executed')).toBe(true);
+  });
+
+  it('attempted-vs-blocked is countable straight off the log', () => {
+    const engine = new Engine({ templateId: 'migration-trap', seed: 42 });
+    engine.step(12);
+    engine.propose('deploy.rollback', { deployId: 'd-201' }); // blocked (triage)
+    enterMode(engine, 'recovery');
+    engine.propose('flag.set', { id: 'new-checkout', state: 'off' }); // proposed
+    const blocked = engine.events.filter((e) => e.kind === 'action.blocked');
+    const proposed = engine.events.filter((e) => e.kind === 'action.proposed');
+    expect(blocked).toHaveLength(1);
+    expect(proposed).toHaveLength(1);
   });
 });

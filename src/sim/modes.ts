@@ -28,6 +28,19 @@ export const MODE_WRITE_TOOLS: Record<Mode, string[]> = {
   ],
 };
 
+/**
+ * Write-tier policy per mode (M3-04): which rungs of the escalation ladder
+ * (1 deploy < 2 env < 3 flag < 4 route) are proposable at all. Mirrors
+ * MODE_WRITE_TOOLS — diagnosis unlocks only the flag tier (mitigate-first
+ * doctrine), recovery opens the ladder (tier 4 still needs the dual key
+ * at approval time).
+ */
+export const MODE_TIERS: Record<Mode, ReadonlySet<number>> = {
+  triage: new Set(),
+  diagnosis: new Set([3]),
+  recovery: new Set([1, 2, 3, 4]),
+};
+
 export function currentMode(events: readonly Event[]): Mode {
   for (let i = events.length - 1; i >= 0; i--) {
     const e = events[i]!;

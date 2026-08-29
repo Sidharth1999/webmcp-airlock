@@ -13,7 +13,7 @@ export type SimRequest =
   | { type: 'query'; id: number; query: QueryRequest; viaTool?: string }
   | { type: 'record'; kind: EventKind; actor: Actor; data: Record<string, unknown> }
   | { type: 'propose'; id: number; tool: string; input: Record<string, unknown> }
-  | { type: 'decide'; proposalSeq: number; decision: 'approve' | 'reject' }
+  | { type: 'decide'; proposalSeq: number; decision: 'approve' | 'reject'; keyHolder?: string }
   | { type: 'snapshot' };
 
 export type SimResponse =
@@ -21,7 +21,7 @@ export type SimResponse =
   | { type: 'events'; origin: 'step' | 'act'; events: Event[]; world: World }
   | { type: 'snapshot'; events: readonly Event[]; world: World }
   | { type: 'queryResult'; id: number; result: Record<string, unknown> }
-  | { type: 'proposeResult'; id: number; seq: number }
+  | { type: 'proposeResult'; id: number; seq: number; outcome: 'proposed' | 'blocked'; reason?: string }
   | { type: 'error'; message: string };
 
 let engine: Engine | null = null;
@@ -88,7 +88,13 @@ self.onmessage = (e: MessageEvent<SimRequest>) => {
       case 'propose': {
         if (!engine) throw new Error('propose before seed');
         const ev = engine.propose(msg.tool, msg.input);
-        self.postMessage({ type: 'proposeResult', id: msg.id, seq: ev.seq } satisfies SimResponse);
+        self.postMessage({
+          type: 'proposeResult',
+          id: msg.id,
+          seq: ev.seq,
+          outcome: ev.kind === 'action.blocked' ? 'blocked' : 'proposed',
+          ...(ev.kind === 'action.blocked' ? { reason: String((ev.data as { reason: string }).reason) } : {}),
+        } satisfies SimResponse);
         self.postMessage({
           type: 'events',
           origin: 'act',
@@ -99,7 +105,7 @@ self.onmessage = (e: MessageEvent<SimRequest>) => {
       }
       case 'decide': {
         if (!engine) throw new Error('decide before seed');
-        const events = engine.decide(msg.proposalSeq, msg.decision);
+        const events = engine.decide(msg.proposalSeq, msg.decision, msg.keyHolder);
         self.postMessage({
           type: 'events',
           origin: 'act',

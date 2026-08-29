@@ -158,9 +158,10 @@ function runWorkerQuery(q: QueryRequest, viaTool?: string): Promise<Record<strin
   });
 }
 
+type ProposeOutcome = { seq: number; outcome: 'proposed' | 'blocked'; reason?: string };
 let proposeId = 0;
-const pendingProposes = new Map<number, (r: { seq: number }) => void>();
-function proposeToWorker(tool: string, input: Record<string, unknown>): Promise<{ seq: number }> {
+const pendingProposes = new Map<number, (r: ProposeOutcome) => void>();
+function proposeToWorker(tool: string, input: Record<string, unknown>): Promise<ProposeOutcome> {
   return new Promise((resolve) => {
     const id = ++proposeId;
     pendingProposes.set(id, resolve);
@@ -269,9 +270,11 @@ function summarize(e: Event): string {
     case 'action.proposed':
       return `[tier ${d.tier}] ${d.diffSummary}`;
     case 'action.approved':
-      return `proposal #${d.proposalSeq} approved by human`;
+      return `proposal #${d.proposalSeq} approved by human${d.keyHolder ? ` · key: ${d.keyHolder}` : ''}`;
     case 'action.rejected':
       return `proposal #${d.proposalSeq} REJECTED by human`;
+    case 'action.blocked':
+      return `${d.tool} BLOCKED — ${d.reason}${d.mode ? ` (mode: ${d.mode})` : ''}`;
     case 'tool.called':
       return `${d.tool} · ${d.resultBytes}B`;
     default:
@@ -425,19 +428,30 @@ function addApprovalCard(e: Event): void {
   const card = document.createElement('div');
   card.className = 'approval-card';
   card.dataset.proposalSeq = String(e.seq);
+  card.dataset.tier = String(d.tier);
   card.dataset.testid = `approval-${e.seq}`;
+  const dualKey = d.tier === 4;
   card.innerHTML = `
     <div class="ap-head">
       <span class="ap-actor">agent proposes</span>
-      <span class="ap-tier">tier ${d.tier} · ${d.tierName}</span>
+      <span class="ap-tier">tier ${d.tier} · ${d.tierName}${dualKey ? ' · dual-key' : ''}</span>
     </div>
     <div class="ap-diff"></div>
+    ${
+      dualKey
+        ? `<label class="ap-key"><input type="checkbox" class="ap-key-toggle" data-testid="key-${e.seq}"><span>engage key — held while the agent executes</span></label>`
+        : ''
+    }
     <div class="ap-actions">
-      <button type="button" class="ctl-btn ap-approve" data-act="approve" data-seq="${e.seq}" data-testid="approve-${e.seq}">Approve</button>
+      <button type="button" class="ctl-btn ap-approve" data-act="approve" data-seq="${e.seq}" data-testid="approve-${e.seq}" ${dualKey ? 'disabled' : ''}>Approve</button>
       <button type="button" class="ctl-btn ap-reject" data-act="reject" data-seq="${e.seq}" data-testid="reject-${e.seq}">Reject</button>
     </div>
   `;
   card.querySelector('.ap-diff')!.textContent = d.diffSummary;
+  card.querySelector<HTMLInputElement>('.ap-key-toggle')?.addEventListener('change', (ev) => {
+    const engaged = (ev.target as HTMLInputElement).checked;
+    card.querySelector<HTMLButtonElement>('.ap-approve')!.disabled = !engaged;
+  });
   const anchor = anchorFor(d.tool, d.input);
   if (anchor) {
     anchor.insertAdjacentElement('afterend', card);
@@ -469,10 +483,13 @@ document.querySelector('#control-deck')!.addEventListener('click', (e) => {
   switch (btn.dataset.act) {
     case 'approve':
     case 'reject': {
+      const card = btn.closest<HTMLElement>('.approval-card');
+      const keyEngaged = card?.querySelector<HTMLInputElement>('.ap-key-toggle')?.checked ?? false;
       send({
         type: 'decide',
         proposalSeq: Number(btn.dataset.seq),
         decision: btn.dataset.act === 'approve' ? 'approve' : 'reject',
+        ...(btn.dataset.act === 'approve' && keyEngaged ? { keyHolder: 'operator' } : {}),
       });
       return;
     }
@@ -580,7 +597,7 @@ worker.onmessage = (e: MessageEvent<SimResponse>) => {
     pendingQueries.get(msg.id)?.(msg.result);
     pendingQueries.delete(msg.id);
   } else if (msg.type === 'proposeResult') {
-    pendingProposes.get(msg.id)?.({ seq: msg.seq });
+    pendingProposes.get(msg.id)?.({ seq: msg.seq, outcome: msg.outcome, reason: msg.reason });
     pendingProposes.delete(msg.id);
   } else if (msg.type === 'error') {
     statusEl.textContent = `sim error: ${msg.message}`;

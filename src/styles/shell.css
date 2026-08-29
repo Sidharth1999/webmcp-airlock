@@ -466,3 +466,13 @@ body {
 .ap-reject { color: oklch(70% 0.16 25); }
 .ap-reject:hover:not(:disabled) { border-color: oklch(60% 0.16 25); }
 .proposal-anchor { outline: 1px solid var(--actor-agent); outline-offset: 2px; border-radius: var(--r-sm); }
+.ap-key {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  color: oklch(75% 0.14 80);
+  cursor: pointer;
+}
+.ap-key input { accent-color: oklch(75% 0.14 80); }
+.approval-card[data-tier='4'] { border-color: oklch(60% 0.14 80); }
+#event-stream li[data-kind='action.blocked'] .ev-summary { color: oklch(70% 0.19 25); }

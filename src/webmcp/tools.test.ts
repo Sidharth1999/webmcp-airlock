@@ -28,7 +28,7 @@ function fixture() {
     },
     async (tool, input) => {
       proposals.push({ tool, input });
-      return { seq: 99 };
+      return { seq: 99, outcome: 'proposed' as const };
     },
     mc
   );
@@ -69,10 +69,27 @@ describe('mode-gated registration (M3-02)', () => {
     expect(tombs[0]!.tombstone).toContain('left with recovery mode');
   });
 
-  it('invoking a write tool outside its mode fails as not-registered', async () => {
-    const { tools } = fixture();
-    await expect(tools.invoke('propose_rollback', {})).rejects.toThrow(/not-registered-in-mode/);
+  it('invoking a write tool outside its mode forwards the ATTEMPT to the engine (M3-04)', async () => {
+    // real WebMCP would not list the tool, but drivers/the ungated arm can
+    // still attempt it — the attempt must reach the engine to be logged as
+    // action.blocked (the stub here answers; policy is engine-tested)
+    const { tools, proposals } = fixture();
+    await tools.invoke('propose_rollback', { deployId: 'd-201' });
+    expect(proposals).toEqual([{ tool: 'deploy.rollback', input: { deployId: 'd-201' } }]);
     await expect(tools.invoke('no_such_tool', {})).rejects.toThrow(/unknown tool/);
+  });
+
+  it('a blocked proposal outcome surfaces as status blocked with the reason', async () => {
+    const { mc } = fakeMc();
+    const tools = createAirlockTools(
+      async () => ({ asOfSeq: 1 }),
+      async () => ({ seq: 7, outcome: 'blocked' as const, reason: 'not-available-in-mode' }),
+      mc
+    );
+    const res = JSON.parse(await tools.invoke('propose_rollback', { deployId: 'd-201' }));
+    expect(res.status).toBe('blocked');
+    expect(res.reason).toBe('not-available-in-mode');
+    expect(res.blockedSeq).toBe(7);
   });
 
   it('write tools propose through the vocabulary and report pending status', async () => {

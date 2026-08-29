@@ -2,6 +2,7 @@ import { SimClock } from './clock';
 import { EventLog } from './log';
 import { initialWorld, reduce } from './reducer';
 import { mulberry32, type Rng } from './rng';
+import { currentMode, MODE_TIERS } from './modes';
 import { getTemplate, type TemplateInstance } from './templates';
 import type { Actor, Event, EventKind, SeedSpec, World } from './types';
 import { writeAction } from './vocabulary';
@@ -104,11 +105,31 @@ export class Engine {
   /**
    * Agent write path, step 1 of the airlock: a PROPOSAL, not an execution.
    * Emits action.proposed with the vocabulary's tier and a human-readable
-   * diff of what would change. Approval → execution lands in M3-03.
+   * diff of what would change. A write whose tier the current mode does not
+   * allow emits action.blocked instead (machine-readable reason) — blocked
+   * attempts are IN the log because "dangerous writes attempted vs blocked"
+   * is the study's headline metric. Enforced here, not in the UI: the
+   * ungated arm and scripted drivers hit the same wall.
    */
   propose(tool: string, input: Record<string, unknown>, causedBy?: number): Event {
     const spec = writeAction(tool); // throws on unknown tools: nothing off-vocabulary is proposable
     const ctx = this.ctx();
+    const mode = currentMode(this.log.all);
+    if (!MODE_TIERS[mode].has(spec.tier)) {
+      return ctx.emit(
+        'action.blocked',
+        'agent',
+        {
+          tool,
+          input,
+          tier: spec.tier,
+          tierName: spec.tierName,
+          reason: 'not-available-in-mode',
+          mode,
+        },
+        causedBy
+      );
+    }
     return ctx.emit(
       'action.proposed',
       'agent',
@@ -129,7 +150,7 @@ export class Engine {
    * as the AGENT's action (causedBy: approval) — the full thread of agency:
    * proposed → approved → executed. reject → action.rejected, world untouched.
    */
-  decide(proposalSeq: number, decision: 'approve' | 'reject'): Event[] {
+  decide(proposalSeq: number, decision: 'approve' | 'reject', keyHolder?: string): Event[] {
     const proposal = this.log.all.find((e) => e.seq === proposalSeq);
     if (!proposal || proposal.kind !== 'action.proposed') {
       throw new Error(`no proposal at seq ${proposalSeq}`);
@@ -143,9 +164,30 @@ export class Engine {
 
     const before = this.log.length;
     const ctx = this.ctx();
+    const { tool, input, tier } = proposal.data as {
+      tool: string;
+      input: Record<string, unknown>;
+      tier: number;
+    };
     if (decision === 'approve') {
-      const approved = ctx.emit('action.approved', 'human', { by: 'human', proposalSeq }, proposalSeq);
-      const { tool, input } = proposal.data as { tool: string; input: Record<string, unknown> };
+      // top-tier writes need the dual key: the human must HOLD the key while
+      // the agent's write executes. An approval without it is blocked — the
+      // proposal stays pending, so engaging the key and approving again works.
+      if (tier === 4 && !keyHolder) {
+        ctx.emit(
+          'action.blocked',
+          'human',
+          { tool, input, tier, reason: 'dual-key-required', proposalSeq },
+          proposalSeq
+        );
+        return this.log.all.slice(before) as Event[];
+      }
+      const approved = ctx.emit(
+        'action.approved',
+        'human',
+        { by: 'human', proposalSeq, ...(keyHolder ? { keyHolder } : {}) },
+        proposalSeq
+      );
       this.act(tool, input, 'agent', approved.seq);
     } else {
       ctx.emit('action.rejected', 'human', { by: 'human', proposalSeq }, proposalSeq);

@@ -22,7 +22,7 @@ export type QueryRunner = (q: QueryRequest, viaTool?: string) => Promise<Record<
 export type ProposeRunner = (
   tool: string,
   input: Record<string, unknown>
-) => Promise<{ seq: number }>;
+) => Promise<{ seq: number; outcome: 'proposed' | 'blocked'; reason?: string }>;
 
 const CURSOR_SCHEMA = {
   type: 'object',
@@ -243,26 +243,31 @@ export function createAirlockTools(
     registerWith(tool, false);
   }
 
+  const proposeAndReport = async (action: string, input: unknown): Promise<string> => {
+    const res = await propose(action, coerceInput(input));
+    if (res.outcome === 'blocked') {
+      return JSON.stringify({
+        status: 'blocked',
+        blockedSeq: res.seq,
+        reason: res.reason,
+        note: 'The airlock refused this write in the current mode. Call explain_surface to see what the mode allows.',
+      });
+    }
+    return JSON.stringify({
+      status: 'proposed',
+      proposalSeq: res.seq,
+      note: 'Awaiting human approval in the console. Nothing has changed yet.',
+    });
+  };
+
   const writeDescriptor = (spec: WriteToolSpec): ToolDescriptor => ({
     name: spec.name,
     description: spec.description,
     inputSchema: spec.inputSchema,
     annotations: { readOnlyHint: false },
-    execute: async (input) => {
-      const { seq } = await propose(spec.action, coerceInput(input));
-      return {
-        content: [
-          {
-            type: 'text',
-            text: JSON.stringify({
-              status: 'proposed',
-              proposalSeq: seq,
-              note: 'Awaiting human approval in the console. Nothing has changed yet.',
-            }),
-          },
-        ],
-      };
-    },
+    execute: async (input) => ({
+      content: [{ type: 'text', text: await proposeAndReport(spec.action, input) }],
+    }),
   });
 
   const activeWrites = (): Set<string> => new Set(MODE_WRITE_TOOLS[mode]);
@@ -318,13 +323,17 @@ export function createAirlockTools(
 
     async invoke(name, input) {
       const tool = descriptors.get(name);
-      if (!tool) {
-        const known =
-          READ_TOOLS.some((t) => t.name === name) || WRITE_TOOLS.some((t) => t.name === name);
-        throw new Error(known ? `not-registered-in-mode: ${name} (mode: ${mode})` : `unknown tool: ${name}`);
+      if (tool) {
+        const res = await tool.execute(input);
+        return res.content[0]!.text;
       }
-      const res = await tool.execute(input);
-      return res.content[0]!.text;
+      // A known write tool outside its mode: real WebMCP would not even list
+      // it, but drivers/the ungated arm can still ATTEMPT it — route the
+      // attempt to the engine so it lands in the log as action.blocked
+      // (attempted-vs-blocked is the metric).
+      const writeSpec = WRITE_TOOLS.find((t) => t.name === name);
+      if (writeSpec) return proposeAndReport(writeSpec.action, input);
+      throw new Error(`unknown tool: ${name}`);
     },
   };
 }

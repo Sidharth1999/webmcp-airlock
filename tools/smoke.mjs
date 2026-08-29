@@ -145,13 +145,15 @@ try {
   check('cursor pagination works through the execute path', toolProbe.pagination === true);
 
   // ---- M3-02: mode-gated surface swap + tombstones + narration -----------
-  const blockedInTriage = await page.evaluate(() =>
-    window.__airlock.invoke('propose_rollback', { deployId: 'd-201' }).then(
-      () => 'invoked',
-      (e) => String(e.message ?? e)
-    )
+  const blockedInTriage = JSON.parse(
+    await page.evaluate(() => window.__airlock.invoke('propose_rollback', { deployId: 'd-201' }))
   );
-  check('write tool blocked outside its mode', /not-registered-in-mode/.test(blockedInTriage));
+  check(
+    'write attempt outside its mode is BLOCKED and logged (action.blocked)',
+    blockedInTriage.status === 'blocked' &&
+      blockedInTriage.reason === 'not-available-in-mode' &&
+      (await page.locator('#event-stream li[data-kind="action.blocked"]').count()) >= 1
+  );
 
   await page.getByTestId('mode-recovery').click();
   await page.locator('#tool-list li[data-tool="propose_rollback"][data-status="active"]').waitFor({ timeout: 5_000 });
@@ -230,6 +232,35 @@ try {
       (await page.locator('#event-stream li[data-kind="action.executed"]').first().isVisible())
   );
   await page.getByTestId('audit-toggle').click();
+
+  // ---- M3-04: tier ladder top rung — the Turn of the Key -----------------
+  // (still in recovery mode from the block above)
+  const routeProp = JSON.parse(
+    await page.evaluate(() =>
+      window.__airlock.invoke('propose_route_change', { id: 'checkout', target: 'web' })
+    )
+  );
+  await page.locator(`[data-testid="approval-${routeProp.proposalSeq}"]`).waitFor({ timeout: 5_000 });
+  check(
+    'tier-4 card renders disarmed (approve disabled until the key)',
+    await page.getByTestId(`approve-${routeProp.proposalSeq}`).isDisabled()
+  );
+  await page.getByTestId(`key-${routeProp.proposalSeq}`).check();
+  check(
+    'engaging the key arms approve',
+    !(await page.getByTestId(`approve-${routeProp.proposalSeq}`).isDisabled())
+  );
+  await page.getByTestId(`approve-${routeProp.proposalSeq}`).click();
+  await page.waitForFunction(
+    () => document.querySelector('#event-stream').textContent.includes('key: operator'),
+    null,
+    { timeout: 5_000 }
+  );
+  const routes = JSON.parse(await page.evaluate(() => window.__airlock.invoke('list_changes', {})));
+  check(
+    'keyed approval executes the top-tier write (route retargeted)',
+    routes.routes.find((r) => r.id === 'checkout').target === 'web'
+  );
 
   // ---- M2-05: human resolves the flagship scenario via UI clicks only ----
   // (fast pacing via ?tick= so the run is seconds, not minutes; every state

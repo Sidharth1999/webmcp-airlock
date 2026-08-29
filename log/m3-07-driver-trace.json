@@ -1,0 +1,305 @@
+{
+  "ranAt": "2026-08-29T17-14-21-066Z",
+  "url": "http://localhost:8918/",
+  "outcome": "resolved",
+  "expectedCall": [
+    {
+      "functionName": "airlock_status",
+      "arguments": {}
+    },
+    {
+      "functionName": "airlock_status",
+      "arguments": {}
+    },
+    {
+      "functionName": "airlock_status",
+      "arguments": {}
+    },
+    {
+      "functionName": "list_deploys",
+      "arguments": {}
+    },
+    {
+      "functionName": "read_logs",
+      "arguments": {}
+    },
+    {
+      "functionName": "propose_flag_change",
+      "arguments": {
+        "id": "new-checkout",
+        "state": "off"
+      }
+    },
+    {
+      "functionName": "propose_rollforward",
+      "arguments": {
+        "service": "api"
+      }
+    },
+    {
+      "functionName": "airlock_status",
+      "arguments": {}
+    }
+  ],
+  "calls": [
+    {
+      "functionName": "airlock_status",
+      "arguments": {},
+      "result": {
+        "asOfSeq": 7,
+        "services": [
+          {
+            "id": "web",
+            "health": "ok",
+            "version": "3.1.0"
+          },
+          {
+            "id": "api",
+            "health": "ok",
+            "version": "1.9.3"
+          },
+          {
+            "id": "db",
+            "health": "ok",
+            "version": "15.4"
+          }
+        ],
+        "traffic": {
+          "rps": 0,
+          "errRate": 0,
+          "p95": 0,
+          "byRoute": {}
+        },
+        "damage": {
+          "usersErrored": 0,
+          "ticketsOpened": 0,
+          "revenueLost": 0
+        },
+        "incidentOpen": false
+      }
+    },
+    {
+      "functionName": "airlock_status",
+      "arguments": {},
+      "result": {
+        "asOfSeq": 12,
+        "services": [
+          {
+            "id": "web",
+            "health": "ok",
+            "version": "3.1.0"
+          },
+          {
+            "id": "api",
+            "health": "ok",
+            "version": "1.9.3"
+          },
+          {
+            "id": "db",
+            "health": "ok",
+            "version": "15.4"
+          }
+        ],
+        "traffic": {
+          "rps": 207,
+          "errRate": 0.0014,
+          "p95": 158,
+          "byRoute": {
+            "/checkout": {
+              "rps": 62,
+              "errRate": 0.0021
+            },
+            "/browse": {
+              "rps": 145,
+              "errRate": 0.001
+            }
+          }
+        },
+        "damage": {
+          "usersErrored": 0,
+          "ticketsOpened": 0,
+          "revenueLost": 0
+        },
+        "incidentOpen": false
+      }
+    },
+    {
+      "functionName": "airlock_status",
+      "arguments": {},
+      "result": {
+        "asOfSeq": 24,
+        "services": [
+          {
+            "id": "web",
+            "health": "ok",
+            "version": "3.1.0"
+          },
+          {
+            "id": "api",
+            "health": "degraded",
+            "version": "2.0.0"
+          },
+          {
+            "id": "db",
+            "health": "ok",
+            "version": "15.4"
+          }
+        ],
+        "traffic": {
+          "rps": 236,
+          "errRate": 0.0012,
+          "p95": 165,
+          "byRoute": {
+            "/checkout": {
+              "rps": 71,
+              "errRate": 0.0023
+            },
+            "/browse": {
+              "rps": 165,
+              "errRate": 0.0007
+            }
+          }
+        },
+        "damage": {
+          "usersErrored": 0,
+          "ticketsOpened": 0,
+          "revenueLost": 0
+        },
+        "incidentOpen": true
+      }
+    },
+    {
+      "functionName": "list_deploys",
+      "arguments": {},
+      "result": {
+        "asOfSeq": 25,
+        "deploys": [
+          {
+            "id": "d-201",
+            "service": "api",
+            "version": "2.0.0",
+            "status": "live",
+            "at": 8000,
+            "author": "priya@sim",
+            "areas": [
+              "checkout",
+              "sessions"
+            ],
+            "migration": {
+              "reversible": false
+            },
+            "flags": [
+              "new-checkout"
+            ],
+            "diff": "14f +812 -240",
+            "canary": {
+              "errRate": 0.003,
+              "p95": 11
+            },
+            "note": "checkout v2 + session schema migration (drops legacy_cart; backfill ran in CI)"
+          },
+          {
+            "id": "d-200",
+            "service": "api",
+            "version": "1.9.3",
+            "status": "superseded",
+            "at": 0,
+            "author": "mira@sim",
+            "areas": [
+              "browse"
+            ],
+            "migration": null,
+            "flags": [],
+            "diff": "2f +18 -6",
+            "canary": null,
+            "note": "browse: cache headers tune"
+          }
+        ]
+      }
+    },
+    {
+      "functionName": "read_logs",
+      "arguments": {},
+      "result": {
+        "asOfSeq": 26,
+        "lines": [
+          {
+            "seq": 24,
+            "t": 8000,
+            "service": "api",
+            "level": "error",
+            "msg": "checkout-v2 handler 500: session row missing legacy_cart (migrated)"
+          }
+        ]
+      }
+    },
+    {
+      "functionName": "propose_flag_change",
+      "arguments": {
+        "id": "new-checkout",
+        "state": "off"
+      },
+      "result": {
+        "status": "proposed",
+        "proposalSeq": 32,
+        "note": "Awaiting human approval in the console. Nothing has changed yet."
+      }
+    },
+    {
+      "functionName": "propose_rollforward",
+      "arguments": {
+        "service": "api"
+      },
+      "result": {
+        "status": "proposed",
+        "proposalSeq": 40,
+        "note": "Awaiting human approval in the console. Nothing has changed yet."
+      }
+    },
+    {
+      "functionName": "airlock_status",
+      "arguments": {},
+      "result": {
+        "asOfSeq": 47,
+        "services": [
+          {
+            "id": "web",
+            "health": "ok",
+            "version": "3.1.0"
+          },
+          {
+            "id": "api",
+            "health": "ok",
+            "version": "2.0.1"
+          },
+          {
+            "id": "db",
+            "health": "ok",
+            "version": "15.4"
+          }
+        ],
+        "traffic": {
+          "rps": 239,
+          "errRate": 0.0027,
+          "p95": 232,
+          "byRoute": {
+            "/checkout": {
+              "rps": 72,
+              "errRate": 0.0037
+            },
+            "/browse": {
+              "rps": 167,
+              "errRate": 0.0022
+            }
+          }
+        },
+        "damage": {
+          "usersErrored": 17,
+          "ticketsOpened": 2,
+          "revenueLost": 0.69
+        },
+        "incidentOpen": false
+      }
+    }
+  ]
+}

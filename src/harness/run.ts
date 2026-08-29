@@ -117,6 +117,13 @@ export function runHarness(cfg: HarnessConfig): HarnessResult {
     };
 
     if (!status.incidentOpen) {
+      if (mem.planB && !mem.rolledForward) {
+        // health is green but only because the flag is off — mitigated is
+        // not fixed; ship the real build forward
+        if (write('deploy.rollforward', { service: 'api' }) === 'blocked') escalate();
+        else mem.rolledForward = true;
+        continue;
+      }
       if (mem.rolledForward || turns > 6) break; // resolved (or nothing ever broke)
       continue; // pre-incident: keep watch
     }

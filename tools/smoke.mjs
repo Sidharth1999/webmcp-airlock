@@ -355,6 +355,15 @@ try {
   check('roll-forward heals the site from catastrophic', true);
   await trap.close();
 
+  // ---- M3-07: unattended full-scenario agent driver (plumbing loop) ------
+  const driver = spawnSync('node', ['tools/agent-driver.mjs', URL], {
+    stdio: ['ignore', 'pipe', 'pipe'],
+  });
+  check('agent driver resolves the scenario unattended', driver.status === 0);
+  if (driver.status !== 0) {
+    console.error(driver.stdout?.toString() ?? '', driver.stderr?.toString() ?? '');
+  }
+
   check('no page errors', pageErrors.length === 0);
   if (pageErrors.length) console.error('[smoke] page errors:', pageErrors);
 } finally {

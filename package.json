@@ -10,7 +10,9 @@
     "typecheck": "tsc --noEmit",
     "test": "vitest run",
     "lint:sim": "node tools/lint-sim.mjs",
-    "smoke": "node tools/smoke.mjs"
+    "smoke": "node tools/smoke.mjs",
+    "driver": "node tools/agent-driver.mjs",
+    "harness": "vitest run src/harness"
   },
   "devDependencies": {
     "@types/node": "^26.4.0",

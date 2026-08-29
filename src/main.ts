@@ -118,6 +118,10 @@ app.innerHTML = `
       </div>
     </section>
 
+    <div id="agent-cursor" data-testid="agent-cursor" data-state="off" aria-hidden="true">
+      <span class="ac-dot"></span><span class="ac-label">agent</span>
+    </div>
+
     <section class="pane" id="tool-rail" aria-label="Tool rail">
       <header>
         Tools
@@ -129,7 +133,10 @@ app.innerHTML = `
         </div>
       </header>
       <div class="body">
-        <div class="rail-status">WebMCP on this page: <span id="webmcp-status">…</span></div>
+        <div class="rail-status">
+          <span id="agent-conn" data-testid="agent-conn" data-state="off">agent: none seen</span><br/>
+          WebMCP on this page: <span id="webmcp-status">…</span>
+        </div>
         <ul id="tool-list" data-testid="tool-list"></ul>
         <div class="placeholder rail-note">Write tools are mode-gated: they appear here only as the incident unlocks them, behind approval (M3-02+). Tombstones will narrate every change to this surface.</div>
       </div>
@@ -232,6 +239,8 @@ function seed(templateId: string): void {
   flagControls.innerHTML = '';
   serviceControls.innerHTML = '';
   deployControls.innerHTML = '';
+  topologyEl.innerHTML = '';
+  delete topologyEl.dataset.key;
   eventCount = 0;
   tickCount = 0;
   world = null;
@@ -501,6 +510,70 @@ function resolveApprovalCard(proposalSeq: number): void {
   pendingCards.delete(proposalSeq);
 }
 
+// ---- agent presence layer (M3-06): the agent is SOMEWHERE ---------------
+// A labeled cursor glides (agent motion signature: deliberate, legible) to
+// whatever the agent last touched; telestrator rings pulse on annotated
+// nodes; the conn chip says whether an agent is live. Mechanics only —
+// visual language belongs to the UX pass (docs/ux-debt.md).
+
+const agentCursor = document.querySelector<HTMLDivElement>('#agent-cursor')!;
+const agentConn = document.querySelector<HTMLElement>('#agent-conn')!;
+let agentIdleTimer: number | undefined;
+
+function moveAgentCursor(target: Element | null): void {
+  if (!target) return;
+  const r = target.getBoundingClientRect();
+  if (r.width === 0) return;
+  agentCursor.style.transform = `translate(${Math.round(r.left - 10)}px, ${Math.round(r.top + r.height / 2)}px)`;
+  agentCursor.dataset.state = 'active';
+  agentConn.dataset.state = 'live';
+  agentConn.textContent = 'agent: working';
+  window.clearTimeout(agentIdleTimer);
+  agentIdleTimer = window.setTimeout(() => {
+    agentCursor.dataset.state = 'idle';
+    agentConn.dataset.state = 'idle';
+    agentConn.textContent = 'agent: idle';
+  }, 4000);
+}
+
+function agentTargetFor(e: Event): Element | null {
+  const d = e.data as Record<string, unknown>;
+  switch (e.kind) {
+    case 'tool.called':
+      return document.querySelector(`#tool-list li[data-tool="${d.tool}"]`);
+    case 'action.proposed':
+      return document.querySelector(`[data-testid="approval-${e.seq}"]`);
+    case 'action.blocked':
+      return document.querySelector('#tool-list');
+    case 'action.executed':
+      return anchorFor(String(d.tool), (d.input ?? {}) as Record<string, unknown>);
+    default:
+      return null;
+  }
+}
+
+function telestrate(target: EntityRef): void {
+  const sel =
+    target.type === 'service'
+      ? `.topo-node[data-service="${target.id}"]`
+      : target.type === 'deploy'
+        ? `.deploy-card[data-deploy-id="${target.id}"]`
+        : `.ctl-row[data-flag-id="${target.id}"]`;
+  const el = document.querySelector<HTMLElement>(sel);
+  if (!el) return;
+  el.classList.add('telestrated');
+  window.setTimeout(() => el.classList.remove('telestrated'), 2600);
+}
+
+// dev/driver hook until an annotate tool earns a slot in the 12-tool budget
+declare global {
+  interface Window {
+    __annotate: (target: EntityRef) => void;
+  }
+}
+window.__annotate = (target) =>
+  send({ type: 'record', kind: 'annotation.added', actor: 'agent', data: { target } });
+
 // ---- co-presence selection (M3-05) ---------------------------------------
 // Clicking any node is pointing at it: selection.changed enters the log and
 // the agent's read tools scope to it. Click again to clear.
@@ -680,21 +753,31 @@ function renderTopology(w: World): void {
     return 1 + Math.max(...svc.deps.map((d) => depth(d, seen)));
   };
   const ordered = [...w.services].sort((a, b) => depth(b.id) - depth(a.id));
-  topologyEl.innerHTML = ordered
-    .map(
-      (s, i) => `
-      ${i > 0 ? '<span class="topo-link" aria-hidden="true"></span>' : ''}
-      <span class="topo-node" data-health="${s.health}" data-service="${s.id}">
-        <span class="topo-dot"></span>
-        <span class="topo-id"></span>
-        <span class="topo-ver"></span>
-      </span>`
-    )
-    .join('');
-  topologyEl.querySelectorAll('.topo-node').forEach((node, i) => {
-    node.querySelector('.topo-id')!.textContent = ordered[i]!.id;
-    node.querySelector('.topo-ver')!.textContent = ordered[i]!.version;
-  });
+  // keyed in-place update: rebuilding every tick would wipe telestrator
+  // rings and selection state mid-pulse
+  const key = ordered.map((s) => s.id).join(',');
+  if (topologyEl.dataset.key !== key) {
+    topologyEl.dataset.key = key;
+    topologyEl.innerHTML = ordered
+      .map(
+        (s, i) => `
+        ${i > 0 ? '<span class="topo-link" aria-hidden="true"></span>' : ''}
+        <span class="topo-node" data-service="${s.id}">
+          <span class="topo-dot"></span>
+          <span class="topo-id"></span>
+          <span class="topo-ver"></span>
+        </span>`
+      )
+      .join('');
+    topologyEl.querySelectorAll('.topo-node').forEach((node, i) => {
+      node.querySelector('.topo-id')!.textContent = ordered[i]!.id;
+    });
+  }
+  for (const s of ordered) {
+    const node = topologyEl.querySelector<HTMLElement>(`[data-service="${s.id}"]`)!;
+    node.dataset.health = s.health;
+    node.querySelector('.topo-ver')!.textContent = s.version;
+  }
 }
 
 // ---- living site pane (M2-06): the world state, rendered as the product --
@@ -759,7 +842,10 @@ function renderEvents(events: Event[], w: World): void {
     } else if (e.kind === 'action.proposed') addApprovalCard(e);
     else if (e.kind === 'action.approved' || e.kind === 'action.rejected') {
       resolveApprovalCard((e.data as { proposalSeq: number }).proposalSeq);
+    } else if (e.kind === 'annotation.added' && e.actor === 'agent') {
+      telestrate((e.data as { target: EntityRef }).target);
     }
+    if (e.actor === 'agent') moveAgentCursor(agentTargetFor(e));
   }
   while (streamEl.children.length > 200) streamEl.firstElementChild!.remove();
   streamEl.lastElementChild?.scrollIntoView({ block: 'nearest' });

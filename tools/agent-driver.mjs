@@ -59,6 +59,11 @@ await page.getByTestId('mode-diagnosis').click();
 // --- agent proposes mitigation; human approves via the card ---------------
 const flagProp = await invoke('propose_flag_change', { id: 'new-checkout', state: 'off' });
 if (flagProp.status !== 'proposed') throw new Error(`flag proposal: ${JSON.stringify(flagProp)}`);
+// presence evidence (M3-06): agent cursor + proposal card mid-run
+await page.getByTestId(`approval-${flagProp.proposalSeq}`).waitFor({ timeout: 10_000 });
+await page.evaluate(() => window.__annotate({ type: 'deploy', id: 'd-201' }));
+await page.waitForTimeout(400);
+await page.screenshot({ path: 'log/m3-06-presence.png' });
 await page.getByTestId(`approve-${flagProp.proposalSeq}`).click();
 await healthIs('ok');
 console.log('[driver] mitigation approved + executed — health green');

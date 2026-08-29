@@ -293,6 +293,16 @@ try {
   const unscoped = JSON.parse(await page.evaluate(() => window.__airlock.invoke('read_logs', {})));
   check('clicking again clears the selection (reads unscope)', unscoped.scopedTo === undefined);
 
+  // ---- M3-06: agent presence mechanics -----------------------------------
+  check(
+    'agent cursor is on stage after agent activity (conn chip live)',
+    ['active', 'idle'].includes(await page.getByTestId('agent-cursor').getAttribute('data-state')) &&
+      ['live', 'idle'].includes(await page.getByTestId('agent-conn').getAttribute('data-state'))
+  );
+  await page.evaluate(() => window.__annotate({ type: 'service', id: 'api' }));
+  await page.locator('.topo-node[data-service="api"].telestrated').waitFor({ timeout: 5_000 });
+  check('telestrator ring pulses on the annotated node', true);
+
   // ---- M2-05: human resolves the flagship scenario via UI clicks only ----
   // (fast pacing via ?tick= so the run is seconds, not minutes; every state
   // assertion is on rendered DOM — nothing reaches into the engine)

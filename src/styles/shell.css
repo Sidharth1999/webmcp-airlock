@@ -297,6 +297,53 @@ body {
 .topo-ver { color: var(--ink-ghost); font-variant-numeric: tabular-nums; }
 .topo-link { width: 12px; height: 1px; background: var(--line-strong); }
 
+/* --- agent presence (M3-06): labeled cursor + telestrator -- */
+#agent-cursor {
+  position: fixed;
+  top: 0; left: 0;
+  z-index: 40;
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  pointer-events: none;
+  opacity: 0;
+  transform: translate(-40px, -40px);
+  transition: transform var(--dur-agent) var(--ease-agent),
+              opacity var(--dur-settle) var(--ease-settle);
+}
+#agent-cursor[data-state='active'] { opacity: 1; }
+#agent-cursor[data-state='idle'] { opacity: 0.35; }
+#agent-cursor .ac-dot {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: var(--actor-agent);
+  box-shadow: 0 0 10px 2px oklch(76% 0.13 310 / 0.45);
+}
+#agent-cursor .ac-label {
+  font-family: var(--font-instrument);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: oklch(96% 0.02 310);
+  background: oklch(50% 0.14 310 / 0.75);
+  border-radius: 999px;
+  padding: 1px var(--sp-2);
+}
+#agent-conn[data-state='live'] { color: var(--actor-agent); }
+#agent-conn[data-state='idle'] { color: var(--ink-faint); }
+@keyframes telestrate-pulse {
+  0% { outline-color: oklch(76% 0.13 310 / 0); outline-offset: 8px; }
+  20% { outline-color: var(--actor-agent); outline-offset: 3px; }
+  80% { outline-color: var(--actor-agent); outline-offset: 3px; }
+  100% { outline-color: oklch(76% 0.13 310 / 0); outline-offset: 8px; }
+}
+.telestrated {
+  outline: 2px solid var(--actor-agent);
+  border-radius: var(--r-sm);
+  animation: telestrate-pulse 2.5s var(--ease-agent);
+}
+
 /* co-presence selection: the human's hand is blue, thin, unmistakable */
 .topo-node, .ctl-row, .deploy-card { cursor: pointer; }
 [data-selected='true'] {

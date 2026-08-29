@@ -199,6 +199,11 @@ export interface AirlockTools {
    * (caller records mode.changed into the log with it).
    */
   setMode(to: Mode): { from: Mode; added: string[]; removed: string[] };
+  /**
+   * Fresh-world ritual (template re-seed): back to triage AND forget the
+   * previous scenario's tombstones — ghosts must not haunt a new world.
+   */
+  reset(): void;
   /** True if tools registered against a real modelContext. */
   registered: boolean;
 }
@@ -295,6 +300,11 @@ export function createAirlockTools(
       }
       mode = to;
       return { from, added, removed };
+    },
+
+    reset() {
+      this.setMode('triage');
+      tombstones.clear();
     },
 
     list() {

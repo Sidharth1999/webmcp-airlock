@@ -253,7 +253,7 @@ function seed(templateId: string): void {
   sfFeed.textContent = '';
   setHealth('ok');
   statusEl.textContent = 'seeded · paused';
-  airlockTools.setMode('triage'); // fresh world, fresh ritual
+  airlockTools.reset(); // fresh world, fresh ritual — and no ghost tombstones
   renderToolRail(airlockTools);
   send({ type: 'seed', templateId, seed: SEED });
   // setup events aren't streamed by 'seed'; pull them so the deck has state
@@ -634,14 +634,15 @@ document.querySelector('#audit-toggle')!.addEventListener('click', () => {
 document.querySelector('#control-deck')!.addEventListener('click', (e) => {
   const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-act]');
   if (!btn) {
-    // not a control: a click on a node is the human pointing at it
+    // not a control: a click on a NODE is the human pointing at it. Other
+    // interactive elements in the deck (audit toggle, dual-key checkbox) and
+    // dead space are NOT selection gestures — they must never clear or move
+    // the selection. Click-again on the selected node is the clear gesture.
+    if ((e.target as HTMLElement).closest('button, input, label, select, a')) return;
     const target = selectableTarget(e.target as HTMLElement);
-    if (target !== null || selection !== null) {
+    if (target !== null) {
       const same =
-        target !== null &&
-        selection !== null &&
-        target.type === selection.type &&
-        target.id === selection.id;
+        selection !== null && target.type === selection.type && target.id === selection.id;
       setSelection(same ? null : target);
     }
     return;
@@ -847,7 +848,15 @@ function renderEvents(events: Event[], w: World): void {
     }
     if (e.actor === 'agent') moveAgentCursor(agentTargetFor(e));
   }
-  while (streamEl.children.length > 200) streamEl.firstElementChild!.remove();
+  // cap the stream DOM, but never evict the agency trail — the audit view is
+  // this same DOM filtered by CSS, and action/mode rows are its whole point
+  const AUDIT_KINDS = /^action\.|^tool\.called$|^mode\.changed$/;
+  let victim = streamEl.firstElementChild;
+  while (streamEl.children.length > 200 && victim) {
+    const next = victim.nextElementSibling;
+    if (!AUDIT_KINDS.test((victim as HTMLElement).dataset.kind ?? '')) victim.remove();
+    victim = next;
+  }
   streamEl.lastElementChild?.scrollIntoView({ block: 'nearest' });
 
   eventCount += events.length;

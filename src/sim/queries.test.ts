@@ -134,3 +134,39 @@ describe('read-tool query contract (M3-01)', () => {
     expect(l.asOfSeq).toBeGreaterThan(0); // setup events exist
   });
 });
+
+describe('cursor vs co-presence (M3-close review)', () => {
+  it('a deploys cursor minted before a selection change never repeats items', () => {
+    const e = new Engine({ templateId: 'migration-trap', seed: 7 });
+    e.step(12); // d-200 + d-201 live
+    // doctor a mixed-service history so the selection filter bites:
+    // append-order [a0(api), a1(api), w2(web), w3(web), w4(web)]
+    const proto = e.world.deploys[0]!;
+    const mk = (id: string, service: string) => ({ ...proto, id, service });
+    const world = {
+      ...e.world,
+      deploys: [mk('a0', 'api'), mk('a1', 'api'), mk('w2', 'web'), mk('w3', 'web'), mk('w4', 'web')],
+    };
+    const first = runQuery(e.events, world, { kind: 'deploys' }) as {
+      deploys: Array<{ id: string }>;
+      nextCursor?: number;
+    };
+    expect(first.deploys.map((d) => d.id)).toEqual(['w4', 'w3', 'w2']);
+    expect(first.nextCursor).toBeDefined();
+
+    // the human points at web mid-walk
+    const withSelection = [
+      ...e.events,
+      {
+        seq: e.events.length + 1000, t: 0, kind: 'selection.changed' as const,
+        actor: 'human' as const, data: { by: 'human', target: { type: 'service', id: 'web' } },
+      },
+    ];
+    const cont = runQuery(withSelection, world, { kind: 'deploys', cursor: first.nextCursor }) as {
+      deploys: Array<{ id: string }>;
+    };
+    const seen = new Set(first.deploys.map((d) => d.id));
+    // continuation must contain no repeats and nothing undefined
+    expect(cont.deploys.every((d) => d && !seen.has(d.id))).toBe(true);
+  });
+});

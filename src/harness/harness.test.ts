@@ -1,4 +1,6 @@
 import { describe, expect, it } from 'vitest';
+import { Engine } from '../sim/engine';
+import { computeMetrics } from './metrics';
 import { runHarness } from './run';
 
 // M3-07: the synthetic-agent behavior loop — and the thesis, measured.
@@ -58,5 +60,38 @@ describe('synthetic harness: the counterfactual (M3-07)', () => {
   it('agent overhead is measured (tool.called audited with bytes)', () => {
     expect(naiveGated.metrics.toolCalls).toBeGreaterThan(3);
     expect(naiveGated.metrics.toolBytes).toBeGreaterThan(500);
+  });
+
+  it('accepts corpus params: a variant candidate still plays out end-to-end', () => {
+    // valuePerReq=0.08 is a corpus variant (compiler-verified); the harness
+    // must run it, not the defaults — double the damage rate must show up in
+    // the damage metric of an otherwise-identical run
+    const base = runHarness({ seed: 42, persona: 'diligent', arm: 'gated' });
+    const pricey = runHarness({
+      seed: 42, persona: 'diligent', arm: 'gated', params: { valuePerReq: 0.08 },
+    });
+    expect(pricey.metrics.resolvedAtEnd).toBe(true);
+    expect(pricey.metrics.correctPath).toBe(true);
+    expect(pricey.metrics.damageRevenueLost).toBeGreaterThan(base.metrics.damageRevenueLost * 1.5);
+  });
+});
+
+describe('metrics vs the dual key (M3-close review)', () => {
+  it('a human-side block does not double-count the agent attempt', () => {
+    const engine = new Engine({ templateId: 'migration-trap', seed: 42 });
+    engine.step(10);
+    engine.record('mode.changed', 'human', {
+      from: 'triage', to: 'recovery', toolsAdded: [], toolsRemoved: [], reason: 'test',
+    });
+    const prop = engine.propose('route.set', { id: 'checkout', target: 'web' });
+    expect(prop.kind).toBe('action.proposed');
+    engine.decide(prop.seq, 'approve'); // no key -> action.blocked, actor=human
+    let m = computeMetrics(engine.events);
+    expect(m.writesAttempted).toBe(1); // one proposal = one attempt
+    expect(m.writesBlocked).toBe(0); // the AGENT was never refused pre-proposal
+    engine.decide(prop.seq, 'approve', 'operator');
+    m = computeMetrics(engine.events);
+    expect(m.writesAttempted).toBe(1);
+    expect(m.writesExecuted).toBe(1);
   });
 });

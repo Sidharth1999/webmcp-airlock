@@ -100,13 +100,19 @@ function deploys(
   // co-presence: a selected service/deploy narrows the list to that service
   const sel = currentSelection(events);
   const svc = selectedService(sel, world);
-  // world.deploys is append-ordered; cursor = append-index (stable under new
-  // deploys landing mid-walk): "return items with index strictly below cursor"
-  const all = svc ? world.deploys.filter((d) => d.service === svc) : world.deploys;
-  const startIdx = (cursor ?? all.length) - 1;
+  // world.deploys is append-ordered; cursor = append-index into the
+  // UNFILTERED list (stable under new deploys landing mid-walk AND under the
+  // selection changing mid-walk): "return items with index strictly below
+  // cursor", the service filter applied during the walk
+  const startIdx = (cursor ?? world.deploys.length) - 1;
   const page: typeof world.deploys = [];
-  for (let i = startIdx; i >= 0 && page.length < DEPLOY_PAGE; i--) page.push(all[i]!);
-  const oldestReturned = startIdx - page.length + 1;
+  let oldestReturned = startIdx + 1;
+  for (let i = startIdx; i >= 0 && page.length < DEPLOY_PAGE; i--) {
+    const d = world.deploys[i]!;
+    if (svc && d.service !== svc) continue;
+    page.push(d);
+    oldestReturned = i;
+  }
   const out: Record<string, unknown> = {
     asOfSeq: asOf(events),
     deploys: page.map((d) => ({
@@ -128,7 +134,7 @@ function deploys(
       note: d.note ?? null,
     })),
   };
-  if (page.length > 0 && oldestReturned > 0) out.nextCursor = oldestReturned;
+  if (page.length === DEPLOY_PAGE && oldestReturned > 0) out.nextCursor = oldestReturned;
   if (svc) out.scopedTo = { humanSelection: sel, service: svc };
   return out;
 }

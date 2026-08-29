@@ -278,3 +278,28 @@ describe('write-escalation ladder + dual key (M3-04)', () => {
     expect(proposed).toHaveLength(1);
   });
 });
+
+describe('approval-time re-check (M3-close review): the gate holds even if the mode moved', () => {
+  it('approving a proposal from an exited mode blocks instead of executing; proposal survives', () => {
+    const engine = new Engine({ templateId: 'migration-trap', seed: 42 });
+    engine.step(10); // d-201 live, flag on
+    enterMode(engine, 'recovery');
+    const prop = engine.propose('flag.set', { id: 'new-checkout', state: 'off' });
+    expect(prop.kind).toBe('action.proposed');
+
+    engine.record('mode.changed', 'human', {
+      from: 'recovery', to: 'triage', toolsAdded: [], toolsRemoved: [], reason: 'operator backed out',
+    });
+    const decided = engine.decide(prop.seq, 'approve');
+    expect(decided.map((e) => e.kind)).toEqual(['action.blocked']);
+    expect((decided[0]!.data as { reason: string }).reason).toBe('not-available-in-mode');
+    // the world did not move
+    expect(engine.world.flags.find((f) => f.id === 'new-checkout')?.state).toBe('on');
+
+    // re-entering the mode and approving again works (same shape as dual-key)
+    enterMode(engine, 'recovery');
+    const redo = engine.decide(prop.seq, 'approve');
+    expect(redo.some((e) => e.kind === 'action.executed' && e.actor === 'agent')).toBe(true);
+    expect(engine.world.flags.find((f) => f.id === 'new-checkout')?.state).toBe('off');
+  });
+});

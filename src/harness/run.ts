@@ -19,6 +19,8 @@ export type Arm = 'gated' | 'ungated';
 
 export interface HarnessConfig {
   templateId?: string;
+  /** overrides on the template's defaultParams (corpus candidates carry these) */
+  params?: Record<string, unknown>;
   seed: number;
   persona: Persona;
   arm: Arm;
@@ -45,7 +47,7 @@ interface AgentMemory {
 export function runHarness(cfg: HarnessConfig): HarnessResult {
   const templateId = cfg.templateId ?? 'migration-trap';
   const maxTurns = cfg.maxTurns ?? 40;
-  const engine = new Engine({ templateId, seed: cfg.seed });
+  const engine = new Engine({ templateId, seed: cfg.seed, params: cfg.params });
   const transcript: string[] = [];
   const mem: AgentMemory = {
     planB: false,

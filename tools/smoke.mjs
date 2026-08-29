@@ -284,6 +284,15 @@ try {
     scopedStatus.humanSelection?.id === 'api' &&
       (await page.locator('#event-stream li[data-kind="selection.changed"]').count()) >= 1
   );
+  // review fix: deck controls are not selection gestures — toggling audit
+  // (or any non-node control) must never clear or move the selection
+  await page.getByTestId('audit-toggle').click();
+  await page.getByTestId('audit-toggle').click();
+  check(
+    'audit toggle does not steal the selection (reads stay scoped)',
+    (await page.locator('.topo-node[data-service="api"][data-selected="true"]').count()) === 1
+  );
+
   await page.locator('.topo-node[data-service="api"]').click(); // toggle off
   await page.waitForFunction(
     () => !document.querySelector('[data-selected="true"]'),
@@ -302,6 +311,19 @@ try {
   await page.evaluate(() => window.__annotate({ type: 'service', id: 'api' }));
   await page.locator('.topo-node[data-service="api"].telestrated').waitFor({ timeout: 5_000 });
   check('telestrator ring pulses on the annotated node', true);
+
+  // review fix: a template re-seed clears the previous scenario's tombstones
+  // (this page left recovery mode earlier, so ghosts would render pre-fix)
+  await page.getByTestId('template-pick').selectOption('baseline');
+  await page.waitForFunction(
+    () => document.querySelectorAll('#tool-list li[data-status="active"]').length === 6,
+    null,
+    { timeout: 5_000 }
+  );
+  check(
+    'template re-seed exorcises ghost tombstones from the rail',
+    (await page.locator('#tool-list li[data-status="tombstoned"]').count()) === 0
+  );
 
   // ---- M2-05: human resolves the flagship scenario via UI clicks only ----
   // (fast pacing via ?tick= so the run is seconds, not minutes; every state
@@ -353,6 +375,18 @@ try {
   check(
     'human actions threaded into the stream (actor=human)',
     (await play.locator('#event-stream li[data-actor="human"]').count()) >= 2
+  );
+
+  // review fix: the DOM cap must not evict the agency trail — the audit view
+  // is this same DOM filtered by CSS, so action rows must survive eviction
+  await play.waitForFunction(
+    () => document.querySelectorAll('#event-stream li').length >= 200,
+    null,
+    { timeout: 60_000 }
+  );
+  check(
+    'stream cap preserves the agency trail (action rows survive eviction)',
+    (await play.locator('#event-stream li[data-kind="action.executed"]').count()) >= 4
   );
 
   // template switch fully resets the console (pacer, deck, status) — the

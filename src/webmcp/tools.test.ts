@@ -125,3 +125,14 @@ describe('mode-gated registration (M3-02)', () => {
     }
   });
 });
+
+describe('reset (M3-close review): a fresh world gets a fresh rail', () => {
+  it('reset() returns to triage and clears tombstones from the previous scenario', () => {
+    const { tools, registered } = fixture();
+    tools.setMode('recovery');
+    tools.reset();
+    expect(tools.mode()).toBe('triage');
+    expect(tools.list().filter((t) => t.status === 'tombstoned')).toHaveLength(0);
+    expect(registered.size).toBe(6); // write registrations really aborted
+  });
+});

@@ -68,6 +68,11 @@ export function computeMetrics(
         proposals++;
         break;
       case 'action.blocked': {
+        // only agent-side refusals (pre-proposal mode gate) are new attempts;
+        // human-side blocks (dual-key miss, mode moved before approval) belong
+        // to a proposal that was already counted — counting them again would
+        // double-count one agent attempt
+        if (e.actor !== 'agent') break;
         writesBlocked++;
         const key = actionKey(String(d.tool), (d.input ?? {}) as Record<string, unknown>);
         if (meta?.traps.includes(key)) dangerousWritesBlocked++;

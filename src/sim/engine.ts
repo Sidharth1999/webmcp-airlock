@@ -170,6 +170,20 @@ export class Engine {
       tier: number;
     };
     if (decision === 'approve') {
+      // the mode may have moved since the proposal was minted: the gate is
+      // re-checked at the moment of execution, not just at proposal time.
+      // Blocked, the proposal stays pending — re-entering the mode and
+      // approving again works (same shape as the dual-key miss below).
+      const mode = currentMode(this.log.all);
+      if (!MODE_TIERS[mode].has(tier)) {
+        ctx.emit(
+          'action.blocked',
+          'human',
+          { tool, input, tier, reason: 'not-available-in-mode', mode, proposalSeq },
+          proposalSeq
+        );
+        return this.log.all.slice(before) as Event[];
+      }
       // top-tier writes need the dual key: the human must HOLD the key while
       // the agent's write executes. An approval without it is blocked — the
       // proposal stays pending, so engaging the key and approving again works.

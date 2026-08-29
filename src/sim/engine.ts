@@ -4,6 +4,15 @@ import { initialWorld, reduce } from './reducer';
 import { mulberry32, type Rng } from './rng';
 import { getTemplate, type TemplateInstance } from './templates';
 import type { Actor, Event, EventKind, SeedSpec, World } from './types';
+import { writeAction } from './vocabulary';
+
+/** Meta kinds external callers may record; the reducer no-ops all of them. */
+const RECORDABLE: ReadonlySet<EventKind> = new Set([
+  'tool.called',
+  'mode.changed',
+  'selection.changed',
+  'annotation.added',
+] as EventKind[]);
 
 export interface SimCtx {
   rng: Rng;
@@ -79,6 +88,39 @@ export class Engine {
     const event = ctx.emit('action.executed', actor, { tool, input, result: { ok: true } }, causedBy);
     this.template.onAction?.(this.ctx(), event);
     return event;
+  }
+
+  /**
+   * Record a meta/lifecycle event (tool.called, mode.changed,
+   * selection.changed, annotation.added) into the log. World is unaffected
+   * (reducer no-ops these); determinism rule matches act(): replay = same
+   * schedule of external inputs.
+   */
+  record(kind: EventKind, actor: Actor, data: Record<string, unknown>, causedBy?: number): Event {
+    if (!RECORDABLE.has(kind)) throw new Error(`record() does not accept kind: ${kind}`);
+    return this.ctx().emit(kind, actor, data, causedBy);
+  }
+
+  /**
+   * Agent write path, step 1 of the airlock: a PROPOSAL, not an execution.
+   * Emits action.proposed with the vocabulary's tier and a human-readable
+   * diff of what would change. Approval → execution lands in M3-03.
+   */
+  propose(tool: string, input: Record<string, unknown>, causedBy?: number): Event {
+    const spec = writeAction(tool); // throws on unknown tools: nothing off-vocabulary is proposable
+    const ctx = this.ctx();
+    return ctx.emit(
+      'action.proposed',
+      'agent',
+      {
+        tool,
+        input,
+        tier: spec.tier,
+        tierName: spec.tierName,
+        diffSummary: spec.describe(input, this.worldState),
+      },
+      causedBy
+    );
   }
 
   /** Advance n ticks; returns the events emitted by this call. */

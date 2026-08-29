@@ -1,3 +1,4 @@
+import { currentMode, surfaceHistory } from './modes';
 import type { Event, World } from './types';
 
 /**
@@ -16,7 +17,8 @@ export type QueryRequest =
   | { kind: 'deploys'; cursor?: number }
   | { kind: 'logs'; cursor?: number }
   | { kind: 'changes' }
-  | { kind: 'traffic'; cursor?: number };
+  | { kind: 'traffic'; cursor?: number }
+  | { kind: 'surface' };
 
 const DEPLOY_PAGE = 3;
 const LOG_PAGE = 6;
@@ -178,5 +180,11 @@ export function runQuery(
       return changes(events, world);
     case 'traffic':
       return traffic(events, q.cursor);
+    case 'surface':
+      return {
+        asOfSeq: asOf(events),
+        mode: currentMode(events),
+        changes: surfaceHistory(events),
+      };
   }
 }

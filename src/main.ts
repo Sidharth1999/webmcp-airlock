@@ -1,6 +1,7 @@
 import './styles/tokens.css';
 import './styles/shell.css';
 import { Engine } from './sim/engine';
+import { MODES, type Mode } from './sim/modes';
 import type { QueryRequest } from './sim/queries';
 import { templateIds } from './sim/templates';
 import type { SimRequest, SimResponse } from './sim/worker';
@@ -93,7 +94,15 @@ app.innerHTML = `
     </section>
 
     <section class="pane" id="tool-rail" aria-label="Tool rail">
-      <header>Tool Surface</header>
+      <header>
+        Tool Surface
+        <div class="mode-switch" id="mode-switch" data-testid="mode-switch">
+          ${MODES.map(
+            (m) =>
+              `<button type="button" data-mode="${m}" data-testid="mode-${m}" aria-pressed="${m === 'triage'}">${m}</button>`
+          ).join('')}
+        </div>
+      </header>
       <div class="body">
         <div class="rail-status">WebMCP on this page: <span id="webmcp-status">…</span></div>
         <ul id="tool-list" data-testid="tool-list"></ul>
@@ -140,11 +149,21 @@ const send = (msg: SimRequest) => worker.postMessage(msg);
 // no mirrored state on the main thread (schema v1: one source of truth)
 let queryId = 0;
 const pendingQueries = new Map<number, (r: Record<string, unknown>) => void>();
-function runWorkerQuery(q: QueryRequest): Promise<Record<string, unknown>> {
+function runWorkerQuery(q: QueryRequest, viaTool?: string): Promise<Record<string, unknown>> {
   return new Promise((resolve) => {
     const id = ++queryId;
     pendingQueries.set(id, resolve);
-    send({ type: 'query', id, query: q });
+    send({ type: 'query', id, query: q, viaTool });
+  });
+}
+
+let proposeId = 0;
+const pendingProposes = new Map<number, (r: { seq: number }) => void>();
+function proposeToWorker(tool: string, input: Record<string, unknown>): Promise<{ seq: number }> {
+  return new Promise((resolve) => {
+    const id = ++proposeId;
+    pendingProposes.set(id, resolve);
+    send({ type: 'propose', id, tool, input });
   });
 }
 
@@ -195,6 +214,8 @@ function seed(templateId: string): void {
   sfFeed.textContent = '';
   setHealth('ok');
   statusEl.textContent = 'seeded · paused';
+  airlockTools.setMode('triage'); // fresh world, fresh ritual
+  renderToolRail(airlockTools);
   send({ type: 'seed', templateId, seed: SEED });
   // setup events aren't streamed by 'seed'; pull them so the deck has state
   send({ type: 'snapshot' });
@@ -240,6 +261,12 @@ function summarize(e: Event): string {
     }
     case 'migration.applied':
       return `${d.id} by ${d.appliedByDeploy} · ${d.reversible ? 'reversible' : 'IRREVERSIBLE'}`;
+    case 'mode.changed':
+      return `${d.from} → ${d.to}${(d.toolsAdded as string[]).length ? ` · +${(d.toolsAdded as string[]).join(', +')}` : ''}${(d.toolsRemoved as string[]).length ? ` · −${(d.toolsRemoved as string[]).join(', −')}` : ''}`;
+    case 'action.proposed':
+      return `[tier ${d.tier}] ${d.diffSummary}`;
+    case 'tool.called':
+      return `${d.tool} · ${d.resultBytes}B`;
     default:
       return JSON.stringify(d);
   }
@@ -462,6 +489,9 @@ worker.onmessage = (e: MessageEvent<SimResponse>) => {
   } else if (msg.type === 'queryResult') {
     pendingQueries.get(msg.id)?.(msg.result);
     pendingQueries.delete(msg.id);
+  } else if (msg.type === 'proposeResult') {
+    pendingProposes.get(msg.id)?.({ seq: msg.seq });
+    pendingProposes.delete(msg.id);
   } else if (msg.type === 'error') {
     statusEl.textContent = `sim error: ${msg.message}`;
   }
@@ -480,20 +510,45 @@ function renderToolRail(tools: AirlockTools): void {
   for (const t of tools.list()) {
     const li = document.createElement('li');
     li.dataset.tool = t.name;
+    li.dataset.status = t.status;
     li.innerHTML = `
       <span class="tool-name"></span>
       <span class="tool-badges">
-        ${t.readOnly ? '<span class="tool-badge">read</span>' : ''}
+        ${t.status === 'tombstoned' ? '<span class="tool-badge tool-badge-tombstone"></span>' : ''}
+        ${t.status === 'active' ? `<span class="tool-badge">${t.readOnly ? 'read' : 'write'}</span>` : ''}
         ${t.untrusted ? '<span class="tool-badge tool-badge-untrusted">untrusted content</span>' : ''}
       </span>
     `;
     li.querySelector('.tool-name')!.textContent = t.name;
+    if (t.status === 'tombstoned') {
+      li.querySelector('.tool-badge-tombstone')!.textContent = t.tombstone ?? 'removed';
+    }
     list.append(li);
   }
+  document.querySelectorAll<HTMLButtonElement>('#mode-switch [data-mode]').forEach((b) => {
+    b.setAttribute('aria-pressed', String(b.dataset.mode === tools.mode()));
+  });
 }
 
-const airlockTools = createAirlockTools(runWorkerQuery);
+const airlockTools = createAirlockTools(runWorkerQuery, proposeToWorker);
 renderToolRail(airlockTools);
+
+// mode switching is the operator's ritual: swap the surface, record the
+// mode.changed event (with the registration diff) into the same log
+document.querySelector('#mode-switch')!.addEventListener('click', (e) => {
+  const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-mode]');
+  if (!btn) return;
+  const to = btn.dataset.mode as Mode;
+  const { from, added, removed } = airlockTools.setMode(to);
+  if (from === to) return;
+  send({
+    type: 'record',
+    kind: 'mode.changed',
+    actor: 'human',
+    data: { from, to, toolsAdded: added, toolsRemoved: removed, reason: 'operator switched mode in console' },
+  });
+  renderToolRail(airlockTools);
+});
 
 // boot: seed() touches deck + storefront elements, so it runs after every
 // element ref above is initialized

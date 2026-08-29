@@ -1,7 +1,7 @@
 /// <reference lib="webworker" />
 import { Engine } from './engine';
 import { runQuery, type QueryRequest } from './queries';
-import type { Event, World } from './types';
+import type { Actor, Event, EventKind, World } from './types';
 
 // Message-driven on purpose: the engine owns sim-time; pacing (real-time
 // setInterval) stays on the main thread so the Worker holds zero wall-clock.
@@ -10,7 +10,9 @@ export type SimRequest =
   | { type: 'seed'; templateId: string; seed: number; params?: Record<string, unknown> }
   | { type: 'step'; ticks?: number }
   | { type: 'act'; tool: string; input: Record<string, unknown> }
-  | { type: 'query'; id: number; query: QueryRequest }
+  | { type: 'query'; id: number; query: QueryRequest; viaTool?: string }
+  | { type: 'record'; kind: EventKind; actor: Actor; data: Record<string, unknown> }
+  | { type: 'propose'; id: number; tool: string; input: Record<string, unknown> }
   | { type: 'snapshot' };
 
 export type SimResponse =
@@ -18,6 +20,7 @@ export type SimResponse =
   | { type: 'events'; origin: 'step' | 'act'; events: Event[]; world: World }
   | { type: 'snapshot'; events: readonly Event[]; world: World }
   | { type: 'queryResult'; id: number; result: Record<string, unknown> }
+  | { type: 'proposeResult'; id: number; seq: number }
   | { type: 'error'; message: string };
 
 let engine: Engine | null = null;
@@ -51,10 +54,45 @@ self.onmessage = (e: MessageEvent<SimRequest>) => {
         if (!engine) throw new Error('query before seed');
         // read tools query HERE — the worker's log/world stay the single
         // source of truth (schema v1 core principle); no mirror on main
+        const result = runQuery(engine.events, engine.world, msg.query);
+        self.postMessage({ type: 'queryResult', id: msg.id, result } satisfies SimResponse);
+        if (msg.viaTool) {
+          // audit every WebMCP tool invocation into the same log (schema
+          // tool.called; durationMs joins with the agent-overhead pane, M4)
+          const ev = engine.record('tool.called', 'agent', {
+            tool: msg.viaTool,
+            input: 'cursor' in msg.query ? { cursor: msg.query.cursor } : {},
+            resultBytes: JSON.stringify(result).length,
+          });
+          self.postMessage({
+            type: 'events',
+            origin: 'act',
+            events: [ev],
+            world: engine.world,
+          } satisfies SimResponse);
+        }
+        break;
+      }
+      case 'record': {
+        if (!engine) throw new Error('record before seed');
+        const ev = engine.record(msg.kind, msg.actor, msg.data);
         self.postMessage({
-          type: 'queryResult',
-          id: msg.id,
-          result: runQuery(engine.events, engine.world, msg.query),
+          type: 'events',
+          origin: 'act',
+          events: [ev],
+          world: engine.world,
+        } satisfies SimResponse);
+        break;
+      }
+      case 'propose': {
+        if (!engine) throw new Error('propose before seed');
+        const ev = engine.propose(msg.tool, msg.input);
+        self.postMessage({ type: 'proposeResult', id: msg.id, seq: ev.seq } satisfies SimResponse);
+        self.postMessage({
+          type: 'events',
+          origin: 'act',
+          events: [ev],
+          world: engine.world,
         } satisfies SimResponse);
         break;
       }

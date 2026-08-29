@@ -1,0 +1,13 @@
+import { chromium } from 'playwright';
+const b = await chromium.launch();
+const p = await b.newPage({ viewport: { width: 1440, height: 860 } });
+await p.goto('http://localhost:8917/?tick=120', { waitUntil: 'networkidle' });
+await p.getByTestId('deploy-card-d-200').waitFor({ timeout: 15000 });
+await p.getByTestId('mode-recovery').click();
+await p.locator('#tool-list li[data-tool="propose_rollback"][data-status="active"]').waitFor();
+await p.screenshot({ path: 'log/m3-02-rail-recovery.png' });
+await p.getByTestId('mode-triage').click();
+await p.locator('#tool-list li[data-status="tombstoned"]').first().waitFor();
+await p.screenshot({ path: 'log/m3-02-rail-tombstones.png' });
+await b.close();
+console.log('captured');

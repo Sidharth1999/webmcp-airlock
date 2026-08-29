@@ -116,7 +116,7 @@ try {
   // ---- M3-01: read-tool surface over live sim state ----------------------
   // (sim is already running from the worker-stream check above)
   const rail = await page.locator('#tool-list li').count();
-  check('tool rail lists the read surface (5 tools)', rail === 5);
+  check('tool rail lists the read surface (6 tools incl. explain_surface)', rail === 6);
   await page.waitForFunction(() => window.__sim.stats.ticks > 3, null, { timeout: 10_000 });
   const toolProbe = await page.evaluate(async () => {
     const out = {};
@@ -143,6 +143,55 @@ try {
       .every(([, v]) => v.bytes <= 1200 && Number.isInteger(v.asOfSeq) && v.asOfSeq > 0)
   );
   check('cursor pagination works through the execute path', toolProbe.pagination === true);
+
+  // ---- M3-02: mode-gated surface swap + tombstones + narration -----------
+  const blockedInTriage = await page.evaluate(() =>
+    window.__airlock.invoke('propose_rollback', { deployId: 'd-201' }).then(
+      () => 'invoked',
+      (e) => String(e.message ?? e)
+    )
+  );
+  check('write tool blocked outside its mode', /not-registered-in-mode/.test(blockedInTriage));
+
+  await page.getByTestId('mode-recovery').click();
+  await page.locator('#tool-list li[data-tool="propose_rollback"][data-status="active"]').waitFor({ timeout: 5_000 });
+  check(
+    'recovery registers the write set (11 active tools)',
+    (await page.locator('#tool-list li[data-status="active"]').count()) === 11
+  );
+
+  const proposal = JSON.parse(
+    await page.evaluate(() => window.__airlock.invoke('propose_rollback', { deployId: 'd-201' }))
+  );
+  check(
+    'write tool proposes instead of executing (pending approval)',
+    proposal.status === 'proposed' && Number.isInteger(proposal.proposalSeq)
+  );
+  await page
+    .locator('#event-stream li[data-kind="action.proposed"]')
+    .first()
+    .waitFor({ timeout: 5_000 });
+  check(
+    'proposal is audited in the stream with tier + diff',
+    /\[tier 1\].*roll back d-201/.test(
+      await page.locator('#event-stream li[data-kind="action.proposed"] .ev-summary').first().textContent()
+    )
+  );
+
+  await page.getByTestId('mode-triage').click();
+  await page.locator('#tool-list li[data-status="tombstoned"]').first().waitFor({ timeout: 5_000 });
+  check(
+    'leaving recovery tombstones the writes (5 ghosts)',
+    (await page.locator('#tool-list li[data-status="tombstoned"]').count()) === 5
+  );
+  const surface = JSON.parse(await page.evaluate(() => window.__airlock.invoke('explain_surface', {})));
+  check(
+    'explain_surface narrates mode + surface history',
+    surface.mode === 'triage' &&
+      Array.isArray(surface.changes) &&
+      surface.changes.length >= 2 &&
+      surface.changes[0].removed.length === 5
+  );
 
   // ---- M2-05: human resolves the flagship scenario via UI clicks only ----
   // (fast pacing via ?tick= so the run is seconds, not minutes; every state

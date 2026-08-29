@@ -285,7 +285,31 @@ body {
   letter-spacing: var(--tracking-label);
 }
 .tool-badge-untrusted { color: oklch(75% 0.14 80); border-color: oklch(45% 0.08 80); }
+#tool-list li[data-status='tombstoned'] { opacity: 0.55; border-style: dashed; }
+#tool-list li[data-status='tombstoned'] .tool-name { text-decoration: line-through; }
+.tool-badge-tombstone { text-transform: none; letter-spacing: 0; }
 .rail-note { font-size: var(--text-xs); }
+
+.mode-switch { margin-left: auto; display: flex; gap: var(--sp-1); }
+.mode-switch button {
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: var(--ink-faint);
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  padding: 1px var(--sp-2);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color var(--dur-snap) var(--ease-snap),
+              border-color var(--dur-snap) var(--ease-snap);
+}
+.mode-switch button:hover { color: var(--ink); }
+.mode-switch button[aria-pressed='true'] {
+  color: var(--actor-agent);
+  border-color: var(--actor-agent);
+}
 
 /* --- living site pane (M2-06): the product, feeling the world --- */
 #site-pane > .body { display: flex; }

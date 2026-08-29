@@ -16,7 +16,7 @@ export type ToolDescriptor = {
   execute: (input: unknown) => Promise<{ content: Array<{ type: 'text'; text: string }> }>;
 };
 
-type ModelContextLike = {
+export type ModelContextLike = {
   registerTool: (tool: ToolDescriptor, opts?: { signal?: AbortSignal }) => unknown;
   getTools?: () => unknown;
   executeTool?: (name: string, input: string) => Promise<unknown>;
@@ -24,6 +24,7 @@ type ModelContextLike = {
 };
 
 export function getModelContext(): ModelContextLike | null {
+  if (typeof document === 'undefined') return null; // node (tests)
   const d = document as Document & { modelContext?: ModelContextLike };
   const n = navigator as Navigator & { modelContext?: ModelContextLike };
   return d.modelContext ?? n.modelContext ?? null;

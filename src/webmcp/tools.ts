@@ -1,15 +1,28 @@
+import { MODE_WRITE_TOOLS, surfaceDiff, type Mode } from '../sim/modes';
 import type { QueryRequest } from '../sim/queries';
-import { getModelContext, type ToolDescriptor } from './shim';
+import { getModelContext, type ModelContextLike, type ToolDescriptor } from './shim';
 
 /**
- * Read-tool surface (M3-01). Reads register unconditionally — the airlock
- * gates WRITES, never observability. Descriptions are UI copy (visible
- * verbatim in ChatGPT's Site-tools inspector) and honor the budgets from
- * Chrome's security guidance: name ≤30, description ≤500, param desc ≤150.
- * Write tools are mode-gated and land in M3-02..04.
+ * The WebMCP tool surface (M3-01 reads, M3-02 mode-gated writes).
+ *
+ * Reads register unconditionally — the airlock gates WRITES, never
+ * observability. Write tools are PROPOSAL tools: executing one creates an
+ * approval card for the human operator (action.proposed); nothing mutates
+ * until approval (M3-03). Which proposal tools exist at all depends on the
+ * current mode; every appearance/disappearance leaves a tombstone and is
+ * narrated by explain_surface.
+ *
+ * Descriptions are UI copy (visible verbatim in ChatGPT's Site-tools
+ * inspector) within Chrome's budgets: name ≤30, description ≤500,
+ * param desc ≤150. Registration lifetimes use AbortController so real
+ * WebMCP fires `toolchange` on every surface swap.
  */
 
-export type QueryRunner = (q: QueryRequest) => Promise<Record<string, unknown>>;
+export type QueryRunner = (q: QueryRequest, viaTool?: string) => Promise<Record<string, unknown>>;
+export type ProposeRunner = (
+  tool: string,
+  input: Record<string, unknown>
+) => Promise<{ seq: number }>;
 
 const CURSOR_SCHEMA = {
   type: 'object',
@@ -68,40 +81,151 @@ const READ_TOOLS: ReadToolSpec[] = [
     inputSchema: CURSOR_SCHEMA,
     toQuery: (i) => ({ kind: 'traffic', cursor: i.cursor }),
   },
+  {
+    name: 'explain_surface',
+    description:
+      'Why the tool surface looks the way it does: current airlock mode, which tools are active, and the recent history of tools appearing or disappearing with the reason for each change. Call this when a tool you expected is missing.',
+    inputSchema: NO_INPUT_SCHEMA,
+    toQuery: () => ({ kind: 'surface' }),
+  },
+];
+
+interface WriteToolSpec {
+  name: string;
+  description: string;
+  inputSchema: Record<string, unknown>;
+  /** The sim vocabulary key this proposal maps to. */
+  action: string;
+}
+
+const prop = (desc: string) => ({ type: 'string', description: desc });
+
+const WRITE_TOOLS: WriteToolSpec[] = [
+  {
+    name: 'propose_flag_change',
+    action: 'flag.set',
+    description:
+      'Propose a feature-flag change (tier 3 of the write ladder). Creates an approval card for the human operator; nothing changes until they approve. Check list_changes for current flag states first.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: prop('Flag id, e.g. from list_changes'),
+        state: prop("Desired state: 'on' or 'off'"),
+      },
+      required: ['id', 'state'],
+    },
+  },
+  {
+    name: 'propose_rollback',
+    action: 'deploy.rollback',
+    description:
+      'Propose rolling back a live deploy so its superseded predecessor becomes live again (tier 1: deploy). Requires human approval; the world rejects it if no predecessor exists. Read list_deploys — including migration metadata — before proposing.',
+    inputSchema: {
+      type: 'object',
+      properties: { deployId: prop('Deploy id to roll back, e.g. from list_deploys') },
+      required: ['deployId'],
+    },
+  },
+  {
+    name: 'propose_rollforward',
+    action: 'deploy.rollforward',
+    description:
+      'Propose shipping the next build of a service (tier 1: deploy). Requires human approval. Use when the fix should move forward instead of reverting.',
+    inputSchema: {
+      type: 'object',
+      properties: { service: prop('Service id, e.g. from airlock_status') },
+      required: ['service'],
+    },
+  },
+  {
+    name: 'propose_env_change',
+    action: 'env.set',
+    description:
+      'Propose setting an environment variable (tier 2: env). The value is stored redacted. Requires human approval.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        key: prop('Env var key'),
+        value: prop('New value (redacted in all logs and reads)'),
+      },
+      required: ['key', 'value'],
+    },
+  },
+  {
+    name: 'propose_route_change',
+    action: 'route.set',
+    description:
+      'Propose retargeting a route (tier 4: route/DNS — the top of the write ladder). Requires human approval AND the dual key held by the operator while it executes.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        id: prop('Route id, e.g. from list_changes'),
+        target: prop('New target service id'),
+      },
+      required: ['id', 'target'],
+    },
+  },
 ];
 
 /** Chrome 151 may hand execute() a JSON string; later builds an object. */
-function coerceInput(input: unknown): { cursor?: number } {
+function coerceInput(input: unknown): Record<string, unknown> {
   if (typeof input === 'string') {
     try {
-      return input ? (JSON.parse(input) as { cursor?: number }) : {};
+      return input ? (JSON.parse(input) as Record<string, unknown>) : {};
     } catch {
       return {};
     }
   }
-  return (input as { cursor?: number }) ?? {};
+  return (input as Record<string, unknown>) ?? {};
 }
 
 export interface AirlockToolInfo {
   name: string;
   readOnly: boolean;
   untrusted: boolean;
+  status: 'active' | 'tombstoned';
+  /** For tombstoned tools: why it left the surface. */
+  tombstone?: string;
 }
 
 export interface AirlockTools {
-  /** Registered surface, for the tool rail + tests. */
+  /** Current surface incl. tombstones, for the tool rail + tests. */
   list(): AirlockToolInfo[];
   /** Invoke by name through the SAME execute path WebMCP uses. */
   invoke(name: string, input?: unknown): Promise<string>;
-  /** True if tools were registered with a real modelContext. */
+  mode(): Mode;
+  /**
+   * Swap the surface for a mode change; returns the registration diff
+   * (caller records mode.changed into the log with it).
+   */
+  setMode(to: Mode): { from: Mode; added: string[]; removed: string[] };
+  /** True if tools registered against a real modelContext. */
   registered: boolean;
 }
 
-export function createAirlockTools(run: QueryRunner): AirlockTools {
+export function createAirlockTools(
+  run: QueryRunner,
+  propose: ProposeRunner,
+  mc: ModelContextLike | null = getModelContext()
+): AirlockTools {
   const descriptors = new Map<string, ToolDescriptor>();
+  const controllers = new Map<string, AbortController>();
+  const tombstones = new Map<string, string>();
+  let mode: Mode = 'triage';
+
+  const registerWith = (tool: ToolDescriptor, scoped: boolean): void => {
+    if (!mc) return;
+    if (scoped) {
+      const ctrl = new AbortController();
+      controllers.set(tool.name, ctrl);
+      mc.registerTool(tool, { signal: ctrl.signal });
+    } else {
+      mc.registerTool(tool);
+    }
+  };
 
   for (const spec of READ_TOOLS) {
-    descriptors.set(spec.name, {
+    const tool: ToolDescriptor = {
       name: spec.name,
       description: spec.description,
       inputSchema: spec.inputSchema,
@@ -110,26 +234,95 @@ export function createAirlockTools(run: QueryRunner): AirlockTools {
         ...(spec.untrusted ? { untrustedContentHint: true } : {}),
       },
       execute: async (input) => {
-        const result = await run(spec.toQuery(coerceInput(input)));
+        const q = spec.toQuery(coerceInput(input) as { cursor?: number });
+        const result = await run(q, spec.name);
         return { content: [{ type: 'text', text: JSON.stringify(result) }] };
       },
-    });
+    };
+    descriptors.set(spec.name, tool);
+    registerWith(tool, false);
   }
 
-  const mc = getModelContext();
-  let registered = false;
-  if (mc) {
-    for (const tool of descriptors.values()) mc.registerTool(tool);
-    registered = true;
-  }
+  const writeDescriptor = (spec: WriteToolSpec): ToolDescriptor => ({
+    name: spec.name,
+    description: spec.description,
+    inputSchema: spec.inputSchema,
+    annotations: { readOnlyHint: false },
+    execute: async (input) => {
+      const { seq } = await propose(spec.action, coerceInput(input));
+      return {
+        content: [
+          {
+            type: 'text',
+            text: JSON.stringify({
+              status: 'proposed',
+              proposalSeq: seq,
+              note: 'Awaiting human approval in the console. Nothing has changed yet.',
+            }),
+          },
+        ],
+      };
+    },
+  });
+
+  const activeWrites = (): Set<string> => new Set(MODE_WRITE_TOOLS[mode]);
 
   return {
-    registered,
-    list: () =>
-      READ_TOOLS.map((s) => ({ name: s.name, readOnly: true, untrusted: s.untrusted ?? false })),
+    registered: mc !== null,
+    mode: () => mode,
+
+    setMode(to) {
+      const from = mode;
+      if (to === from) return { from, added: [], removed: [] };
+      const { added, removed } = surfaceDiff(from, to);
+      for (const name of removed) {
+        controllers.get(name)?.abort(); // real WebMCP: unregister → toolchange
+        controllers.delete(name);
+        descriptors.delete(name);
+        tombstones.set(name, `left with ${from} mode`);
+      }
+      for (const name of added) {
+        const spec = WRITE_TOOLS.find((w) => w.name === name)!;
+        const tool = writeDescriptor(spec);
+        descriptors.set(name, tool);
+        tombstones.delete(name);
+        registerWith(tool, true);
+      }
+      mode = to;
+      return { from, added, removed };
+    },
+
+    list() {
+      const writes = activeWrites();
+      const out: AirlockToolInfo[] = READ_TOOLS.map((s) => ({
+        name: s.name,
+        readOnly: true,
+        untrusted: s.untrusted ?? false,
+        status: 'active' as const,
+      }));
+      for (const w of WRITE_TOOLS) {
+        if (writes.has(w.name)) {
+          out.push({ name: w.name, readOnly: false, untrusted: false, status: 'active' });
+        } else if (tombstones.has(w.name)) {
+          out.push({
+            name: w.name,
+            readOnly: false,
+            untrusted: false,
+            status: 'tombstoned',
+            tombstone: tombstones.get(w.name)!,
+          });
+        }
+      }
+      return out;
+    },
+
     async invoke(name, input) {
       const tool = descriptors.get(name);
-      if (!tool) throw new Error(`unknown tool: ${name}`);
+      if (!tool) {
+        const known =
+          READ_TOOLS.some((t) => t.name === name) || WRITE_TOOLS.some((t) => t.name === name);
+        throw new Error(known ? `not-registered-in-mode: ${name} (mode: ${mode})` : `unknown tool: ${name}`);
+      }
       const res = await tool.execute(input);
       return res.content[0]!.text;
     },

@@ -193,6 +193,44 @@ try {
       surface.changes[0].removed.length === 5
   );
 
+  // ---- M3-03: approval diff-cards + causedBy audit chain -----------------
+  // the Refusal: reject the rollback proposal made above
+  await page.getByTestId(`reject-${proposal.proposalSeq}`).click();
+  await page.locator('#event-stream li[data-kind="action.rejected"]').first().waitFor({ timeout: 5_000 });
+  check(
+    'reject closes the card and audits the refusal',
+    (await page.locator(`[data-testid="approval-${proposal.proposalSeq}"]`).count()) === 0
+  );
+
+  await page.getByTestId('mode-recovery').click();
+  const flagProp = JSON.parse(
+    await page.evaluate(() =>
+      window.__airlock.invoke('propose_flag_change', { id: 'new-checkout', state: 'off' })
+    )
+  );
+  await page.locator(`[data-testid="approval-${flagProp.proposalSeq}"]`).waitFor({ timeout: 5_000 });
+  check(
+    'approval card anchors to the node it would mutate',
+    (await page.locator('#flag-controls [data-flag-id="new-checkout"].proposal-anchor').count()) === 1
+  );
+
+  await page.getByTestId(`approve-${flagProp.proposalSeq}`).click();
+  const executedLi = page.locator('#event-stream li[data-kind="action.executed"][data-actor="agent"]').first();
+  await executedLi.waitFor({ timeout: 5_000 });
+  check(
+    'approve executes as the agent, causedBy-threaded to the approval',
+    (await executedLi.getAttribute('data-caused-by')) !== '' &&
+      (await page.locator(`[data-testid="approval-${flagProp.proposalSeq}"]`).count()) === 0
+  );
+
+  await page.getByTestId('audit-toggle').click();
+  check(
+    'audit filter reduces the stream to the agency trail',
+    !(await page.locator('#event-stream li[data-kind="traffic.tick"]').first().isVisible()) &&
+      (await page.locator('#event-stream li[data-kind="action.executed"]').first().isVisible())
+  );
+  await page.getByTestId('audit-toggle').click();
+
   // ---- M2-05: human resolves the flagship scenario via UI clicks only ----
   // (fast pacing via ?tick= so the run is seconds, not minutes; every state
   // assertion is on rendered DOM — nothing reaches into the engine)

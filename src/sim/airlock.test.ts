@@ -86,3 +86,58 @@ describe('proposals carry the vocabulary tier + human diff (M3-02)', () => {
     expect(writeAction('route.set').tier).toBe(4);
   });
 });
+
+describe('approval flow: proposed → approved → executed, causedBy-chained (M3-03)', () => {
+  it('approve executes the write as the agent and threads the full chain', () => {
+    const engine = new Engine({ templateId: 'migration-trap', seed: 42 });
+    engine.step(12); // incident live, flag on
+    const proposal = engine.propose('flag.set', { id: 'new-checkout', state: 'off' });
+    const emitted = engine.decide(proposal.seq, 'approve');
+
+    const approved = emitted.find((e) => e.kind === 'action.approved')!;
+    const executed = emitted.find((e) => e.kind === 'action.executed')!;
+    expect(approved.causedBy).toBe(proposal.seq);
+    expect((approved.data as { proposalSeq: number }).proposalSeq).toBe(proposal.seq);
+    expect(executed.causedBy).toBe(approved.seq);
+    expect(executed.actor).toBe('agent');
+
+    // the write really happened and the template reacted (mitigation path)
+    expect(engine.world.flags.find((f) => f.id === 'new-checkout')!.state).toBe('off');
+    engine.step(3);
+    expect(engine.world.services.find((s) => s.id === 'api')!.health).toBe('ok');
+
+    // chainOf walks executed → approved → proposed
+    const chain = engine.chainOf(executed.seq).map((e) => e.kind);
+    expect(chain).toContain('action.approved');
+    expect(chain).toContain('action.proposed');
+  });
+
+  it('reject leaves the world untouched and closes the proposal', () => {
+    const engine = new Engine({ templateId: 'migration-trap', seed: 42 });
+    engine.step(12);
+    const proposal = engine.propose('deploy.rollback', { deployId: 'd-201' });
+    const before = JSON.stringify(engine.world);
+    const emitted = engine.decide(proposal.seq, 'reject');
+
+    expect(emitted.map((e) => e.kind)).toEqual(['action.rejected']);
+    expect(emitted[0]!.causedBy).toBe(proposal.seq);
+    expect(JSON.stringify(engine.world)).toBe(before);
+    // the Refusal survives: deciding again is refused
+    expect(() => engine.decide(proposal.seq, 'approve')).toThrow(/already decided/);
+  });
+
+  it('decide validates its target', () => {
+    const engine = new Engine({ templateId: 'migration-trap', seed: 42 });
+    engine.step(2);
+    expect(() => engine.decide(1, 'approve')).toThrow(/no proposal/);
+    expect(() => engine.decide(9999, 'approve')).toThrow(/no proposal/);
+  });
+
+  it('an approved rollback proposal still hits the trap — the gate is the human, not magic', () => {
+    const engine = new Engine({ templateId: 'migration-trap', seed: 42 });
+    engine.step(12);
+    const proposal = engine.propose('deploy.rollback', { deployId: 'd-201' });
+    engine.decide(proposal.seq, 'approve');
+    expect(engine.world.services.find((s) => s.id === 'api')!.health).toBe('down');
+  });
+});

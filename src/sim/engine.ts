@@ -123,6 +123,36 @@ export class Engine {
     );
   }
 
+  /**
+   * The human decides a pending proposal (airlock step 2, M3-03).
+   * approve → action.approved (causedBy: proposal) then the write executes
+   * as the AGENT's action (causedBy: approval) — the full thread of agency:
+   * proposed → approved → executed. reject → action.rejected, world untouched.
+   */
+  decide(proposalSeq: number, decision: 'approve' | 'reject'): Event[] {
+    const proposal = this.log.all.find((e) => e.seq === proposalSeq);
+    if (!proposal || proposal.kind !== 'action.proposed') {
+      throw new Error(`no proposal at seq ${proposalSeq}`);
+    }
+    const alreadyDecided = this.log.all.some(
+      (e) =>
+        (e.kind === 'action.approved' || e.kind === 'action.rejected') &&
+        (e.data as { proposalSeq?: number }).proposalSeq === proposalSeq
+    );
+    if (alreadyDecided) throw new Error(`proposal ${proposalSeq} already decided`);
+
+    const before = this.log.length;
+    const ctx = this.ctx();
+    if (decision === 'approve') {
+      const approved = ctx.emit('action.approved', 'human', { by: 'human', proposalSeq }, proposalSeq);
+      const { tool, input } = proposal.data as { tool: string; input: Record<string, unknown> };
+      this.act(tool, input, 'agent', approved.seq);
+    } else {
+      ctx.emit('action.rejected', 'human', { by: 'human', proposalSeq }, proposalSeq);
+    }
+    return this.log.all.slice(before) as Event[];
+  }
+
   /** Advance n ticks; returns the events emitted by this call. */
   step(n = 1): Event[] {
     const before = this.log.length;

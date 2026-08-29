@@ -416,3 +416,53 @@ body {
 #event-stream li[data-kind='user.impact'] .ev-summary,
 #event-stream li[data-kind='deploy.failed'] .ev-summary { color: oklch(70% 0.19 25); }
 #event-stream li[data-kind^='deploy'] .ev-kind { color: var(--ink); }
+#event-stream li[data-actor='agent'] .ev-kind { color: var(--actor-agent); }
+#event-stream li[data-actor='human'] .ev-kind { color: var(--actor-human); }
+
+/* audit filter: the trail IS the log, filtered to agency */
+#event-stream.audit li { display: none; }
+#event-stream.audit li[data-kind^='action.'],
+#event-stream.audit li[data-kind='tool.called'],
+#event-stream.audit li[data-kind='mode.changed'] { display: flex; }
+
+#audit-toggle {
+  font: inherit;
+  letter-spacing: inherit;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  background: transparent;
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  padding: 0 var(--sp-1);
+  cursor: pointer;
+}
+#audit-toggle[aria-pressed='true'] { color: var(--actor-agent); border-color: var(--actor-agent); }
+
+/* --- approval diff-cards (M3-03) --------------------------- */
+.approval-card {
+  border: 1px solid var(--actor-agent);
+  border-radius: var(--r-md);
+  padding: var(--sp-2) var(--sp-3);
+  margin: var(--sp-1) 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  background: oklch(24% 0.03 310 / 0.35);
+  font-family: var(--font-instrument);
+  font-size: var(--text-xs);
+}
+.ap-head { display: flex; align-items: baseline; gap: var(--sp-2); }
+.ap-actor {
+  color: var(--actor-agent);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+}
+.ap-tier { margin-left: auto; color: var(--ink-faint); }
+.ap-diff { color: var(--ink); }
+.ap-actions { display: flex; gap: var(--sp-2); }
+.ap-actions .ctl-btn { margin-left: 0; }
+.ap-approve { color: oklch(75% 0.12 160); }
+.ap-approve:hover:not(:disabled) { border-color: oklch(60% 0.12 160); }
+.ap-reject { color: oklch(70% 0.16 25); }
+.ap-reject:hover:not(:disabled) { border-color: oklch(60% 0.16 25); }
+.proposal-anchor { outline: 1px solid var(--actor-agent); outline-offset: 2px; border-radius: var(--r-sm); }

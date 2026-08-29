@@ -56,6 +56,7 @@ app.innerHTML = `
       <div id="control-deck" data-testid="control-deck">
         <div class="deck-head">
           <span class="deck-label">Controls</span>
+          <button type="button" id="audit-toggle" data-testid="audit-toggle" aria-pressed="false" title="show only the action/audit trail">audit</button>
           <span id="sim-status" data-testid="sim-status">seeded · paused</span>
         </div>
         <div id="flag-controls"></div>
@@ -201,6 +202,8 @@ function seed(templateId: string): void {
   running = false;
   syncPacer();
   streamEl.innerHTML = '';
+  for (const { card } of pendingCards.values()) card.remove();
+  pendingCards.clear();
   flagControls.innerHTML = '';
   serviceControls.innerHTML = '';
   deployControls.innerHTML = '';
@@ -265,6 +268,10 @@ function summarize(e: Event): string {
       return `${d.from} → ${d.to}${(d.toolsAdded as string[]).length ? ` · +${(d.toolsAdded as string[]).join(', +')}` : ''}${(d.toolsRemoved as string[]).length ? ` · −${(d.toolsRemoved as string[]).join(', −')}` : ''}`;
     case 'action.proposed':
       return `[tier ${d.tier}] ${d.diffSummary}`;
+    case 'action.approved':
+      return `proposal #${d.proposalSeq} approved by human`;
+    case 'action.rejected':
+      return `proposal #${d.proposalSeq} REJECTED by human`;
     case 'tool.called':
       return `${d.tool} · ${d.resultBytes}B`;
     default:
@@ -387,10 +394,88 @@ function renderDeck(w: World): void {
   });
 }
 
+// ---- approval diff-cards (M3-03): the airlock's human gate ---------------
+// A proposal renders as a card ANCHORED to the node it would mutate; the
+// human approves or rejects; the causedBy chain proposed → approved →
+// executed is the audit trail (and IS the event log, filtered).
+
+const pendingCards = new Map<number, { card: HTMLElement; anchor: HTMLElement | null }>();
+
+function anchorFor(tool: string, input: Record<string, unknown>): HTMLElement | null {
+  switch (tool) {
+    case 'flag.set':
+      return flagControls.querySelector(`[data-flag-id="${input.id}"]`);
+    case 'deploy.rollback':
+      return deployControls.querySelector(`[data-deploy-id="${input.deployId}"]`);
+    case 'deploy.rollforward':
+      return serviceControls.querySelector(`[data-service-id="${input.service}"]`);
+    default:
+      return null;
+  }
+}
+
+function addApprovalCard(e: Event): void {
+  const d = e.data as {
+    tool: string;
+    input: Record<string, unknown>;
+    tier: number;
+    tierName: string;
+    diffSummary: string;
+  };
+  const card = document.createElement('div');
+  card.className = 'approval-card';
+  card.dataset.proposalSeq = String(e.seq);
+  card.dataset.testid = `approval-${e.seq}`;
+  card.innerHTML = `
+    <div class="ap-head">
+      <span class="ap-actor">agent proposes</span>
+      <span class="ap-tier">tier ${d.tier} · ${d.tierName}</span>
+    </div>
+    <div class="ap-diff"></div>
+    <div class="ap-actions">
+      <button type="button" class="ctl-btn ap-approve" data-act="approve" data-seq="${e.seq}" data-testid="approve-${e.seq}">Approve</button>
+      <button type="button" class="ctl-btn ap-reject" data-act="reject" data-seq="${e.seq}" data-testid="reject-${e.seq}">Reject</button>
+    </div>
+  `;
+  card.querySelector('.ap-diff')!.textContent = d.diffSummary;
+  const anchor = anchorFor(d.tool, d.input);
+  if (anchor) {
+    anchor.insertAdjacentElement('afterend', card);
+    anchor.classList.add('proposal-anchor');
+  } else {
+    document.querySelector('#control-deck .deck-head')!.insertAdjacentElement('afterend', card);
+  }
+  pendingCards.set(e.seq, { card, anchor });
+}
+
+function resolveApprovalCard(proposalSeq: number): void {
+  const entry = pendingCards.get(proposalSeq);
+  if (!entry) return;
+  entry.card.remove();
+  entry.anchor?.classList.remove('proposal-anchor');
+  pendingCards.delete(proposalSeq);
+}
+
+document.querySelector('#audit-toggle')!.addEventListener('click', () => {
+  const btn = document.querySelector<HTMLButtonElement>('#audit-toggle')!;
+  const on = btn.getAttribute('aria-pressed') !== 'true';
+  btn.setAttribute('aria-pressed', String(on));
+  streamEl.classList.toggle('audit', on);
+});
+
 document.querySelector('#control-deck')!.addEventListener('click', (e) => {
   const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-act]');
   if (!btn || btn.disabled || !world) return;
   switch (btn.dataset.act) {
+    case 'approve':
+    case 'reject': {
+      send({
+        type: 'decide',
+        proposalSeq: Number(btn.dataset.seq),
+        decision: btn.dataset.act === 'approve' ? 'approve' : 'reject',
+      });
+      return;
+    }
     case 'flag-toggle': {
       const flag = world.flags.find((f) => f.id === btn.dataset.flag);
       if (!flag) return;
@@ -463,6 +548,11 @@ function renderEvents(events: Event[], w: World): void {
     li.innerHTML = `<span class="ev-t">${(e.t / 1000).toFixed(0)}s</span><span class="ev-kind">${e.kind}</span><span class="ev-summary"></span>`;
     li.querySelector('.ev-summary')!.textContent = summarize(e);
     streamEl.append(li);
+
+    if (e.kind === 'action.proposed') addApprovalCard(e);
+    else if (e.kind === 'action.approved' || e.kind === 'action.rejected') {
+      resolveApprovalCard((e.data as { proposalSeq: number }).proposalSeq);
+    }
   }
   while (streamEl.children.length > 200) streamEl.firstElementChild!.remove();
   streamEl.lastElementChild?.scrollIntoView({ block: 'nearest' });

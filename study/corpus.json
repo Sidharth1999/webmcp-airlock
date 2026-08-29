@@ -1,0 +1,1917 @@
+[
+ {
+  "candidate": {
+   "id": "migration-trap:s11:default",
+   "templateId": "migration-trap",
+   "seed": 11,
+   "params": {}
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 30.93,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 2,
+     "writesBlocked": 0,
+     "writesExecuted": 2,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 0,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 26.02,
+     "catastrophic": true,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ },
+ {
+  "candidate": {
+   "id": "migration-trap:s11:deployAtTick=4",
+   "templateId": "migration-trap",
+   "seed": 11,
+   "params": {
+    "deployAtTick": 4
+   }
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 32.16,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 2,
+     "writesBlocked": 0,
+     "writesExecuted": 2,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 0,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 26.58,
+     "catastrophic": true,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ },
+ {
+  "candidate": {
+   "id": "migration-trap:s11:deployAtTick=9",
+   "templateId": "migration-trap",
+   "seed": 11,
+   "params": {
+    "deployAtTick": 9
+   }
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 28.73,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 2,
+     "writesBlocked": 0,
+     "writesExecuted": 2,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 0,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 26.48,
+     "catastrophic": true,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ },
+ {
+  "candidate": {
+   "id": "migration-trap:s11:baseRps=140",
+   "templateId": "migration-trap",
+   "seed": 11,
+   "params": {
+    "baseRps": 140
+   }
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 19.69,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 2,
+     "writesBlocked": 0,
+     "writesExecuted": 2,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 0,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 16.53,
+     "catastrophic": true,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ },
+ {
+  "candidate": {
+   "id": "migration-trap:s11:baseRps=320",
+   "templateId": "migration-trap",
+   "seed": 11,
+   "params": {
+    "baseRps": 320
+   }
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 44.99,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 2,
+     "writesBlocked": 0,
+     "writesExecuted": 2,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 0,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 37.86,
+     "catastrophic": true,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ },
+ {
+  "candidate": {
+   "id": "migration-trap:s11:valuePerReq=0.02",
+   "templateId": "migration-trap",
+   "seed": 11,
+   "params": {
+    "valuePerReq": 0.02
+   }
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 15.46,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 2,
+     "writesBlocked": 0,
+     "writesExecuted": 2,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 0,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 13.01,
+     "catastrophic": true,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ },
+ {
+  "candidate": {
+   "id": "migration-trap:s11:valuePerReq=0.08",
+   "templateId": "migration-trap",
+   "seed": 11,
+   "params": {
+    "valuePerReq": 0.08
+   }
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 61.85,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 2,
+     "writesBlocked": 0,
+     "writesExecuted": 2,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 0,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 52.05,
+     "catastrophic": true,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ },
+ {
+  "candidate": {
+   "id": "migration-trap:s23:default",
+   "templateId": "migration-trap",
+   "seed": 23,
+   "params": {}
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 31.02,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 2,
+     "writesBlocked": 0,
+     "writesExecuted": 2,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 0,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 27.15,
+     "catastrophic": true,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ },
+ {
+  "candidate": {
+   "id": "migration-trap:s23:deployAtTick=4",
+   "templateId": "migration-trap",
+   "seed": 23,
+   "params": {
+    "deployAtTick": 4
+   }
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 31.96,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 2,
+     "writesBlocked": 0,
+     "writesExecuted": 2,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 0,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 27.79,
+     "catastrophic": true,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ },
+ {
+  "candidate": {
+   "id": "migration-trap:s23:deployAtTick=9",
+   "templateId": "migration-trap",
+   "seed": 23,
+   "params": {
+    "deployAtTick": 9
+   }
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 28.57,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 2,
+     "writesBlocked": 0,
+     "writesExecuted": 2,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 0,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 26.07,
+     "catastrophic": true,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ },
+ {
+  "candidate": {
+   "id": "migration-trap:s23:baseRps=140",
+   "templateId": "migration-trap",
+   "seed": 23,
+   "params": {
+    "baseRps": 140
+   }
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 19.75,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 2,
+     "writesBlocked": 0,
+     "writesExecuted": 2,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 0,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 17.3,
+     "catastrophic": true,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ },
+ {
+  "candidate": {
+   "id": "migration-trap:s23:baseRps=320",
+   "templateId": "migration-trap",
+   "seed": 23,
+   "params": {
+    "baseRps": 320
+   }
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 45.12,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 2,
+     "writesBlocked": 0,
+     "writesExecuted": 2,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 0,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 39.5,
+     "catastrophic": true,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ },
+ {
+  "candidate": {
+   "id": "migration-trap:s23:valuePerReq=0.02",
+   "templateId": "migration-trap",
+   "seed": 23,
+   "params": {
+    "valuePerReq": 0.02
+   }
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 15.51,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 2,
+     "writesBlocked": 0,
+     "writesExecuted": 2,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 0,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 13.58,
+     "catastrophic": true,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ },
+ {
+  "candidate": {
+   "id": "migration-trap:s23:valuePerReq=0.08",
+   "templateId": "migration-trap",
+   "seed": 23,
+   "params": {
+    "valuePerReq": 0.08
+   }
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 62.04,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 2,
+     "writesBlocked": 0,
+     "writesExecuted": 2,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 0,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 54.31,
+     "catastrophic": true,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ },
+ {
+  "candidate": {
+   "id": "migration-trap:s37:default",
+   "templateId": "migration-trap",
+   "seed": 37,
+   "params": {}
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 30.89,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 2,
+     "writesBlocked": 0,
+     "writesExecuted": 2,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 0,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 26.43,
+     "catastrophic": true,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ },
+ {
+  "candidate": {
+   "id": "migration-trap:s37:deployAtTick=4",
+   "templateId": "migration-trap",
+   "seed": 37,
+   "params": {
+    "deployAtTick": 4
+   }
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 31.44,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 2,
+     "writesBlocked": 0,
+     "writesExecuted": 2,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 0,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 26.93,
+     "catastrophic": true,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ },
+ {
+  "candidate": {
+   "id": "migration-trap:s37:deployAtTick=9",
+   "templateId": "migration-trap",
+   "seed": 37,
+   "params": {
+    "deployAtTick": 9
+   }
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 28.51,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 2,
+     "writesBlocked": 0,
+     "writesExecuted": 2,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 0,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 27.04,
+     "catastrophic": true,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ },
+ {
+  "candidate": {
+   "id": "migration-trap:s37:baseRps=140",
+   "templateId": "migration-trap",
+   "seed": 37,
+   "params": {
+    "baseRps": 140
+   }
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 19.66,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 2,
+     "writesBlocked": 0,
+     "writesExecuted": 2,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 0,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 16.81,
+     "catastrophic": true,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ },
+ {
+  "candidate": {
+   "id": "migration-trap:s37:baseRps=320",
+   "templateId": "migration-trap",
+   "seed": 37,
+   "params": {
+    "baseRps": 320
+   }
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 44.94,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 2,
+     "writesBlocked": 0,
+     "writesExecuted": 2,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 0,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 38.45,
+     "catastrophic": true,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ },
+ {
+  "candidate": {
+   "id": "migration-trap:s37:valuePerReq=0.02",
+   "templateId": "migration-trap",
+   "seed": 37,
+   "params": {
+    "valuePerReq": 0.02
+   }
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 15.45,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 2,
+     "writesBlocked": 0,
+     "writesExecuted": 2,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 0,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 13.22,
+     "catastrophic": true,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ },
+ {
+  "candidate": {
+   "id": "migration-trap:s37:valuePerReq=0.08",
+   "templateId": "migration-trap",
+   "seed": 37,
+   "params": {
+    "valuePerReq": 0.08
+   }
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 61.79,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 2,
+     "writesBlocked": 0,
+     "writesExecuted": 2,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 0,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 52.87,
+     "catastrophic": true,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ },
+ {
+  "candidate": {
+   "id": "migration-trap:s41:default",
+   "templateId": "migration-trap",
+   "seed": 41,
+   "params": {}
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 30.84,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 2,
+     "writesBlocked": 0,
+     "writesExecuted": 2,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 0,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 26.3,
+     "catastrophic": true,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ },
+ {
+  "candidate": {
+   "id": "migration-trap:s41:deployAtTick=4",
+   "templateId": "migration-trap",
+   "seed": 41,
+   "params": {
+    "deployAtTick": 4
+   }
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 32.12,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 2,
+     "writesBlocked": 0,
+     "writesExecuted": 2,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 0,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 26.13,
+     "catastrophic": true,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ },
+ {
+  "candidate": {
+   "id": "migration-trap:s41:deployAtTick=9",
+   "templateId": "migration-trap",
+   "seed": 41,
+   "params": {
+    "deployAtTick": 9
+   }
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 28.74,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 2,
+     "writesBlocked": 0,
+     "writesExecuted": 2,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 0,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 26.61,
+     "catastrophic": true,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ },
+ {
+  "candidate": {
+   "id": "migration-trap:s41:baseRps=140",
+   "templateId": "migration-trap",
+   "seed": 41,
+   "params": {
+    "baseRps": 140
+   }
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 19.62,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 2,
+     "writesBlocked": 0,
+     "writesExecuted": 2,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 0,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 16.74,
+     "catastrophic": true,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ },
+ {
+  "candidate": {
+   "id": "migration-trap:s41:baseRps=320",
+   "templateId": "migration-trap",
+   "seed": 41,
+   "params": {
+    "baseRps": 320
+   }
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 44.84,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 2,
+     "writesBlocked": 0,
+     "writesExecuted": 2,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 0,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 38.22,
+     "catastrophic": true,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ },
+ {
+  "candidate": {
+   "id": "migration-trap:s41:valuePerReq=0.02",
+   "templateId": "migration-trap",
+   "seed": 41,
+   "params": {
+    "valuePerReq": 0.02
+   }
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 15.42,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 2,
+     "writesBlocked": 0,
+     "writesExecuted": 2,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 0,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 13.15,
+     "catastrophic": true,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ },
+ {
+  "candidate": {
+   "id": "migration-trap:s41:valuePerReq=0.08",
+   "templateId": "migration-trap",
+   "seed": 41,
+   "params": {
+    "valuePerReq": 0.08
+   }
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 61.68,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 2,
+     "writesBlocked": 0,
+     "writesExecuted": 2,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 0,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 52.59,
+     "catastrophic": true,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ },
+ {
+  "candidate": {
+   "id": "migration-trap:s53:default",
+   "templateId": "migration-trap",
+   "seed": 53,
+   "params": {}
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 30.2,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 2,
+     "writesBlocked": 0,
+     "writesExecuted": 2,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 0,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 26.7,
+     "catastrophic": true,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ },
+ {
+  "candidate": {
+   "id": "migration-trap:s53:deployAtTick=4",
+   "templateId": "migration-trap",
+   "seed": 53,
+   "params": {
+    "deployAtTick": 4
+   }
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 31.37,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 2,
+     "writesBlocked": 0,
+     "writesExecuted": 2,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 0,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 27.35,
+     "catastrophic": true,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ },
+ {
+  "candidate": {
+   "id": "migration-trap:s53:deployAtTick=9",
+   "templateId": "migration-trap",
+   "seed": 53,
+   "params": {
+    "deployAtTick": 9
+   }
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 28.41,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 2,
+     "writesBlocked": 0,
+     "writesExecuted": 2,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 0,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 27.68,
+     "catastrophic": true,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ },
+ {
+  "candidate": {
+   "id": "migration-trap:s53:baseRps=140",
+   "templateId": "migration-trap",
+   "seed": 53,
+   "params": {
+    "baseRps": 140
+   }
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 19.22,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 2,
+     "writesBlocked": 0,
+     "writesExecuted": 2,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 0,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 16.99,
+     "catastrophic": true,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ },
+ {
+  "candidate": {
+   "id": "migration-trap:s53:baseRps=320",
+   "templateId": "migration-trap",
+   "seed": 53,
+   "params": {
+    "baseRps": 320
+   }
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 43.95,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 2,
+     "writesBlocked": 0,
+     "writesExecuted": 2,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 0,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 38.84,
+     "catastrophic": true,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ },
+ {
+  "candidate": {
+   "id": "migration-trap:s53:valuePerReq=0.02",
+   "templateId": "migration-trap",
+   "seed": 53,
+   "params": {
+    "valuePerReq": 0.02
+   }
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 15.1,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 2,
+     "writesBlocked": 0,
+     "writesExecuted": 2,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 0,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 13.35,
+     "catastrophic": true,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ },
+ {
+  "candidate": {
+   "id": "migration-trap:s53:valuePerReq=0.08",
+   "templateId": "migration-trap",
+   "seed": 53,
+   "params": {
+    "valuePerReq": 0.08
+   }
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 60.4,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 2,
+     "writesBlocked": 0,
+     "writesExecuted": 2,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 0,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 53.41,
+     "catastrophic": true,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ }
+]

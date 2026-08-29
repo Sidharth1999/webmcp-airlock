@@ -12,7 +12,8 @@
     "lint:sim": "node tools/lint-sim.mjs",
     "smoke": "node tools/smoke.mjs",
     "driver": "node tools/agent-driver.mjs",
-    "harness": "vitest run src/harness"
+    "harness": "vitest run src/harness",
+    "corpus": "vite-node tools/compile-corpus.ts"
   },
   "devDependencies": {
     "@types/node": "^26.4.0",

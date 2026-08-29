@@ -1,0 +1,27 @@
+{
+ "space": {
+  "templateId": "migration-trap",
+  "seeds": [
+   11,
+   23,
+   37,
+   41,
+   53
+  ],
+  "variations": {
+   "deployAtTick": [
+    4,
+    9
+   ],
+   "baseRps": [
+    140,
+    320
+   ],
+   "valuePerReq": [
+    0.02,
+    0.08
+   ]
+  }
+ },
+ "rejects": []
+}

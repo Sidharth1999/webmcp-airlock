@@ -1,9 +1,24 @@
 # STATUS — live audit log
 
-**Updated:** 2026-08-29 (evening) · **Milestone:** M3 Claude-side COMPLETE (7/8 — only Sid's attended run open) · **Progress: M3 87.5% · overall 48.1%** (run `python3 tools/progress.py`; RUNBOOK rule: report both %s at every session start and milestone close)
+**Updated:** 2026-08-29 (night) · **Milestone:** M3 review-hardened (still 7/8 pending Sid); M4 opened — compiler DONE, cost projection WRITTEN · **Progress: M3 87.5% · M4 16.7% · overall 50.8%** (run `python3 tools/progress.py`; RUNBOOK rule: report both %s at every session start and milestone close)
 **Full context:** war room artifact https://claude.ai/code/artifact/798206ed-bc4f-44fd-b48c-874de5dfdcc0 · memory: project_webmcp_challenge
 
-## This session (2026-08-29 daytime)
+## This session (2026-08-29 night)
+- **M3-close review, partial-but-substantive** — /code-review (high) fan-out hit Sid's Fable session limit mid-run (resets 3:40pm): coordinator + Angle C died, **Angle B (removed-behavior audit) completed with 6 findings — ALL verified real and ALL fixed test-gated:**
+  1. engine.decide() now RE-CHECKS the mode gate at approval time (proposal from an exited mode → action.blocked, proposal survives; mirrors dual-key)
+  2. computeMetrics counts only agent-actor blocks as attempts — dual-key misses no longer double-count writesAttempted
+  3. list_deploys cursor = append-index into the UNFILTERED deploy list; selection change mid-walk can no longer dupe/skip pages
+  4. AirlockTools.reset() (new) clears tombstones; seed() uses it — template re-seed no longer renders ghost tombstones
+  5. deck click handler ignores interactive controls/dead space — audit toggle + dual-key checkbox no longer clear the human's selection
+  6. stream DOM cap (200) evicts AROUND action./tool.called/mode.changed rows — the audit view keeps its agency trail
+  **TEST-FILE EDITS flagged for Sid (additions only):** 4 new unit tests (airlock, harness×2 files, queries, tools) + 3 new smoke gates. **Residual risk:** Angle C (cross-file tracer) never finished — a focused residual pass is queued (cheaper model) rather than re-burning Fable.
+- **M4-02 DONE (scenario compiler)** — src/study/compiler.ts: param-space generation (default + one-factor sweeps × seeds) + 4-probe auto-verification per candidate (null run must break and stay broken; every declared solution must resolve correctPath=true; every trap must out-damage doing nothing; byte-identical determinism). `npm run corpus` → study/corpus.json: **35 generated, 35 accepted**, rejects logged (reject paths proven by tests). parseActionKey = executable inverse of the answer-key format; harness now accepts corpus params.
+- **M4-01 cost projection WRITTEN (Sid's half open)** — measured base: 140 harness runs across the corpus ≈ 8 turns / ~10 tool calls / ~4.4KB tool results per run. Projection: **~$95 expected, ~$190 worst, $150 recommended console cap**; luna iterates (~$0.02/run), terra measures (~$0.19/run), sol calibrates (~$0.47/run, 20 runs); canary gate = first 20 terra runs ≤$0.40/run avg else stop+rescope. Full derivation docs/cost-projection.md · **visual for Sid: https://claude.ai/code/artifact/97367516-e16e-4683-a668-b37f5254142c** · prices verified 8/29 vs public pricing pages (terra/luna cached ratio assumed — re-verify at unlock).
+- **Sid (mid-session): mobile/phone view matters** for the oncall story — logged as docs/ux-debt.md item 11 (layout-architecture question for the pre-M5 UX session, not polish; possible 10s film beat). NOT implemented (design parked).
+- **Budget posture (Sid: 83% Fable, 54% all-models)** — remaining Fable reserved for taste work (pre-M5 UX session, film/writeup); M4 campaign runner + curves are mechanical and safe on Opus/Sonnet under the test lattice. No more Fable multi-agent fan-outs.
+- 97 unit tests, 52 smoke gates, GREEN.
+
+## Previous session (2026-08-29 daytime)
 - **M3-04 DONE** — tier gating in the ENGINE (out-of-mode writes → action.blocked w/ machine-readable reason; diagnosis = flag-tier only), dual-key on tier 4 (approve w/o key → blocked, proposal survives; keyed approve stamps data.keyHolder + executes). TEST-FILE EDITS flagged for Sid: M3-02/03 proposal tests now enter a mode first (old flow proposed from triage, which the new policy correctly blocks).
 - **M3-07 DONE** — synthetic persona harness (src/harness): **the counterfactual is now a unit test** — ungated naive → catastrophic; gated naive blocked into reading → resolves correctly with less damage; deterministic across seeds. Unattended browser driver (npm run driver) resolves the full scenario through the real page, emits evals-cli expectedCall traces; smoke gate 44. docs/proxy-vs-real.md started.
 - **DESIGN OVERHAUL (Sid's verdict pulled M5 polish forward)** — real type (JetBrains Mono + Inter), floating depth-layered modules over a health-tinted glow, hairline rhythm, status-accent deploy cards, pill badges/mode switch, storefront rebuilt as a believable shop (hero, 6 products, gradient CTA, blurred 502). All selector contracts kept; evidence screenshots recaptured. **Sid's verdict: still reads 'AI vibe coded' — the model-default fingerprint. DECISION: park design, functional milestones first, REAL design session at M5 with Sid-picked reference imagery (memory: ai-vibe-ui-aversion).**
@@ -32,13 +47,14 @@
 - Deferred-by-decision (dated in PLAN): site-pane scenario binding → M4 template meta; engine-level rollforward semantics → M3 tool-vocabulary deepening (M3-04/05 window); untrusted injection log.line lands with M3's readOnly log tool polish; tool.called durationMs → M4 overhead pane
 
 ## Next actions (fresh session boots here)
-1. M3-05: co-presence branching (selection.changed steers read-tool scoping)
-3. M3-06: agent presence layer (cursor/telestrator) — taste-heavy, best with Sid present
-4. M2-07 feel review #1 (Sid) — human path + agent path (propose/approve/dual-key) both playable
-5. M3-08: attended ChatGPT desktop end-to-end (after M3-05/06); append proxy-vs-real calibration rows
-6. M0-05/06/07 attended probes (~10 min)
+1. Residual review pass (cheap model, NOT Fable): cross-file contract sweep of 6127dac^..HEAD — Angle C died at the session limit; fix findings test-gated
+2. M4-03 campaign runner scaffolding (no key needed to build; key needed to run): OpenAI Responses loop over study/corpus.json, tool bridge onto runQuery/propose, per-run persistence under study/campaign/, usage capture for the canary gate
+3. After Sid unlocks key + cap: luna smoke-run (5 runs) → canary (20 terra) → overnight campaign
+4. M4-04 curves from campaign artifacts (metrics already computable off logs)
+5. Sid attended block unchanged: M3-08 ChatGPT run, M2-07 feel review, M0-05/06/07 probes
 
 ## Blocked / waiting on Sid
+- M4-01 gate: skim the cost-projection artifact, set the $150 console cap, drop the OpenAI key in .env
 - M2-07 feel review #1 (b-roll starts); M0-05/06/07 probes
 - Optional, time-capped: sponsor credits (Vercel/Render/Netlify — see docs/research-resources.md; Cloudflare's is broken)
 - M3-08 end-to-end ChatGPT desktop run (after M3-04..07)
@@ -48,5 +64,5 @@
 
 ## How to run/demo
 - http://localhost:8917 (always up) → **Run sim**. Human path: flag-off + Roll forward (or Roll back for the catastrophe). Agent path: switch rail to recovery, then from DevTools console: `await window.__airlock.invoke('propose_rollback', {deployId:'d-201'})` → approval card appears → Approve/Reject. `?tick=120` speeds pacing, `?dev=1` shows manual health buttons.
-- `npm run smoke` → 44 gates (typecheck, lint-sim, 78 unit tests, build, browser incl. both human paths + tool contract + mode swap + approval chain) · `npm test` · `npm run lint:sim`
+- `npm run smoke` → 52 gates (typecheck, lint-sim, 78 unit tests, build, browser incl. both human paths + tool contract + mode swap + approval chain) · `npm test` · `npm run lint:sim`
 - Captures: `tools/capture-m2-states.mjs` (needs preview 8918), `tools/capture-m3-rail.mjs`, `tools/capture-m3-approval.mjs` (both hit 8917)

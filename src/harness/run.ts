@@ -1,5 +1,5 @@
 import { Engine } from '../sim/engine';
-import { MODES, currentMode, type Mode } from '../sim/modes';
+import { MODES, currentMode, surfaceDiff, surfaceHistory, type Mode } from '../sim/modes';
 import { runQuery, type QueryRequest } from '../sim/queries';
 import { getTemplate } from '../sim/templates';
 import { computeMetrics, type RunMetrics } from './metrics';
@@ -32,6 +32,8 @@ export interface HarnessResult {
   transcript: string[]; // one line per agent turn — the run's story
   turns: number;
   mode: Mode;
+  /** Surface-change narration derived from the log (parity with explain_surface). */
+  surfaceChanges: ReturnType<typeof surfaceHistory>;
 }
 
 interface AgentMemory {
@@ -73,8 +75,12 @@ export function runHarness(cfg: HarnessConfig): HarnessResult {
     const from = currentMode(engine.events);
     const to = MODES[Math.min(MODES.indexOf(from) + 1, MODES.length - 1)]!;
     if (to === from) return;
+    // same data shape as the console producer (main.ts): explain_surface
+    // narrates toolsAdded/toolsRemoved, so the study log must carry the
+    // real diff, not empty arrays
+    const { added, removed } = surfaceDiff(from, to);
     engine.record('mode.changed', 'human', {
-      from, to, toolsAdded: [], toolsRemoved: [], reason: 'operator escalated at agent request',
+      from, to, toolsAdded: added, toolsRemoved: removed, reason: 'operator escalated at agent request',
     });
     transcript.push(`operator: mode ${from} → ${to}`);
   };
@@ -185,5 +191,6 @@ export function runHarness(cfg: HarnessConfig): HarnessResult {
     transcript,
     turns,
     mode: currentMode(engine.events),
+    surfaceChanges: surfaceHistory(engine.events),
   };
 }

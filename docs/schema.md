@@ -30,10 +30,10 @@ type EventKind =
   // actions (writes — always via tools, always gated)
   | 'action.proposed'         // {tool, input, tier, diffSummary} — creates a pending approval
   | 'action.approved' | 'action.rejected'   // {by: 'human', proposalSeq}
-  | 'action.executed'         // {tool, input, result, durationMs}
-  | 'action.blocked'          // {tool, reason: 'not-registered-in-mode' | 'diagnosis-gate' | ...} — the counterfactual's key metric
+  | 'action.executed'         // {tool, input, result} (durationMs: see 2026-08-29 amendment)
+  | 'action.blocked'          // {tool, input, tier, reason, ...} — the counterfactual's key metric (reason enum: see 2026-08-29 amendment)
   // agent lifecycle
-  | 'tool.called'             // every tool invocation incl. reads: {tool, input, resultBytes, durationMs}
+  | 'tool.called'             // every tool invocation incl. reads: {tool, input, resultBytes} (durationMs: see 2026-08-29 amendment)
   | 'mode.changed'            // {from, to, toolsAdded[], toolsRemoved[], reason}
   | 'selection.changed'       // {by: 'human', target: EntityRef} — co-presence branching source
   // meta
@@ -96,3 +96,29 @@ type Deploy = {
 - [x] Deploy metadata fields sufficient for "the obvious move is wrong" scenarios — **agreed + `note` field added**
 - [x] causedBy threading enough for the thread-of-agency UI — **agreed, single-parent; rare multi-cause named in `data`**
 - [x] Anything missing queryable by the agent — **`log.line` kind added (SPEC's untrusted injection line requires it); dual-key `keyHolder` deferred to M3 as `data.keyHolder` on `action.approved`**
+
+---
+
+## Amendment — 2026-08-29 (M3 close, residual review)
+
+Aligning the document with what the code actually emits (the drift was
+caught by the M3-close review; the code side was already consistent and
+smoke-tested, so the DOC moves to match the code, not vice versa):
+
+- **`action.blocked` reason enum (normative, actual):**
+  `'invalid-input'` (malformed write input, blocked before any proposal;
+  carries `detail`) · `'not-available-in-mode'` (tier not allowed by the
+  current mode — emitted at propose time with actor `agent`, and at
+  approval time with actor `human` when the mode moved after proposal;
+  approval-time blocks carry `proposalSeq`) · `'dual-key-required'`
+  (tier-4 approval without the key, actor `human`, carries `proposalSeq`).
+  The draft values `'not-registered-in-mode'` / `'diagnosis-gate'` were
+  never emitted by any build and are dead — do not filter on them.
+- **Metrics note:** only `actor === 'agent'` blocks count as new write
+  attempts; human-actor blocks belong to an already-counted proposal
+  (src/harness/metrics.ts).
+- **`durationMs`** on `action.executed` / `tool.called` remains
+  UNIMPLEMENTED by decision (deferred to the M4 overhead pane — recorded
+  in STATUS deferred-by-decision since M2 close). The draft metric
+  `agentOverhead = Σ tool.called durations` is therefore not yet
+  computable; `toolBytes` is the implemented overhead measure.

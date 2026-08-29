@@ -170,3 +170,14 @@ describe('cursor vs co-presence (M3-close review)', () => {
     expect(cont.deploys.every((d) => d && !seen.has(d.id))).toBe(true);
   });
 });
+
+describe('foreign/out-of-range cursors (residual review)', () => {
+  it('list_deploys tolerates a cursor beyond the deploy count (no throw, newest page)', () => {
+    const e = new Engine({ templateId: 'migration-trap', seed: 7 });
+    e.step(12); // 2 deploys, but log seqs run far higher
+    for (const cursor of [3, 4, 22, 9999]) {
+      const page = query(e, { kind: 'deploys', cursor }) as { deploys: Array<{ id: string }> };
+      expect(page.deploys.map((d) => d.id), `cursor ${cursor}`).toEqual(['d-201', 'd-200']);
+    }
+  });
+});

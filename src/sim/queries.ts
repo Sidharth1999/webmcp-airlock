@@ -104,7 +104,9 @@ function deploys(
   // UNFILTERED list (stable under new deploys landing mid-walk AND under the
   // selection changing mid-walk): "return items with index strictly below
   // cursor", the service filter applied during the walk
-  const startIdx = (cursor ?? world.deploys.length) - 1;
+  // clamp: a foreign or stale cursor (log seq fed back, or minted before a
+  // re-seed shrank the list) degrades to the newest page instead of throwing
+  const startIdx = Math.min(cursor ?? world.deploys.length, world.deploys.length) - 1;
   const page: typeof world.deploys = [];
   let oldestReturned = startIdx + 1;
   for (let i = startIdx; i >= 0 && page.length < DEPLOY_PAGE; i--) {

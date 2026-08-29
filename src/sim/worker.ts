@@ -22,7 +22,7 @@ export type SimResponse =
   | { type: 'snapshot'; events: readonly Event[]; world: World }
   | { type: 'queryResult'; id: number; result: Record<string, unknown> }
   | { type: 'proposeResult'; id: number; seq: number; outcome: 'proposed' | 'blocked'; reason?: string }
-  | { type: 'error'; message: string };
+  | { type: 'error'; message: string; id?: number };
 
 let engine: Engine | null = null;
 
@@ -125,6 +125,10 @@ self.onmessage = (e: MessageEvent<SimRequest>) => {
       }
     }
   } catch (err) {
-    self.postMessage({ type: 'error', message: String(err) } satisfies SimResponse);
+    // correlate: a failed query/propose must settle its pending promise on
+    // the main thread — an uncorrelated error would leave the agent's tool
+    // call hanging forever (residual-review fix)
+    const id = 'id' in msg ? msg.id : undefined;
+    self.postMessage({ type: 'error', message: String(err), id } satisfies SimResponse);
   }
 };

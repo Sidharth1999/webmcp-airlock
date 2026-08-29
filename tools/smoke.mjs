@@ -312,6 +312,25 @@ try {
   await page.locator('.topo-node[data-service="api"].telestrated').waitFor({ timeout: 5_000 });
   check('telestrator ring pulses on the annotated node', true);
 
+  // residual-review fixes: malformed agent input is BLOCKED at the gate
+  // (never poisons the log), and a foreign cursor resolves instead of
+  // hanging the tool promise forever
+  const badInput = JSON.parse(
+    await page.evaluate(() => window.__airlock.invoke('propose_env_change', { key: 'SESSIONS_SCHEMA' }))
+  );
+  check(
+    'malformed write input blocks as invalid-input (agent gets the reason)',
+    badInput.status === 'blocked' && /invalid-input/.test(badInput.reason)
+  );
+  const foreignCursor = await Promise.race([
+    page.evaluate(() => window.__airlock.invoke('list_deploys', { cursor: 9999 })),
+    new Promise((r) => setTimeout(() => r('HUNG'), 6000)),
+  ]);
+  check(
+    'foreign/out-of-range cursor resolves with the newest page (no hang, no throw)',
+    foreignCursor !== 'HUNG' && Array.isArray(JSON.parse(foreignCursor).deploys)
+  );
+
   // review fix: a template re-seed clears the previous scenario's tombstones
   // (this page left recovery mode earlier, so ghosts would render pre-fix)
   await page.getByTestId('template-pick').selectOption('baseline');

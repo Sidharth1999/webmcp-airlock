@@ -36,7 +36,7 @@ const CURSOR_SCHEMA = {
 
 const NO_INPUT_SCHEMA = { type: 'object', properties: {} } as const;
 
-interface ReadToolSpec {
+export interface ReadToolSpec {
   name: string;
   description: string;
   inputSchema: Record<string, unknown>;
@@ -44,7 +44,7 @@ interface ReadToolSpec {
   toQuery(input: { cursor?: number }): QueryRequest;
 }
 
-const READ_TOOLS: ReadToolSpec[] = [
+export const READ_TOOLS: ReadToolSpec[] = [
   {
     name: 'airlock_status',
     description:
@@ -90,7 +90,7 @@ const READ_TOOLS: ReadToolSpec[] = [
   },
 ];
 
-interface WriteToolSpec {
+export interface WriteToolSpec {
   name: string;
   description: string;
   inputSchema: Record<string, unknown>;
@@ -100,7 +100,7 @@ interface WriteToolSpec {
 
 const prop = (desc: string) => ({ type: 'string', description: desc });
 
-const WRITE_TOOLS: WriteToolSpec[] = [
+export const WRITE_TOOLS: WriteToolSpec[] = [
   {
     name: 'propose_flag_change',
     action: 'flag.set',

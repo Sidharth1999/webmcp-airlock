@@ -20,11 +20,24 @@ export interface WriteAction {
   tierName: 'deploy' | 'env' | 'flag' | 'route';
   /** One-line human diff for proposals/audit ("what would change"). */
   describe(input: Record<string, unknown>, world: World): string;
+  /**
+   * Shape check BEFORE anything enters the log (residual-review fix: an
+   * LLM omitting a required field, or Chrome-151's unparseable-string →
+   * `{}` coercion, must never poison the event log or the world).
+   * Returns a human-readable problem, or null when the input is sound.
+   */
+  validate(input: Record<string, unknown>): string | null;
 }
+
+const needString = (input: Record<string, unknown>, key: string): string | null =>
+  typeof input[key] === 'string' && (input[key] as string).length > 0
+    ? null
+    : `${key} (string) is required`;
 
 export const WRITE_ACTIONS: Record<string, WriteAction> = {
   'deploy.rollback': {
     tool: 'deploy.rollback',
+    validate: (i) => needString(i, 'deployId'),
     tier: 1,
     tierName: 'deploy',
     describe(input, world) {
@@ -42,6 +55,7 @@ export const WRITE_ACTIONS: Record<string, WriteAction> = {
   },
   'deploy.rollforward': {
     tool: 'deploy.rollforward',
+    validate: (i) => needString(i, 'service'),
     tier: 1,
     tierName: 'deploy',
     describe(input, world) {
@@ -52,6 +66,7 @@ export const WRITE_ACTIONS: Record<string, WriteAction> = {
   },
   'env.set': {
     tool: 'env.set',
+    validate: (i) => needString(i, 'key') ?? needString(i, 'value'),
     tier: 2,
     tierName: 'env',
     describe(input, world) {
@@ -62,6 +77,8 @@ export const WRITE_ACTIONS: Record<string, WriteAction> = {
   },
   'flag.set': {
     tool: 'flag.set',
+    validate: (i) =>
+      needString(i, 'id') ?? (i.state === 'on' || i.state === 'off' ? null : "state must be 'on' or 'off'"),
     tier: 3,
     tierName: 'flag',
     describe(input, world) {
@@ -72,6 +89,7 @@ export const WRITE_ACTIONS: Record<string, WriteAction> = {
   },
   'route.set': {
     tool: 'route.set',
+    validate: (i) => needString(i, 'id') ?? needString(i, 'target'),
     tier: 4,
     tierName: 'route',
     describe(input, world) {

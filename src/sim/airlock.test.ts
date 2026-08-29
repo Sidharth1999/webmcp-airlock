@@ -303,3 +303,38 @@ describe('approval-time re-check (M3-close review): the gate holds even if the m
     expect(engine.world.flags.find((f) => f.id === 'new-checkout')?.state).toBe('off');
   });
 });
+
+describe('input validation at the gate (residual review): malformed writes never poison the log', () => {
+  it('propose with missing/invalid fields blocks as invalid-input, no proposal minted', () => {
+    const engine = new Engine({ templateId: 'migration-trap', seed: 42 });
+    engine.step(10);
+    enterMode(engine, 'recovery');
+    const before = engine.events.length;
+    for (const [tool, input] of [
+      ['env.set', { key: 'SESSIONS_SCHEMA' }], // value missing
+      ['flag.set', {}], // Chrome-151 unparseable-string path coerces to {}
+      ['flag.set', { id: 'new-checkout', state: 'maybe' }],
+      ['route.set', { id: 'checkout' }], // target missing
+      ['deploy.rollback', {}],
+    ] as const) {
+      const ev = engine.propose(tool, input as Record<string, unknown>);
+      expect(ev.kind, tool).toBe('action.blocked');
+      expect((ev.data as { reason: string }).reason, tool).toBe('invalid-input');
+    }
+    // blocks are IN the log (attempted-vs-blocked is the headline metric),
+    // but no proposal, approval, or execution ever appeared
+    const kinds = engine.events.slice(before).map((e) => e.kind);
+    expect(kinds.every((k) => k === 'action.blocked')).toBe(true);
+  });
+
+  it('act() with invalid input throws BEFORE emitting — the log stays clean', () => {
+    const engine = new Engine({ templateId: 'migration-trap', seed: 42 });
+    engine.step(10);
+    const before = engine.events.length;
+    expect(() => engine.act('env.set', { key: 'SESSIONS_SCHEMA' }, 'agent')).toThrow(/invalid/i);
+    expect(() => engine.act('flag.set', {}, 'human')).toThrow(/invalid/i);
+    expect(engine.events.length).toBe(before);
+    // and the world can still be replayed + measured (nothing half-applied)
+    expect(engine.world.flags.every((f) => typeof f.id === 'string' && f.id.length > 0)).toBe(true);
+  });
+});

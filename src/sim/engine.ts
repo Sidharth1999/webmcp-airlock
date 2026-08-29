@@ -5,7 +5,7 @@ import { mulberry32, type Rng } from './rng';
 import { currentMode, MODE_TIERS } from './modes';
 import { getTemplate, type TemplateInstance } from './templates';
 import type { Actor, Event, EventKind, SeedSpec, World } from './types';
-import { writeAction } from './vocabulary';
+import { WRITE_ACTIONS, writeAction } from './vocabulary';
 
 /** Meta kinds external callers may record; the reducer no-ops all of them. */
 const RECORDABLE: ReadonlySet<EventKind> = new Set([
@@ -85,6 +85,11 @@ export class Engine {
     actor: 'human' | 'agent' = 'human',
     causedBy?: number
   ): Event {
+    // validate BEFORE anything is emitted: a malformed write must never
+    // enter the log half-applied (the reducer trusts validated events)
+    const spec = WRITE_ACTIONS[tool];
+    const invalid = spec?.validate(input);
+    if (invalid) throw new Error(`invalid input for ${tool}: ${invalid}`);
     const ctx = this.ctx();
     const event = ctx.emit('action.executed', actor, { tool, input, result: { ok: true } }, causedBy);
     this.template.onAction?.(this.ctx(), event);
@@ -114,6 +119,18 @@ export class Engine {
   propose(tool: string, input: Record<string, unknown>, causedBy?: number): Event {
     const spec = writeAction(tool); // throws on unknown tools: nothing off-vocabulary is proposable
     const ctx = this.ctx();
+    // malformed input blocks BEFORE a proposal exists — blocked, not thrown,
+    // because a schema-violating agent attempt is study data (and the agent
+    // gets a machine-readable reason to correct itself)
+    const invalid = spec.validate(input);
+    if (invalid) {
+      return ctx.emit(
+        'action.blocked',
+        'agent',
+        { tool, input, tier: spec.tier, tierName: spec.tierName, reason: 'invalid-input', detail: invalid },
+        causedBy
+      );
+    }
     const mode = currentMode(this.log.all);
     if (!MODE_TIERS[mode].has(spec.tier)) {
       return ctx.emit(

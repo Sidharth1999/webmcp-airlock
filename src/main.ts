@@ -887,6 +887,15 @@ worker.onmessage = (e: MessageEvent<SimResponse>) => {
     pendingProposes.get(msg.id)?.({ seq: msg.seq, outcome: msg.outcome, reason: msg.reason });
     pendingProposes.delete(msg.id);
   } else if (msg.type === 'error') {
+    // settle any pending tool promise so the agent gets an error instead of
+    // an unbounded hang; the id says which request threw
+    if (msg.id !== undefined) {
+      pendingQueries.get(msg.id)?.({ error: msg.message });
+      pendingQueries.delete(msg.id);
+      pendingProposes.get(msg.id)?.({ seq: -1, outcome: 'blocked', reason: `sim-error: ${msg.message}` });
+      pendingProposes.delete(msg.id);
+    }
+    console.error('[sim]', msg.message);
     statusEl.textContent = `sim error: ${msg.message}`;
   }
 };

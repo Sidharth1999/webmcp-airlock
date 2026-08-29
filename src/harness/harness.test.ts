@@ -95,3 +95,13 @@ describe('metrics vs the dual key (M3-close review)', () => {
     expect(m.writesExecuted).toBe(1);
   });
 });
+
+describe('mode.changed shape parity (residual review)', () => {
+  it('harness escalation carries the real surface diff, matching the console producer', () => {
+    const r = runHarness({ seed: 42, persona: 'naive', arm: 'gated' });
+    expect(r.metrics.writesBlocked).toBeGreaterThan(0); // escalation actually happened
+    // surfaceHistory reads toolsAdded/toolsRemoved — the harness must fill
+    // them via surfaceDiff like main.ts does, not hardcode []
+    expect(r.surfaceChanges.some((c) => (c.added as string[]).length > 0)).toBe(true);
+  });
+});

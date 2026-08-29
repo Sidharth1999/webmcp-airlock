@@ -6,7 +6,7 @@
 ## This session (2026-08-29 daytime)
 - **M3-04 DONE** — tier gating in the ENGINE (out-of-mode writes → action.blocked w/ machine-readable reason; diagnosis = flag-tier only), dual-key on tier 4 (approve w/o key → blocked, proposal survives; keyed approve stamps data.keyHolder + executes). TEST-FILE EDITS flagged for Sid: M3-02/03 proposal tests now enter a mode first (old flow proposed from triage, which the new policy correctly blocks).
 - **M3-07 DONE** — synthetic persona harness (src/harness): **the counterfactual is now a unit test** — ungated naive → catastrophic; gated naive blocked into reading → resolves correctly with less damage; deterministic across seeds. Unattended browser driver (npm run driver) resolves the full scenario through the real page, emits evals-cli expectedCall traces; smoke gate 44. docs/proxy-vs-real.md started.
-- **DESIGN OVERHAUL (Sid's verdict pulled M5 polish forward)** — real type (JetBrains Mono + Inter), floating depth-layered modules over a health-tinted glow, hairline rhythm, status-accent deploy cards, pill badges/mode switch, storefront rebuilt as a believable shop (hero, 6 products, gradient CTA, blurred 502). All selector contracts kept; evidence screenshots recaptured. **Awaiting Sid's re-verdict.**
+- **DESIGN OVERHAUL (Sid's verdict pulled M5 polish forward)** — real type (JetBrains Mono + Inter), floating depth-layered modules over a health-tinted glow, hairline rhythm, status-accent deploy cards, pill badges/mode switch, storefront rebuilt as a believable shop (hero, 6 products, gradient CTA, blurred 502). All selector contracts kept; evidence screenshots recaptured. **Sid's verdict: still reads 'AI vibe coded' — the model-default fingerprint. DECISION: park design, functional milestones first, REAL design session at M5 with Sid-picked reference imagery (memory: ai-vibe-ui-aversion).**
 - 78 unit tests, 44 smoke gates, GREEN.
 
 ## Previous session (2026-08-29 early morning)
@@ -29,8 +29,7 @@
 - Deferred-by-decision (dated in PLAN): site-pane scenario binding → M4 template meta; engine-level rollforward semantics → M3 tool-vocabulary deepening (M3-04/05 window); untrusted injection log.line lands with M3's readOnly log tool polish; tool.called durationMs → M4 overhead pane
 
 ## Next actions (fresh session boots here)
-1. Sid's design re-verdict on the overhaul (live at 8917) — gates M3-06 taste work
-2. M3-05: co-presence branching (selection.changed steers read-tool scoping)
+1. M3-05: co-presence branching (selection.changed steers read-tool scoping)
 3. M3-06: agent presence layer (cursor/telestrator) — taste-heavy, best with Sid present
 4. M2-07 feel review #1 (Sid) — human path + agent path (propose/approve/dual-key) both playable
 5. M3-08: attended ChatGPT desktop end-to-end (after M3-05/06); append proxy-vs-real calibration rows

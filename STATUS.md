@@ -1,13 +1,16 @@
 # STATUS — live audit log
 
-**Updated:** 2026-08-29 (~13:20) · **Milestone:** M3 in progress (5/8) · **Progress: M3 62.5% · overall 43.1%** (run `python3 tools/progress.py`; RUNBOOK rule: report both %s at every session start and milestone close)
+**Updated:** 2026-08-29 (evening) · **Milestone:** M3 Claude-side COMPLETE (7/8 — only Sid's attended run open) · **Progress: M3 87.5% · overall 48.1%** (run `python3 tools/progress.py`; RUNBOOK rule: report both %s at every session start and milestone close)
 **Full context:** war room artifact https://claude.ai/code/artifact/798206ed-bc4f-44fd-b48c-874de5dfdcc0 · memory: project_webmcp_challenge
 
 ## This session (2026-08-29 daytime)
 - **M3-04 DONE** — tier gating in the ENGINE (out-of-mode writes → action.blocked w/ machine-readable reason; diagnosis = flag-tier only), dual-key on tier 4 (approve w/o key → blocked, proposal survives; keyed approve stamps data.keyHolder + executes). TEST-FILE EDITS flagged for Sid: M3-02/03 proposal tests now enter a mode first (old flow proposed from triage, which the new policy correctly blocks).
 - **M3-07 DONE** — synthetic persona harness (src/harness): **the counterfactual is now a unit test** — ungated naive → catastrophic; gated naive blocked into reading → resolves correctly with less damage; deterministic across seeds. Unattended browser driver (npm run driver) resolves the full scenario through the real page, emits evals-cli expectedCall traces; smoke gate 44. docs/proxy-vs-real.md started.
 - **DESIGN OVERHAUL (Sid's verdict pulled M5 polish forward)** — real type (JetBrains Mono + Inter), floating depth-layered modules over a health-tinted glow, hairline rhythm, status-accent deploy cards, pill badges/mode switch, storefront rebuilt as a believable shop (hero, 6 products, gradient CTA, blurred 502). All selector contracts kept; evidence screenshots recaptured. **Sid's verdict: still reads 'AI vibe coded' — the model-default fingerprint. DECISION: park design, functional milestones first, REAL design session at M5 with Sid-picked reference imagery (memory: ai-vibe-ui-aversion).**
-- 78 unit tests, 44 smoke gates, GREEN.
+- **M3-05 DONE** — co-presence branching: selection.changed in the log; clicking any node scopes the agent's reads (logs filtered, deploys narrowed, status carries humanSelection, scopedTo self-describing); click-again clears.
+- **M3-06 DONE (mechanics)** — labeled agent cursor glides to the agent's latest touch, telestrator rings on annotations, conn chip; visual language deferred to the UX pass. Evidence log/m3-06-presence.png (captured mid-driver-run).
+- **UX debt locked in** — Sid's verdicts (AI-fingerprint look, d-201 jargon, audit-button mystery, 'natural and obvious' bar) + 6 self-flagged items → docs/ux-debt.md, the agenda for a dedicated pre-M5 session with Sid-picked references. Memory: ai-vibe-ui-aversion.
+- 82 unit tests, 49 smoke gates, GREEN.
 
 ## Previous session (2026-08-29 early morning)
 - **M3-01 DONE** — read-tool surface: pure query fns over (events, world) in `src/sim/queries.ts` (status/deploys/logs/changes/traffic), worker `query` RPC (worker's log stays the single source of truth), 6 read tools registered w/ `readOnlyHint` (+`untrustedContentHint` on read_logs). Contract held by 10 unit tests: ≤1.2KB every page, asOfSeq everywhere, newest-first cursors complete/dupe-free/append-stable. `window.__airlock` drives the same execute path for tests.

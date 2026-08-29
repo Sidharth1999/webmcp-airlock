@@ -76,11 +76,18 @@ app.innerHTML = `
             <span class="sf-brand">aperture supply co.</span>
             <span class="sf-nav">shop · about · cart (1)</span>
           </div>
+          <div class="sf-hero">
+            <span class="sf-hero-kicker">new for fall</span>
+            <span class="sf-hero-line">Field-tested goods, guaranteed for the long trail.</span>
+          </div>
           <div class="sf-banner" data-testid="sf-banner" role="status"></div>
           <div class="sf-grid">
             <div class="sf-card"><div class="sf-img sf-img-a"></div><div class="sf-name">field jacket</div><div class="sf-price">$128</div></div>
             <div class="sf-card"><div class="sf-img sf-img-b"></div><div class="sf-name">canvas tote</div><div class="sf-price">$42</div></div>
             <div class="sf-card"><div class="sf-img sf-img-c"></div><div class="sf-name">trail bottle</div><div class="sf-price">$28</div></div>
+            <div class="sf-card"><div class="sf-img sf-img-d"></div><div class="sf-name">wool beanie</div><div class="sf-price">$34</div></div>
+            <div class="sf-card"><div class="sf-img sf-img-e"></div><div class="sf-name">camp mug</div><div class="sf-price">$22</div></div>
+            <div class="sf-card"><div class="sf-img sf-img-f"></div><div class="sf-name">dry sack</div><div class="sf-price">$36</div></div>
           </div>
           <div class="sf-checkout">
             <button type="button" class="sf-buy" data-testid="sf-buy">Checkout — $48.00</button>
@@ -96,7 +103,7 @@ app.innerHTML = `
 
     <section class="pane" id="tool-rail" aria-label="Tool rail">
       <header>
-        Tool Surface
+        Tools
         <div class="mode-switch" id="mode-switch" data-testid="mode-switch">
           ${MODES.map(
             (m) =>

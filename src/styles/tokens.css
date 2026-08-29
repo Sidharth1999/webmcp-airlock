@@ -5,6 +5,8 @@
    drives all motion (agent motion gets its own signature).
    ============================================================ */
 
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700;800&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+
 /* --- Health hue: the console-wide instrument -------------- */
 /* Registered so hue transitions ANIMATE (teal sweeps through
    amber on its way to red — the needle moves, never teleports). */
@@ -41,34 +43,52 @@
   --health: oklch(72% var(--health-chroma) var(--health-hue));
   --health-bright: oklch(80% 0.16 var(--health-hue));
   --health-dim: oklch(45% 0.08 var(--health-hue));
-  --health-glow: oklch(70% 0.15 var(--health-hue) / 0.22);
-  --health-surface: oklch(24% 0.03 var(--health-hue));
+  --health-glow: oklch(70% 0.15 var(--health-hue) / 0.16);
+  --health-surface: oklch(26% 0.045 var(--health-hue) / 0.6);
 
-  /* --- surfaces (instrument dark, slightly cool) ---------- */
-  --bg: oklch(16% 0.012 240);
-  --panel: oklch(20% 0.014 240);
-  --panel-raised: oklch(23% 0.016 240);
-  --line: oklch(30% 0.015 240);
-  --line-strong: oklch(38% 0.02 240);
+  /* --- surfaces: layered depth, slightly cool -------------- */
+  --bg: oklch(13.5% 0.014 250);
+  --panel: oklch(18.5% 0.016 248);
+  --panel-grad: linear-gradient(180deg, oklch(20.5% 0.018 248), oklch(17.5% 0.015 250));
+  --panel-raised: oklch(23% 0.018 248);
+  --panel-inset: oklch(15.5% 0.014 250);
+  --line: oklch(100% 0 0 / 0.07);
+  --line-strong: oklch(100% 0 0 / 0.14);
+  --shadow-panel:
+    inset 0 1px 0 oklch(100% 0 0 / 0.05),
+    0 10px 30px oklch(0% 0 0 / 0.35),
+    0 2px 8px oklch(0% 0 0 / 0.25);
+  --shadow-card: 0 1px 2px oklch(0% 0 0 / 0.3), 0 6px 16px oklch(0% 0 0 / 0.2);
 
   /* --- ink ------------------------------------------------ */
-  --ink: oklch(90% 0.01 240);
-  --ink-dim: oklch(68% 0.015 240);
-  --ink-faint: oklch(50% 0.015 240);
+  --ink: oklch(92% 0.008 250);
+  --ink-dim: oklch(70% 0.012 250);
+  --ink-faint: oklch(52% 0.014 250);
+  --ink-ghost: oklch(40% 0.014 250);
 
   /* --- actor colors (thread of agency) -------------------- */
-  --actor-human: oklch(75% 0.10 250);   /* cool blue — the human hand */
-  --actor-agent: oklch(75% 0.12 310);   /* violet — the agent's presence */
+  --actor-human: oklch(76% 0.10 250);   /* cool blue — the human hand */
+  --actor-agent: oklch(76% 0.13 310);   /* violet — the agent's presence */
+  --actor-agent-dim: oklch(76% 0.13 310 / 0.35);
   --actor-sim: var(--ink-faint);        /* the world just happening */
 
+  /* --- alert colors --------------------------------------- */
+  --warn: oklch(78% 0.14 80);
+  --warn-dim: oklch(50% 0.09 80);
+  --bad: oklch(68% 0.19 25);
+  --good: oklch(75% 0.13 160);
+
   /* --- type ----------------------------------------------- */
-  --font-instrument: ui-monospace, "SF Mono", "Cascadia Code", Menlo, monospace;
-  --font-prose: -apple-system, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
-  --text-xs: 0.6875rem;
-  --text-sm: 0.8125rem;
-  --text-md: 0.9375rem;
-  --text-lg: 1.125rem;
-  --tracking-label: 0.08em;
+  --font-instrument: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
+  --font-prose: "Inter", -apple-system, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  --text-2xs: 0.625rem;    /* 10px — fine print, timestamps */
+  --text-xs: 0.6875rem;    /* 11px — labels, badges */
+  --text-sm: 0.8125rem;    /* 13px — body rows */
+  --text-md: 0.9375rem;    /* 15px — prose */
+  --text-lg: 1.1875rem;    /* 19px — pane-level headings */
+  --text-xl: 1.5rem;       /* 24px — display */
+  --tracking-label: 0.09em;
+  --tracking-wide: 0.14em;
 
   /* --- one spring family (SPEC: single motion physics) ---- */
   --ease-snap: cubic-bezier(0.2, 0.9, 0.25, 1.05);   /* human-initiated: quick, slight overshoot */
@@ -81,5 +101,5 @@
 
   /* --- spacing / radii ------------------------------------ */
   --sp-1: 4px; --sp-2: 8px; --sp-3: 12px; --sp-4: 16px; --sp-5: 24px; --sp-6: 32px;
-  --r-sm: 4px; --r-md: 8px; --r-lg: 12px;
+  --r-sm: 6px; --r-md: 10px; --r-lg: 14px; --r-xl: 18px;
 }

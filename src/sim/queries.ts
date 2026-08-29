@@ -27,6 +27,31 @@ const TRAFFIC_PAGE = 5;
 const asOf = (events: readonly Event[]): number =>
   events.length === 0 ? 0 : events[events.length - 1]!.seq;
 
+/** Co-presence (M3-05): what the human is pointing at, from the log. */
+export interface EntityRef {
+  type: 'service' | 'deploy' | 'flag' | 'route';
+  id: string;
+}
+
+export function currentSelection(events: readonly Event[]): EntityRef | null {
+  for (let i = events.length - 1; i >= 0; i--) {
+    const e = events[i]!;
+    if (e.kind === 'selection.changed') {
+      return (e.data as { target: EntityRef | null }).target ?? null;
+    }
+  }
+  return null;
+}
+
+/** The service a selection implicates (deploys/flags resolve to their service). */
+function selectedService(sel: EntityRef | null, world: World): string | null {
+  if (!sel) return null;
+  if (sel.type === 'service') return sel.id;
+  if (sel.type === 'deploy') return world.deploys.find((d) => d.id === sel.id)?.service ?? null;
+  if (sel.type === 'route') return world.routes.find((r) => r.id === sel.id)?.target ?? null;
+  return null; // flags don't scope service-keyed reads
+}
+
 /** Newest-first page of events of one kind, cursor = "seq strictly below". */
 function pageOf(
   events: readonly Event[],
@@ -49,6 +74,8 @@ function pageOf(
 function status(events: readonly Event[], world: World): Record<string, unknown> {
   return {
     asOfSeq: asOf(events),
+    // co-presence: the agent always sees what the human is pointing at
+    humanSelection: currentSelection(events),
     services: world.services.map((s) => ({ id: s.id, health: s.health, version: s.version })),
     traffic: {
       rps: world.traffic.rps,
@@ -70,9 +97,12 @@ function deploys(
   world: World,
   cursor?: number
 ): Record<string, unknown> {
+  // co-presence: a selected service/deploy narrows the list to that service
+  const sel = currentSelection(events);
+  const svc = selectedService(sel, world);
   // world.deploys is append-ordered; cursor = append-index (stable under new
   // deploys landing mid-walk): "return items with index strictly below cursor"
-  const all = world.deploys;
+  const all = svc ? world.deploys.filter((d) => d.service === svc) : world.deploys;
   const startIdx = (cursor ?? all.length) - 1;
   const page: typeof world.deploys = [];
   for (let i = startIdx; i >= 0 && page.length < DEPLOY_PAGE; i--) page.push(all[i]!);
@@ -99,13 +129,27 @@ function deploys(
     })),
   };
   if (page.length > 0 && oldestReturned > 0) out.nextCursor = oldestReturned;
+  if (svc) out.scopedTo = { humanSelection: sel, service: svc };
   return out;
 }
 
-function logs(events: readonly Event[], cursor?: number): Record<string, unknown> {
-  const { page, nextCursor } = pageOf(events, ['log.line'], cursor, LOG_PAGE);
+function logs(
+  events: readonly Event[],
+  world: World,
+  cursor?: number
+): Record<string, unknown> {
+  // co-presence: selection filters lines to the implicated service
+  const sel = currentSelection(events);
+  const svc = selectedService(sel, world);
+  const source = svc
+    ? events.filter(
+        (e) => e.kind !== 'log.line' || (e.data as { service: string }).service === svc
+      )
+    : events;
+  const { page, nextCursor } = pageOf(source, ['log.line'], cursor, LOG_PAGE);
   const out: Record<string, unknown> = {
     asOfSeq: asOf(events),
+    ...(svc ? { scopedTo: { humanSelection: sel, service: svc } } : {}),
     lines: page.map((e) => {
       const d = e.data as {
         service: string;
@@ -175,7 +219,7 @@ export function runQuery(
     case 'deploys':
       return deploys(events, world, q.cursor);
     case 'logs':
-      return logs(events, q.cursor);
+      return logs(events, world, q.cursor);
     case 'changes':
       return changes(events, world);
     case 'traffic':

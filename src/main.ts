@@ -2,7 +2,7 @@ import './styles/tokens.css';
 import './styles/shell.css';
 import { Engine } from './sim/engine';
 import { MODES, type Mode } from './sim/modes';
-import type { QueryRequest } from './sim/queries';
+import type { EntityRef, QueryRequest } from './sim/queries';
 import { templateIds } from './sim/templates';
 import type { SimRequest, SimResponse } from './sim/worker';
 import type { Deploy, Event, Flag, World } from './sim/types';
@@ -236,6 +236,7 @@ function seed(templateId: string): void {
   tickCount = 0;
   world = null;
   orderNo = ORDER_NO_START;
+  selection = null;
   resetTele();
   storefront.dataset.state = 'ok';
   sfBanner.textContent = '';
@@ -300,6 +301,10 @@ function summarize(e: Event): string {
       return `proposal #${d.proposalSeq} REJECTED by human`;
     case 'action.blocked':
       return `${d.tool} BLOCKED — ${d.reason}${d.mode ? ` (mode: ${d.mode})` : ''}`;
+    case 'selection.changed': {
+      const t = d.target as EntityRef | null;
+      return t ? `human points at ${t.type} ${t.id}` : 'selection cleared';
+    }
     case 'tool.called':
       return `${d.tool} · ${d.resultBytes}B`;
     default:
@@ -496,6 +501,56 @@ function resolveApprovalCard(proposalSeq: number): void {
   pendingCards.delete(proposalSeq);
 }
 
+// ---- co-presence selection (M3-05) ---------------------------------------
+// Clicking any node is pointing at it: selection.changed enters the log and
+// the agent's read tools scope to it. Click again to clear.
+
+let selection: EntityRef | null = null;
+
+function selectableTarget(el: HTMLElement): EntityRef | null {
+  const topo = el.closest<HTMLElement>('.topo-node[data-service]');
+  if (topo) return { type: 'service', id: topo.dataset.service! };
+  const flag = el.closest<HTMLElement>('.ctl-row[data-flag-id]');
+  if (flag) return { type: 'flag', id: flag.dataset.flagId! };
+  const svc = el.closest<HTMLElement>('.ctl-row[data-service-id]');
+  if (svc) return { type: 'service', id: svc.dataset.serviceId! };
+  const deploy = el.closest<HTMLElement>('.deploy-card[data-deploy-id]');
+  if (deploy) return { type: 'deploy', id: deploy.dataset.deployId! };
+  return null;
+}
+
+function applySelectionVisual(): void {
+  document.querySelectorAll<HTMLElement>('[data-selected]').forEach((el) => {
+    delete el.dataset.selected;
+  });
+  if (!selection) return;
+  const sels: string[] = [];
+  if (selection.type === 'service') {
+    sels.push(
+      `.topo-node[data-service="${selection.id}"]`,
+      `.ctl-row[data-service-id="${selection.id}"]`
+    );
+  } else if (selection.type === 'flag') {
+    sels.push(`.ctl-row[data-flag-id="${selection.id}"]`);
+  } else if (selection.type === 'deploy') {
+    sels.push(`.deploy-card[data-deploy-id="${selection.id}"]`);
+  }
+  for (const s of sels) {
+    document.querySelectorAll<HTMLElement>(s).forEach((el) => (el.dataset.selected = 'true'));
+  }
+}
+
+function setSelection(target: EntityRef | null): void {
+  selection = target;
+  send({
+    type: 'record',
+    kind: 'selection.changed',
+    actor: 'human',
+    data: { by: 'human', target },
+  });
+  applySelectionVisual();
+}
+
 document.querySelector('#audit-toggle')!.addEventListener('click', () => {
   const btn = document.querySelector<HTMLButtonElement>('#audit-toggle')!;
   const on = btn.getAttribute('aria-pressed') !== 'true';
@@ -505,7 +560,20 @@ document.querySelector('#audit-toggle')!.addEventListener('click', () => {
 
 document.querySelector('#control-deck')!.addEventListener('click', (e) => {
   const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-act]');
-  if (!btn || btn.disabled || !world) return;
+  if (!btn) {
+    // not a control: a click on a node is the human pointing at it
+    const target = selectableTarget(e.target as HTMLElement);
+    if (target !== null || selection !== null) {
+      const same =
+        target !== null &&
+        selection !== null &&
+        target.type === selection.type &&
+        target.id === selection.id;
+      setSelection(same ? null : target);
+    }
+    return;
+  }
+  if (btn.disabled || !world) return;
   switch (btn.dataset.act) {
     case 'approve':
     case 'reject': {
@@ -702,6 +770,7 @@ function renderEvents(events: Event[], w: World): void {
   renderDeck(w);
   renderSite(w);
   applyHealth(w);
+  applySelectionVisual(); // topology re-renders wipe data-selected; restore
   document.querySelector('#damage-val')!.textContent = `$${w.damage.revenueLost.toFixed(2)}`;
 }
 

@@ -262,6 +262,37 @@ try {
     routes.routes.find((r) => r.id === 'checkout').target === 'web'
   );
 
+  // ---- M3-05: co-presence — human clicks a node, agent reads scope to it --
+  await page.locator('.topo-node[data-service="api"]').click();
+  await page.locator('.topo-node[data-service="api"][data-selected="true"]').waitFor({ timeout: 5_000 });
+  // clue log-lines drip probabilistically per tick — wait until at least one
+  // exists before asserting the scope filter
+  let scopedLogs = { lines: [] };
+  for (let i = 0; i < 30 && scopedLogs.lines.length === 0; i++) {
+    scopedLogs = JSON.parse(await page.evaluate(() => window.__airlock.invoke('read_logs', {})));
+    if (scopedLogs.lines.length === 0) await page.waitForTimeout(400);
+  }
+  check(
+    'selection scopes read_logs to the pointed-at service',
+    scopedLogs.scopedTo?.service === 'api' &&
+      scopedLogs.lines.length > 0 &&
+      scopedLogs.lines.every((l) => l.service === 'api')
+  );
+  const scopedStatus = JSON.parse(await page.evaluate(() => window.__airlock.invoke('airlock_status', {})));
+  check(
+    'agent sees humanSelection in status; selection audited in the stream',
+    scopedStatus.humanSelection?.id === 'api' &&
+      (await page.locator('#event-stream li[data-kind="selection.changed"]').count()) >= 1
+  );
+  await page.locator('.topo-node[data-service="api"]').click(); // toggle off
+  await page.waitForFunction(
+    () => !document.querySelector('[data-selected="true"]'),
+    null,
+    { timeout: 5_000 }
+  );
+  const unscoped = JSON.parse(await page.evaluate(() => window.__airlock.invoke('read_logs', {})));
+  check('clicking again clears the selection (reads unscope)', unscoped.scopedTo === undefined);
+
   // ---- M2-05: human resolves the flagship scenario via UI clicks only ----
   // (fast pacing via ?tick= so the run is seconds, not minutes; every state
   // assertion is on rendered DOM — nothing reaches into the engine)

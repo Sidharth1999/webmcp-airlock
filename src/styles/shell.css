@@ -296,6 +296,14 @@ body {
 .topo-id { color: var(--ink); font-weight: 600; }
 .topo-ver { color: var(--ink-ghost); font-variant-numeric: tabular-nums; }
 .topo-link { width: 12px; height: 1px; background: var(--line-strong); }
+
+/* co-presence selection: the human's hand is blue, thin, unmistakable */
+.topo-node, .ctl-row, .deploy-card { cursor: pointer; }
+[data-selected='true'] {
+  outline: 1px solid var(--actor-human);
+  outline-offset: 2px;
+}
+.ctl-row[data-selected='true'] { outline-offset: 0; border-radius: var(--r-sm); }
 #control-deck .deck-label {
   letter-spacing: var(--tracking-wide);
   text-transform: uppercase;

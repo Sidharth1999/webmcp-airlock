@@ -157,6 +157,63 @@ describe('approval flow: proposed → approved → executed, causedBy-chained (M
   });
 });
 
+describe('co-presence branching: selection scopes the reads (M3-05)', () => {
+  function withIncidentAndSelection(target: unknown): Engine {
+    const engine = new Engine({ templateId: 'migration-trap', seed: 42 });
+    engine.step(16); // clues dripped: api + db log lines exist
+    engine.record('selection.changed', 'human', { by: 'human', target });
+    return engine;
+  }
+
+  it('selecting a service scopes logs to it and stamps scopedTo', () => {
+    const engine = withIncidentAndSelection({ type: 'service', id: 'api' });
+    const r = runQuery(engine.events, engine.world, { kind: 'logs' }) as {
+      scopedTo?: { service: string };
+      lines: Array<{ service: string }>;
+    };
+    expect(r.scopedTo?.service).toBe('api');
+    expect(r.lines.length).toBeGreaterThan(0);
+    for (const l of r.lines) expect(l.service).toBe('api');
+    expect(JSON.stringify(r).length).toBeLessThanOrEqual(1200);
+  });
+
+  it('selecting a deploy scopes the deploy list to its service', () => {
+    const engine = withIncidentAndSelection({ type: 'deploy', id: 'd-201' });
+    const r = runQuery(engine.events, engine.world, { kind: 'deploys' }) as {
+      scopedTo?: { service: string };
+      deploys: Array<{ service: string }>;
+    };
+    expect(r.scopedTo?.service).toBe('api');
+    for (const d of r.deploys) expect(d.service).toBe('api');
+  });
+
+  it('status always carries humanSelection; clearing unscopes', () => {
+    const engine = withIncidentAndSelection({ type: 'service', id: 'db' });
+    const s1 = runQuery(engine.events, engine.world, { kind: 'status' }) as {
+      humanSelection: { type: string; id: string } | null;
+    };
+    expect(s1.humanSelection).toEqual({ type: 'service', id: 'db' });
+
+    engine.record('selection.changed', 'human', { by: 'human', target: null });
+    const s2 = runQuery(engine.events, engine.world, { kind: 'status' }) as {
+      humanSelection: unknown;
+    };
+    expect(s2.humanSelection).toBeNull();
+    const logs = runQuery(engine.events, engine.world, { kind: 'logs' }) as {
+      scopedTo?: unknown;
+      lines: Array<{ service: string }>;
+    };
+    expect(logs.scopedTo).toBeUndefined();
+    expect(new Set(logs.lines.map((l) => l.service)).size).toBeGreaterThan(1);
+  });
+
+  it('a flag selection does not scope service-keyed reads', () => {
+    const engine = withIncidentAndSelection({ type: 'flag', id: 'new-checkout' });
+    const r = runQuery(engine.events, engine.world, { kind: 'deploys' }) as { scopedTo?: unknown };
+    expect(r.scopedTo).toBeUndefined();
+  });
+});
+
 describe('write-escalation ladder + dual key (M3-04)', () => {
   it('any write proposed in triage is blocked with a machine-readable reason', () => {
     const engine = new Engine({ templateId: 'migration-trap', seed: 42 });

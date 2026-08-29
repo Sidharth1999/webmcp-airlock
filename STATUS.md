@@ -1,9 +1,15 @@
 # STATUS — live audit log
 
-**Updated:** 2026-08-29 (~05:40) · **Milestone:** M3 in progress (3/8) · **Progress: M3 37.5% · overall 38.1%** (run `python3 tools/progress.py`; RUNBOOK rule: report both %s at every session start and milestone close)
+**Updated:** 2026-08-29 (~13:20) · **Milestone:** M3 in progress (5/8) · **Progress: M3 62.5% · overall 43.1%** (run `python3 tools/progress.py`; RUNBOOK rule: report both %s at every session start and milestone close)
 **Full context:** war room artifact https://claude.ai/code/artifact/798206ed-bc4f-44fd-b48c-874de5dfdcc0 · memory: project_webmcp_challenge
 
-## This session (2026-08-29 early morning)
+## This session (2026-08-29 daytime)
+- **M3-04 DONE** — tier gating in the ENGINE (out-of-mode writes → action.blocked w/ machine-readable reason; diagnosis = flag-tier only), dual-key on tier 4 (approve w/o key → blocked, proposal survives; keyed approve stamps data.keyHolder + executes). TEST-FILE EDITS flagged for Sid: M3-02/03 proposal tests now enter a mode first (old flow proposed from triage, which the new policy correctly blocks).
+- **M3-07 DONE** — synthetic persona harness (src/harness): **the counterfactual is now a unit test** — ungated naive → catastrophic; gated naive blocked into reading → resolves correctly with less damage; deterministic across seeds. Unattended browser driver (npm run driver) resolves the full scenario through the real page, emits evals-cli expectedCall traces; smoke gate 44. docs/proxy-vs-real.md started.
+- **DESIGN OVERHAUL (Sid's verdict pulled M5 polish forward)** — real type (JetBrains Mono + Inter), floating depth-layered modules over a health-tinted glow, hairline rhythm, status-accent deploy cards, pill badges/mode switch, storefront rebuilt as a believable shop (hero, 6 products, gradient CTA, blurred 502). All selector contracts kept; evidence screenshots recaptured. **Awaiting Sid's re-verdict.**
+- 78 unit tests, 44 smoke gates, GREEN.
+
+## Previous session (2026-08-29 early morning)
 - **M3-01 DONE** — read-tool surface: pure query fns over (events, world) in `src/sim/queries.ts` (status/deploys/logs/changes/traffic), worker `query` RPC (worker's log stays the single source of truth), 6 read tools registered w/ `readOnlyHint` (+`untrustedContentHint` on read_logs). Contract held by 10 unit tests: ≤1.2KB every page, asOfSeq everywhere, newest-first cursors complete/dupe-free/append-stable. `window.__airlock` drives the same execute path for tests.
 - **M3-02 DONE** — mode-gated dynamic registration: triage/diagnosis/recovery derived from the log; 5 proposal tools registered per mode via AbortController; tombstone ghosts in the rail; `explain_surface` narrates every surface change. **Verified against REAL Chrome 151 WebMCP**: `getTools()` 6 → 11 → 6 across mode clicks. Also shipped `src/sim/vocabulary.ts` — the single write-action registry (tier ladder deploy<env<flag<route + human diffs), paying the 8/28 review deferral.
 - **M3-03 DONE** — approval diff-cards + audit chain: agent writes are proposals (`engine.propose` → action.proposed w/ tier + diffSummary); human Approve/Reject on cards ANCHORED to the mutated node; approve → action.approved → executes as agent, fully causedBy-threaded; audit toggle filters the stream to the agency trail. Approved-but-wrong still hits the trap (the gate is the human, not magic — that's the study's point).

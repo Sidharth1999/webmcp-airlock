@@ -32,6 +32,22 @@ app.innerHTML = `
       <span class="wordmark">Release Airlock</span>
       <span class="health-word" id="health-word">Nominal</span>
       <span class="spacer"></span>
+      <div class="tele" id="tele" data-testid="tele">
+        ${(['rps', 'err', 'p95'] as const)
+          .map(
+            (m) => `
+          <div class="tele-inst" data-metric="${m}" data-state="ok">
+            <span class="tele-label">${m}</span>
+            <svg class="tele-spark" viewBox="0 0 96 24" preserveAspectRatio="none" aria-hidden="true"><path d="" /></svg>
+            <span class="tele-val">—</span>
+          </div>`
+          )
+          .join('')}
+        <div class="tele-damage" id="tele-damage" title="mechanically derived: Σ rps × errRate × valuePerReq">
+          <span class="tele-label">impact</span>
+          <span class="tele-val" id="damage-val">$0.00</span>
+        </div>
+      </div>
       ${
         DEV_MODE
           ? `<div class="health-demo" id="health-demo" title="dev-only token demo">
@@ -54,6 +70,7 @@ app.innerHTML = `
         <button type="button" id="sim-run" data-testid="sim-run" aria-pressed="false">Run sim</button>
       </header>
       <div id="control-deck" data-testid="control-deck">
+        <div id="topology" data-testid="topology"></div>
         <div class="deck-head">
           <span class="deck-label">Controls</span>
           <button type="button" id="audit-toggle" data-testid="audit-toggle" aria-pressed="false" title="show only the action/audit trail">audit</button>
@@ -219,6 +236,7 @@ function seed(templateId: string): void {
   tickCount = 0;
   world = null;
   orderNo = ORDER_NO_START;
+  resetTele();
   storefront.dataset.state = 'ok';
   sfBanner.textContent = '';
   sfBuy.textContent = 'Checkout — $48.00';
@@ -387,6 +405,7 @@ function renderServiceRow(svc: World['services'][number]): void {
 }
 
 function renderDeck(w: World): void {
+  renderTopology(w);
   for (const flag of w.flags) renderFlagRow(flag);
   for (const svc of w.services) renderServiceRow(svc);
   for (const deploy of w.deploys.slice(-MAX_DEPLOY_CARDS)) {
@@ -516,6 +535,100 @@ document.querySelector('#control-deck')!.addEventListener('click', (e) => {
   }
 });
 
+// ---- telemetry wall (masthead sparklines) --------------------------------
+// Live instruments over a rolling window; single-series line marks, status
+// color reserved for threshold breaches (dataviz discipline: the stream
+// below is the table view; glance instruments carry no hover layer).
+
+const TELE_WINDOW = 60;
+const teleBuffers: Record<'rps' | 'err' | 'p95', number[]> = { rps: [], err: [], p95: [] };
+
+function teleState(metric: 'rps' | 'err' | 'p95', v: number): 'ok' | 'warn' | 'bad' {
+  if (metric === 'err') return v > 0.08 ? 'bad' : v > 0.01 ? 'warn' : 'ok';
+  if (metric === 'p95') return v > 600 ? 'bad' : v > 320 ? 'warn' : 'ok';
+  return 'ok'; // rps is magnitude, not status
+}
+
+function teleFormat(metric: 'rps' | 'err' | 'p95', v: number): string {
+  if (metric === 'err') return `${(v * 100).toFixed(2)}%`;
+  if (metric === 'p95') return `${Math.round(v)}ms`;
+  return String(Math.round(v));
+}
+
+function renderTele(): void {
+  for (const metric of ['rps', 'err', 'p95'] as const) {
+    const buf = teleBuffers[metric];
+    const inst = document.querySelector<HTMLElement>(`.tele-inst[data-metric="${metric}"]`);
+    if (!inst || buf.length === 0) continue;
+    const latest = buf[buf.length - 1]!;
+    inst.dataset.state = teleState(metric, latest);
+    inst.querySelector('.tele-val')!.textContent = teleFormat(metric, latest);
+    if (buf.length >= 2) {
+      const min = Math.min(...buf);
+      const max = Math.max(...buf);
+      const span = max - min || 1;
+      const step = 96 / (TELE_WINDOW - 1);
+      const x0 = 96 - (buf.length - 1) * step; // right-aligned: newest at the edge
+      const d = buf
+        .map((v, i) => {
+          const x = (x0 + i * step).toFixed(1);
+          const y = (21 - ((v - min) / span) * 18).toFixed(1); // 3px pad top+bottom
+          return `${i === 0 ? 'M' : 'L'}${x} ${y}`;
+        })
+        .join(' ');
+      inst.querySelector('path')!.setAttribute('d', d);
+    }
+  }
+}
+
+function pushTele(d: { rps: number; errRate: number; p95: number }): void {
+  teleBuffers.rps.push(d.rps);
+  teleBuffers.err.push(d.errRate);
+  teleBuffers.p95.push(d.p95);
+  for (const b of Object.values(teleBuffers)) if (b.length > TELE_WINDOW) b.shift();
+  renderTele();
+}
+
+function resetTele(): void {
+  for (const b of Object.values(teleBuffers)) b.length = 0;
+  document.querySelectorAll<HTMLElement>('.tele-inst').forEach((el) => {
+    el.dataset.state = 'ok';
+    el.querySelector('.tele-val')!.textContent = '—';
+    el.querySelector('path')!.setAttribute('d', '');
+  });
+  document.querySelector('#damage-val')!.textContent = '$0.00';
+}
+
+// ---- service topology (the schematic) ------------------------------------
+
+const topologyEl = document.querySelector<HTMLDivElement>('#topology')!;
+
+function renderTopology(w: World): void {
+  // order by dependency depth: leaves (db) rightmost, entry (web) leftmost
+  const depth = (id: string, seen = new Set<string>()): number => {
+    const svc = w.services.find((s) => s.id === id);
+    if (!svc || svc.deps.length === 0 || seen.has(id)) return 0;
+    seen.add(id);
+    return 1 + Math.max(...svc.deps.map((d) => depth(d, seen)));
+  };
+  const ordered = [...w.services].sort((a, b) => depth(b.id) - depth(a.id));
+  topologyEl.innerHTML = ordered
+    .map(
+      (s, i) => `
+      ${i > 0 ? '<span class="topo-link" aria-hidden="true"></span>' : ''}
+      <span class="topo-node" data-health="${s.health}" data-service="${s.id}">
+        <span class="topo-dot"></span>
+        <span class="topo-id"></span>
+        <span class="topo-ver"></span>
+      </span>`
+    )
+    .join('');
+  topologyEl.querySelectorAll('.topo-node').forEach((node, i) => {
+    node.querySelector('.topo-id')!.textContent = ordered[i]!.id;
+    node.querySelector('.topo-ver')!.textContent = ordered[i]!.version;
+  });
+}
+
 // ---- living site pane (M2-06): the world state, rendered as the product --
 
 const storefront = document.querySelector<HTMLDivElement>('#storefront')!;
@@ -573,7 +686,9 @@ function renderEvents(events: Event[], w: World): void {
     li.querySelector('.ev-summary')!.textContent = summarize(e);
     streamEl.append(li);
 
-    if (e.kind === 'action.proposed') addApprovalCard(e);
+    if (e.kind === 'traffic.tick') {
+      pushTele(e.data as { rps: number; errRate: number; p95: number });
+    } else if (e.kind === 'action.proposed') addApprovalCard(e);
     else if (e.kind === 'action.approved' || e.kind === 'action.rejected') {
       resolveApprovalCard((e.data as { proposalSeq: number }).proposalSeq);
     }
@@ -587,6 +702,7 @@ function renderEvents(events: Event[], w: World): void {
   renderDeck(w);
   renderSite(w);
   applyHealth(w);
+  document.querySelector('#damage-val')!.textContent = `$${w.damage.revenueLost.toFixed(2)}`;
 }
 
 worker.onmessage = (e: MessageEvent<SimResponse>) => {

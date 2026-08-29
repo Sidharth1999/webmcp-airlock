@@ -82,6 +82,49 @@ body {
 }
 .masthead .spacer { flex: 1; }
 
+/* --- telemetry wall: live instruments in the masthead ------ */
+.tele { display: flex; gap: var(--sp-2); align-items: stretch; }
+.tele-inst, .tele-damage {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 3px var(--sp-3);
+  background: var(--panel-inset);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  color: var(--ink-faint);
+}
+.tele-label {
+  font-family: var(--font-instrument);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+  color: var(--ink-ghost);
+}
+.tele-spark { width: 96px; height: 24px; overflow: visible; }
+.tele-spark path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+}
+.tele-val {
+  font-family: var(--font-instrument);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink);
+  min-width: 6ch;
+  text-align: right;
+}
+.tele-inst[data-state='warn'] { color: var(--warn); border-color: oklch(78% 0.14 80 / 0.35); }
+.tele-inst[data-state='warn'] .tele-val { color: var(--warn); }
+.tele-inst[data-state='bad'] { color: var(--bad); border-color: oklch(68% 0.19 25 / 0.4); }
+.tele-inst[data-state='bad'] .tele-val { color: var(--bad); }
+.tele-damage .tele-val { min-width: 7ch; }
+
 /* dev-only token demo control (?dev=1) */
 .health-demo { display: flex; gap: var(--sp-1); }
 .health-demo button {
@@ -221,6 +264,38 @@ body {
   gap: var(--sp-2);
   margin-bottom: var(--sp-1);
 }
+
+/* --- service topology: the schematic ----------------------- */
+#topology {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding-bottom: var(--sp-2);
+  margin-bottom: var(--sp-1);
+  border-bottom: 1px solid oklch(100% 0 0 / 0.05);
+  font-family: var(--font-instrument);
+  font-size: var(--text-2xs);
+}
+.topo-node {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 3px var(--sp-2);
+  border: 1px solid var(--line);
+  border-radius: 999px;
+  background: var(--panel-inset);
+}
+.topo-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: oklch(62% 0.06 165);
+  transition: background var(--dur-settle) var(--ease-settle);
+}
+.topo-node[data-health='degraded'] .topo-dot { background: var(--warn); box-shadow: 0 0 6px oklch(78% 0.14 80 / 0.5); }
+.topo-node[data-health='down'] .topo-dot { background: var(--bad); box-shadow: 0 0 6px oklch(68% 0.19 25 / 0.6); }
+.topo-id { color: var(--ink); font-weight: 600; }
+.topo-ver { color: var(--ink-ghost); font-variant-numeric: tabular-nums; }
+.topo-link { width: 12px; height: 1px; background: var(--line-strong); }
 #control-deck .deck-label {
   letter-spacing: var(--tracking-wide);
   text-transform: uppercase;
@@ -258,7 +333,8 @@ body {
   letter-spacing: var(--tracking-label);
   font-variant-numeric: tabular-nums;
 }
-.ctl-row[data-flag-state='on'] .ctl-state { color: var(--health-bright); }
+/* monochrome discipline: nominal states stay quiet; only trouble pops */
+.ctl-row[data-flag-state='on'] .ctl-state { color: var(--ink); }
 .ctl-row[data-service-health='degraded'] .ctl-state { color: var(--warn); }
 .ctl-row[data-service-health='down'] .ctl-state { color: var(--bad); }
 .ctl-row .ctl-btn { margin-left: auto; }
@@ -275,7 +351,7 @@ body {
   box-shadow: var(--shadow-card);
 }
 .deploy-card + .deploy-card { margin-top: var(--sp-2); }
-.deploy-card[data-deploy-status='live'] { border-left-color: var(--health-bright); }
+.deploy-card[data-deploy-status='live'] { border-left-color: oklch(62% 0.06 165); }
 .deploy-card[data-deploy-status='rolled_back'] { border-left-color: var(--bad); opacity: 0.6; }
 .deploy-card[data-deploy-status='superseded'] { opacity: 0.65; }
 .dc-head { display: flex; gap: var(--sp-2); align-items: baseline; }
@@ -289,7 +365,7 @@ body {
   text-transform: uppercase;
   letter-spacing: var(--tracking-label);
 }
-.deploy-card[data-deploy-status='live'] .dc-status { color: var(--health-bright); }
+.deploy-card[data-deploy-status='live'] .dc-status { color: oklch(70% 0.07 165); }
 .dc-note { color: var(--ink-dim); font-style: italic; font-size: var(--text-2xs); line-height: 1.5; }
 .dc-meta { display: flex; flex-wrap: wrap; gap: var(--sp-1); }
 .dc-badge {
@@ -485,8 +561,9 @@ body {
 }
 .sf-chrome { display: flex; align-items: baseline; }
 .sf-brand {
-  font-weight: 800;
-  letter-spacing: -0.015em;
+  font-family: var(--font-display);
+  font-weight: 650;
+  letter-spacing: 0.005em;
   font-size: var(--text-lg);
   color: oklch(20% 0.03 250);
 }
@@ -507,7 +584,14 @@ body {
   text-transform: uppercase;
   opacity: 0.75;
 }
-.sf-hero-line { font-size: var(--text-xl); font-weight: 700; letter-spacing: -0.02em; }
+.sf-hero-line {
+  font-family: var(--font-display);
+  font-size: var(--text-xl);
+  font-weight: 500;
+  letter-spacing: 0;
+  line-height: 1.25;
+  max-width: 26ch;
+}
 .sf-banner { display: none; }
 #storefront[data-state='broken'] .sf-banner {
   display: flex;

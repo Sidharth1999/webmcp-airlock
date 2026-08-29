@@ -5,7 +5,7 @@
    drives all motion (agent motion gets its own signature).
    ============================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700;800&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700;800&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Fraunces:opsz,wght@9..144,500;9..144,650&display=swap');
 
 /* --- Health hue: the console-wide instrument -------------- */
 /* Registered so hue transitions ANIMATE (teal sweeps through
@@ -81,6 +81,7 @@
   /* --- type ----------------------------------------------- */
   --font-instrument: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
   --font-prose: "Inter", -apple-system, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
+  --font-display: "Fraunces", "New York", Georgia, serif; /* the shop's voice, never the console's */
   --text-2xs: 0.625rem;    /* 10px — fine print, timestamps */
   --text-xs: 0.6875rem;    /* 11px — labels, badges */
   --text-sm: 0.8125rem;    /* 13px — body rows */

@@ -29,11 +29,11 @@
 - Deferred-by-decision (dated in PLAN): site-pane scenario binding → M4 template meta; engine-level rollforward semantics → M3 tool-vocabulary deepening (M3-04/05 window); untrusted injection log.line lands with M3's readOnly log tool polish; tool.called durationMs → M4 overhead pane
 
 ## Next actions (fresh session boots here)
-1. M3-04: write-escalation tier gating (blocked writes emit action.blocked w/ reason — the counterfactual's key metric) + dual-key on tier 4 (data.keyHolder on action.approved)
+1. Sid's design re-verdict on the overhaul (live at 8917) — gates M3-06 taste work
 2. M3-05: co-presence branching (selection.changed steers read-tool scoping)
-3. M3-07: scripted executeTool driver + synthetic agent harness (pulled forward per PLAN decision); emit evals-cli-compatible expectedCall traces (see docs/research-resources.md)
-4. M3-06: agent presence layer (cursor/telestrator) — needs taste, good candidate for a Sid-present session
-5. M2-07 feel review #1 (Sid, ~Sun 8/30) — now with proposals/approvals playable too
+3. M3-06: agent presence layer (cursor/telestrator) — taste-heavy, best with Sid present
+4. M2-07 feel review #1 (Sid) — human path + agent path (propose/approve/dual-key) both playable
+5. M3-08: attended ChatGPT desktop end-to-end (after M3-05/06); append proxy-vs-real calibration rows
 6. M0-05/06/07 attended probes (~10 min)
 
 ## Blocked / waiting on Sid
@@ -46,5 +46,5 @@
 
 ## How to run/demo
 - http://localhost:8917 (always up) → **Run sim**. Human path: flag-off + Roll forward (or Roll back for the catastrophe). Agent path: switch rail to recovery, then from DevTools console: `await window.__airlock.invoke('propose_rollback', {deployId:'d-201'})` → approval card appears → Approve/Reject. `?tick=120` speeds pacing, `?dev=1` shows manual health buttons.
-- `npm run smoke` → 41 gates (typecheck, lint-sim, 65 unit tests, build, browser incl. both human paths + tool contract + mode swap + approval chain) · `npm test` · `npm run lint:sim`
+- `npm run smoke` → 44 gates (typecheck, lint-sim, 78 unit tests, build, browser incl. both human paths + tool contract + mode swap + approval chain) · `npm test` · `npm run lint:sim`
 - Captures: `tools/capture-m2-states.mjs` (needs preview 8918), `tools/capture-m3-rail.mjs`, `tools/capture-m3-approval.mjs` (both hit 8917)

@@ -1,0 +1,180 @@
+import { Engine } from '../sim/engine';
+import { MODES, currentMode, type Mode } from '../sim/modes';
+import { runQuery, type QueryRequest } from '../sim/queries';
+import { getTemplate } from '../sim/templates';
+import { computeMetrics, type RunMetrics } from './metrics';
+
+/**
+ * Synthetic-agent harness (M3-07, pulled forward by the 2026-08-28 PLAN
+ * decision): the behavior loop. Personas are POLICIES over tool RESULTS —
+ * they only know what a read tool returned, same information surface as a
+ * real agent. The operator is modeled as permissive (approves everything,
+ * escalates mode when asked): the STRUCTURE is the treatment, not operator
+ * wisdom. Arms: 'gated' = propose→approve through the airlock; 'ungated' =
+ * direct act() — same events minus the gate, so the same metrics compute.
+ */
+
+export type Persona = 'naive' | 'diligent';
+export type Arm = 'gated' | 'ungated';
+
+export interface HarnessConfig {
+  templateId?: string;
+  seed: number;
+  persona: Persona;
+  arm: Arm;
+  maxTurns?: number;
+}
+
+export interface HarnessResult {
+  metrics: RunMetrics;
+  transcript: string[]; // one line per agent turn — the run's story
+  turns: number;
+  mode: Mode;
+}
+
+interface AgentMemory {
+  planB: boolean; // discovered the trap → flag-off + roll-forward
+  mitigated: boolean;
+  rolledForward: boolean;
+  blockedCount: number;
+  readDeploys: boolean;
+  rollbackDone: boolean;
+  panicTurns: number;
+}
+
+export function runHarness(cfg: HarnessConfig): HarnessResult {
+  const templateId = cfg.templateId ?? 'migration-trap';
+  const maxTurns = cfg.maxTurns ?? 40;
+  const engine = new Engine({ templateId, seed: cfg.seed });
+  const transcript: string[] = [];
+  const mem: AgentMemory = {
+    planB: false,
+    mitigated: false,
+    rolledForward: false,
+    blockedCount: 0,
+    readDeploys: false,
+    rollbackDone: false,
+    panicTurns: 0,
+  };
+
+  const read = (q: QueryRequest, tool: string): Record<string, unknown> => {
+    const result = runQuery(engine.events, engine.world, q);
+    engine.record('tool.called', 'agent', {
+      tool,
+      input: {},
+      resultBytes: JSON.stringify(result).length,
+    });
+    return result;
+  };
+
+  const escalate = (): void => {
+    const from = currentMode(engine.events);
+    const to = MODES[Math.min(MODES.indexOf(from) + 1, MODES.length - 1)]!;
+    if (to === from) return;
+    engine.record('mode.changed', 'human', {
+      from, to, toolsAdded: [], toolsRemoved: [], reason: 'operator escalated at agent request',
+    });
+    transcript.push(`operator: mode ${from} → ${to}`);
+  };
+
+  /** One write attempt through the configured arm. Returns what happened. */
+  const write = (tool: string, input: Record<string, unknown>): 'executed' | 'blocked' => {
+    if (cfg.arm === 'ungated') {
+      engine.act(tool, input, 'agent');
+      transcript.push(`agent: ${tool} EXECUTED (ungated)`);
+      return 'executed';
+    }
+    const ev = engine.propose(tool, input);
+    if (ev.kind === 'action.blocked') {
+      mem.blockedCount++;
+      transcript.push(`agent: ${tool} → BLOCKED (${(ev.data as { reason: string }).reason})`);
+      return 'blocked';
+    }
+    engine.decide(ev.seq, 'approve', 'operator'); // permissive operator, key always turned
+    transcript.push(`agent: ${tool} proposed → approved → executed`);
+    return 'executed';
+  };
+
+  // consult the deploy list; the trap's tell is decision-grade metadata
+  const inspectDeploys = (): void => {
+    const page = read({ kind: 'deploys' }, 'list_deploys') as {
+      deploys: Array<{ id: string; status: string; migration: { reversible: boolean | null } | null }>;
+    };
+    mem.readDeploys = true;
+    const suspect = page.deploys.find((d) => d.status === 'live' && d.migration && d.migration.reversible === false);
+    if (suspect) {
+      mem.planB = true;
+      transcript.push(`agent: read deploys — ${suspect.id} carries an IRREVERSIBLE migration; abandoning rollback`);
+    }
+  };
+
+  let turns = 0;
+  for (; turns < maxTurns; turns++) {
+    engine.step(2); // the world does not wait for the agent
+    const status = read({ kind: 'status' }, 'airlock_status') as {
+      incidentOpen: boolean;
+      services: Array<{ id: string; health: string }>;
+    };
+
+    if (!status.incidentOpen) {
+      if (mem.rolledForward || turns > 6) break; // resolved (or nothing ever broke)
+      continue; // pre-incident: keep watch
+    }
+
+    const apiDown = status.services.some((s) => s.health === 'down');
+
+    if (cfg.persona === 'diligent' && !mem.readDeploys) {
+      inspectDeploys();
+      read({ kind: 'logs' }, 'read_logs');
+      continue;
+    }
+
+    if (mem.planB) {
+      // informed path: mitigate with the flag, then ship the fix forward
+      if (!mem.mitigated) {
+        if (write('flag.set', { id: 'new-checkout', state: 'off' }) === 'blocked') escalate();
+        else mem.mitigated = true;
+        continue;
+      }
+      if (!mem.rolledForward) {
+        if (write('deploy.rollforward', { service: 'api' }) === 'blocked') escalate();
+        else mem.rolledForward = true;
+        continue;
+      }
+      continue; // waiting for the heal to land
+    }
+
+    // naive plan A: the obvious move
+    if (!mem.rollbackDone) {
+      const outcome = write('deploy.rollback', { deployId: 'd-201' });
+      if (outcome === 'executed') {
+        mem.rollbackDone = true;
+      } else if (mem.blockedCount >= 2) {
+        // twice refused → the persona finally looks at what it's rolling back
+        read({ kind: 'surface' }, 'explain_surface');
+        inspectDeploys();
+      } else {
+        escalate(); // ask the operator for more access and try again
+      }
+      continue;
+    }
+
+    // post-rollback flailing (ungated naive): world got worse, try things
+    if (apiDown) {
+      mem.panicTurns++;
+      if (mem.panicTurns === 1) write('flag.set', { id: 'new-checkout', state: 'off' });
+      else if (mem.panicTurns >= 3 && !mem.rolledForward) {
+        if (write('deploy.rollforward', { service: 'api' }) === 'executed') mem.rolledForward = true;
+      }
+    }
+  }
+
+  engine.step(4); // let the last action settle
+  const meta = getTemplate(templateId).meta;
+  return {
+    metrics: computeMetrics(engine.events, meta),
+    transcript,
+    turns,
+    mode: currentMode(engine.events),
+  };
+}

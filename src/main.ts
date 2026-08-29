@@ -1,10 +1,12 @@
 import './styles/tokens.css';
 import './styles/shell.css';
 import { Engine } from './sim/engine';
+import type { QueryRequest } from './sim/queries';
 import { templateIds } from './sim/templates';
 import type { SimRequest, SimResponse } from './sim/worker';
 import type { Deploy, Event, Flag, World } from './sim/types';
 import { hasWebMCP } from './webmcp/shim';
+import { createAirlockTools, type AirlockTools } from './webmcp/tools';
 
 type Health = 'ok' | 'degraded' | 'down';
 const HEALTH_STATES: Health[] = ['ok', 'degraded', 'down'];
@@ -93,7 +95,9 @@ app.innerHTML = `
     <section class="pane" id="tool-rail" aria-label="Tool rail">
       <header>Tool Surface</header>
       <div class="body">
-        <div class="placeholder">Mode-gated tools + tombstones render here (M3).<br/>WebMCP on this page: <span id="webmcp-status">…</span></div>
+        <div class="rail-status">WebMCP on this page: <span id="webmcp-status">…</span></div>
+        <ul id="tool-list" data-testid="tool-list"></ul>
+        <div class="placeholder rail-note">Write tools are mode-gated: they appear here only as the incident unlocks them, behind approval (M3-02+). Tombstones will narrate every change to this surface.</div>
       </div>
     </section>
   </div>
@@ -131,6 +135,18 @@ const SEED = 20260828;
 
 const worker = new Worker(new URL('./sim/worker.ts', import.meta.url), { type: 'module' });
 const send = (msg: SimRequest) => worker.postMessage(msg);
+
+// read-tool RPC: tools ask the worker, the worker's log/world answer —
+// no mirrored state on the main thread (schema v1: one source of truth)
+let queryId = 0;
+const pendingQueries = new Map<number, (r: Record<string, unknown>) => void>();
+function runWorkerQuery(q: QueryRequest): Promise<Record<string, unknown>> {
+  return new Promise((resolve) => {
+    const id = ++queryId;
+    pendingQueries.set(id, resolve);
+    send({ type: 'query', id, query: q });
+  });
+}
 
 const streamEl = document.querySelector<HTMLOListElement>('#event-stream')!;
 const statusEl = document.querySelector('#sim-status')!;
@@ -443,6 +459,9 @@ worker.onmessage = (e: MessageEvent<SimResponse>) => {
     renderDeck(msg.world);
     renderSite(msg.world);
     applyHealth(msg.world);
+  } else if (msg.type === 'queryResult') {
+    pendingQueries.get(msg.id)?.(msg.result);
+    pendingQueries.delete(msg.id);
   } else if (msg.type === 'error') {
     statusEl.textContent = `sim error: ${msg.message}`;
   }
@@ -452,6 +471,29 @@ runBtn.addEventListener('click', () => {
   running = !running;
   syncPacer();
 });
+
+// ---- WebMCP tool surface (M3-01: reads) ----------------------------------
+
+function renderToolRail(tools: AirlockTools): void {
+  const list = document.querySelector<HTMLUListElement>('#tool-list')!;
+  list.innerHTML = '';
+  for (const t of tools.list()) {
+    const li = document.createElement('li');
+    li.dataset.tool = t.name;
+    li.innerHTML = `
+      <span class="tool-name"></span>
+      <span class="tool-badges">
+        ${t.readOnly ? '<span class="tool-badge">read</span>' : ''}
+        ${t.untrusted ? '<span class="tool-badge tool-badge-untrusted">untrusted content</span>' : ''}
+      </span>
+    `;
+    li.querySelector('.tool-name')!.textContent = t.name;
+    list.append(li);
+  }
+}
+
+const airlockTools = createAirlockTools(runWorkerQuery);
+renderToolRail(airlockTools);
 
 // boot: seed() touches deck + storefront elements, so it runs after every
 // element ref above is initialized
@@ -464,8 +506,11 @@ declare global {
       digest(seed: number, ticks: number): string;
       stats: { events: number; ticks: number };
     };
+    /** Tool surface via the same execute path WebMCP uses (Playwright/dev). */
+    __airlock: AirlockTools;
   }
 }
+window.__airlock = airlockTools;
 window.__sim = {
   digest(seed, ticks) {
     const engine = new Engine({ templateId: 'baseline', seed });

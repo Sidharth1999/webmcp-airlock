@@ -1,5 +1,6 @@
 /// <reference lib="webworker" />
 import { Engine } from './engine';
+import { runQuery, type QueryRequest } from './queries';
 import type { Event, World } from './types';
 
 // Message-driven on purpose: the engine owns sim-time; pacing (real-time
@@ -9,12 +10,14 @@ export type SimRequest =
   | { type: 'seed'; templateId: string; seed: number; params?: Record<string, unknown> }
   | { type: 'step'; ticks?: number }
   | { type: 'act'; tool: string; input: Record<string, unknown> }
+  | { type: 'query'; id: number; query: QueryRequest }
   | { type: 'snapshot' };
 
 export type SimResponse =
   | { type: 'seeded'; templateId: string; seed: number; params: Record<string, unknown> }
   | { type: 'events'; origin: 'step' | 'act'; events: Event[]; world: World }
   | { type: 'snapshot'; events: readonly Event[]; world: World }
+  | { type: 'queryResult'; id: number; result: Record<string, unknown> }
   | { type: 'error'; message: string };
 
 let engine: Engine | null = null;
@@ -42,6 +45,17 @@ self.onmessage = (e: MessageEvent<SimRequest>) => {
         engine.act(msg.tool, msg.input, 'human');
         const events = engine.events.slice(before) as Event[];
         self.postMessage({ type: 'events', origin: 'act', events, world: engine.world } satisfies SimResponse);
+        break;
+      }
+      case 'query': {
+        if (!engine) throw new Error('query before seed');
+        // read tools query HERE — the worker's log/world stay the single
+        // source of truth (schema v1 core principle); no mirror on main
+        self.postMessage({
+          type: 'queryResult',
+          id: msg.id,
+          result: runQuery(engine.events, engine.world, msg.query),
+        } satisfies SimResponse);
         break;
       }
       case 'snapshot': {

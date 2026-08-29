@@ -113,6 +113,37 @@ try {
     /tick \d+ · \d+ events/.test(await page.getByTestId('sim-status').textContent())
   );
 
+  // ---- M3-01: read-tool surface over live sim state ----------------------
+  // (sim is already running from the worker-stream check above)
+  const rail = await page.locator('#tool-list li').count();
+  check('tool rail lists the read surface (5 tools)', rail === 5);
+  await page.waitForFunction(() => window.__sim.stats.ticks > 3, null, { timeout: 10_000 });
+  const toolProbe = await page.evaluate(async () => {
+    const out = {};
+    for (const t of window.__airlock.list()) {
+      const text = await window.__airlock.invoke(t.name, {});
+      const parsed = JSON.parse(text);
+      out[t.name] = { bytes: text.length, asOfSeq: parsed.asOfSeq };
+    }
+    // pagination through the same execute path WebMCP uses
+    const p1 = JSON.parse(await window.__airlock.invoke('traffic_history', {}));
+    const p2 = p1.nextCursor
+      ? JSON.parse(await window.__airlock.invoke('traffic_history', { cursor: p1.nextCursor }))
+      : null;
+    out.pagination =
+      p2 !== null &&
+      p2.ticks.length > 0 &&
+      p2.ticks[0].seq < p1.ticks[p1.ticks.length - 1].seq;
+    return out;
+  });
+  check(
+    'all 5 read tools answer live, ≤1.2KB, with asOfSeq',
+    Object.entries(toolProbe)
+      .filter(([k]) => k !== 'pagination')
+      .every(([, v]) => v.bytes <= 1200 && Number.isInteger(v.asOfSeq) && v.asOfSeq > 0)
+  );
+  check('cursor pagination works through the execute path', toolProbe.pagination === true);
+
   // ---- M2-05: human resolves the flagship scenario via UI clicks only ----
   // (fast pacing via ?tick= so the run is seconds, not minutes; every state
   // assertion is on rendered DOM — nothing reaches into the engine)

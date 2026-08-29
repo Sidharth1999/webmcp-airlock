@@ -248,6 +248,45 @@ body {
 .dc-actions { display: flex; gap: var(--sp-2); margin-top: var(--sp-1); }
 .dc-actions .ctl-btn { margin-left: 0; }
 
+/* --- tool rail (M3): the agent's surface, human-legible ---- */
+.rail-status {
+  font-family: var(--font-instrument);
+  font-size: var(--text-xs);
+  color: var(--ink-faint);
+  margin-bottom: var(--sp-3);
+}
+#tool-list {
+  list-style: none;
+  margin: 0 0 var(--sp-4);
+  padding: 0;
+  font-family: var(--font-instrument);
+  font-size: var(--text-xs);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+}
+#tool-list li {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: var(--sp-1) var(--sp-2);
+  background: var(--panel-raised);
+}
+#tool-list .tool-name { color: var(--ink); }
+#tool-list .tool-badges { margin-left: auto; display: flex; gap: var(--sp-1); }
+.tool-badge {
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  padding: 0 var(--sp-1);
+  color: var(--ink-faint);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+}
+.tool-badge-untrusted { color: oklch(75% 0.14 80); border-color: oklch(45% 0.08 80); }
+.rail-note { font-size: var(--text-xs); }
+
 /* --- living site pane (M2-06): the product, feeling the world --- */
 #site-pane > .body { display: flex; }
 #storefront {

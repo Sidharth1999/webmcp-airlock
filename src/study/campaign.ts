@@ -363,6 +363,25 @@ export async function runCampaign(
   return summary;
 }
 
+/**
+ * The canary's 20 runs must PREDICT the campaign's cost, so they have to
+ * look like the campaign: spanning both arms, all phrasings, and the width
+ * of the corpus. The first 20 specs of the plan would be three candidates
+ * deep and arm-lopsided — a cheap sample that green-lights an expensive
+ * campaign is exactly the failure this gate exists to prevent.
+ *
+ * Sampling is by runId order, not by stride: runIds are sha256 digests, so
+ * their order is uncorrelated with the plan's nesting, while staying fully
+ * deterministic (same plan ⇒ same canary ⇒ a resumed canary re-uses its
+ * records instead of paying for new ones). A fixed stride ALIASES against
+ * the cross-product period — stride 14 over a 280-run plan whose inner
+ * axes cycle every 8 lands on only 2 of the 4 phrasings.
+ */
+export function canarySample(specs: RunSpec[], n = CANARY_RUNS): RunSpec[] {
+  if (specs.length <= n) return [...specs];
+  return [...specs].sort((a, b) => a.runId.localeCompare(b.runId)).slice(0, n);
+}
+
 /** Cross-product of the campaign's axes, in a stable order. */
 export function planSpecs(
   candidates: Candidate[],

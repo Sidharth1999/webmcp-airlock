@@ -3,8 +3,10 @@ import {
   CANARY_MAX_AVG_USD,
   CANARY_RUNS,
   canaryExitCode,
+  canarySample,
   canaryVerdict,
   costOf,
+  planSpecs,
   makeRunId,
   runCampaign,
   runOne,
@@ -201,6 +203,29 @@ describe('campaign plumbing', () => {
       expect(d.description.length).toBeGreaterThan(0);
       expect(d.parameters).toHaveProperty('type', 'object');
     }
+  });
+
+  it('samples the canary across the whole plan, not just its head', () => {
+    const candidates: Candidate[] = Array.from({ length: 35 }, (_, i) => ({
+      id: `migration-trap:s${i}:default`,
+      templateId: 'migration-trap',
+      seed: i,
+      params: {},
+    }));
+    const plan = planSpecs(candidates, ['gated', 'ungated'], ['a', 'b', 'c', 'd'], [
+      'gpt-5.6-terra',
+    ]);
+    expect(plan).toHaveLength(280); // the projection's main block, exactly
+
+    const sample = canarySample(plan);
+    expect(sample).toHaveLength(CANARY_RUNS);
+    expect(new Set(sample.map((s) => s.runId)).size).toBe(CANARY_RUNS);
+    // representative: both arms, every phrasing, spread across the corpus
+    expect(new Set(sample.map((s) => s.arm)).size).toBe(2);
+    expect(new Set(sample.map((s) => s.phrasingId)).size).toBe(4);
+    expect(new Set(sample.map((s) => s.candidate.seed)).size).toBeGreaterThan(5);
+    // a plan smaller than the canary is returned whole, not padded
+    expect(canarySample(plan.slice(0, 3))).toHaveLength(3);
   });
 
   it('caps a run that never stops calling tools and records it as data, not an error', async () => {

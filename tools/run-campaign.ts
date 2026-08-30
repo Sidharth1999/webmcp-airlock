@@ -1,8 +1,8 @@
 import { existsSync, mkdirSync, readFileSync, readdirSync, writeFileSync } from 'node:fs';
 import { join } from 'node:path';
 import {
-  CANARY_RUNS,
   canaryExitCode,
+  canarySample,
   canaryVerdict,
   planSpecs,
   runCampaign,
@@ -109,7 +109,7 @@ async function main(): Promise<void> {
     if (models.length !== 1 || models[0] !== 'gpt-5.6-terra') {
       throw new Error('the canary gate is defined on terra only (cost-projection.md)');
     }
-    specs = specs.slice(0, CANARY_RUNS);
+    specs = canarySample(specs);
   }
   const limit = Number(arg('limit', '0'));
   if (limit > 0) specs = specs.slice(0, limit);

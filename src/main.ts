@@ -62,6 +62,7 @@ app.innerHTML = `
     <section class="pane" id="console" aria-label="Console">
       <header>
         Console
+        <span class="pane-sub">what is true right now</span>
         <select id="template-pick" data-testid="template-pick" title="scenario template">
           ${templateIds()
             .map((id) => `<option value="${id}">${id}</option>`)
@@ -73,7 +74,7 @@ app.innerHTML = `
         <div id="topology" data-testid="topology"></div>
         <div class="deck-head">
           <span class="deck-label">Controls</span>
-          <button type="button" id="audit-toggle" data-testid="audit-toggle" aria-pressed="false" title="show only the action/audit trail">audit</button>
+          <button type="button" id="audit-toggle" data-testid="audit-toggle" aria-pressed="false" title="filter the stream to who did what">Audit trail</button>
           <span id="sim-status" data-testid="sim-status">seeded · paused</span>
         </div>
         <div id="flag-controls"></div>
@@ -86,7 +87,7 @@ app.innerHTML = `
     </section>
 
     <section class="pane" id="site-pane" aria-label="Site pane">
-      <header>Live Site</header>
+      <header>Live Site<span class="pane-sub">what customers see</span></header>
       <div class="body">
         <div id="storefront" data-testid="storefront" data-state="ok">
           <div class="sf-chrome">
@@ -125,13 +126,16 @@ app.innerHTML = `
     <section class="pane" id="tool-rail" aria-label="Tool rail">
       <header>
         Tools
+        <span class="pane-sub">what the agent can reach</span>
+      </header>
+      <div class="rail-modes">
         <div class="mode-switch" id="mode-switch" data-testid="mode-switch">
           ${MODES.map(
             (m) =>
               `<button type="button" data-mode="${m}" data-testid="mode-${m}" aria-pressed="${m === 'triage'}">${m}</button>`
           ).join('')}
         </div>
-      </header>
+      </div>
       <div class="body">
         <div class="rail-status">
           <span id="agent-conn" data-testid="agent-conn" data-state="off">agent: none seen</span><br/>
@@ -365,12 +369,12 @@ function renderDeployCard(deploy: Deploy, canRollback: boolean): void {
       ? `canary Δerr +${(deploy.canaryDelta.errRate * 100).toFixed(1)}% · Δp95 +${deploy.canaryDelta.p95}ms`
       : 'no canary data';
     card.innerHTML = `
+      <div class="dc-title"></div>
       <div class="dc-head">
-        <span class="dc-id"></span>
         <span class="dc-target"></span>
+        <span class="dc-id"></span>
         <span class="dc-status"></span>
       </div>
-      <div class="dc-note"></div>
       <div class="dc-meta">
         ${
           deploy.containsMigration
@@ -387,9 +391,11 @@ function renderDeployCard(deploy: Deploy, canRollback: boolean): void {
         <button type="button" class="ctl-btn dc-rollback" data-act="rollback" data-deploy="${deploy.id}" data-testid="rollback-${deploy.id}">Roll back</button>
       </div>
     `;
+    // the human story first: a stranger should read WHAT SHIPPED, not a key
+    card.querySelector('.dc-title')!.textContent =
+      deploy.note ?? `${deploy.service} ${deploy.version}`;
+    card.querySelector('.dc-target')!.textContent = `${deploy.author} · ${deploy.service} ${deploy.version}`;
     card.querySelector('.dc-id')!.textContent = deploy.id;
-    card.querySelector('.dc-target')!.textContent = `${deploy.service}@${deploy.version} · ${deploy.author}`;
-    card.querySelector('.dc-note')!.textContent = deploy.note ? `“${deploy.note}”` : '';
     deployControls.prepend(card);
   }
   card.dataset.deployStatus = deploy.status;
@@ -483,7 +489,7 @@ function addApprovalCard(e: Event): void {
         : ''
     }
     <div class="ap-actions">
-      <button type="button" class="ctl-btn ap-approve" data-act="approve" data-seq="${e.seq}" data-testid="approve-${e.seq}" ${dualKey ? 'disabled' : ''}>Approve</button>
+      <button type="button" class="ctl-btn primary ap-approve" data-act="approve" data-seq="${e.seq}" data-testid="approve-${e.seq}" ${dualKey ? 'disabled' : ''}>Approve</button>
       <button type="button" class="ctl-btn ap-reject" data-act="reject" data-seq="${e.seq}" data-testid="reject-${e.seq}">Reject</button>
     </div>
   `;
@@ -629,6 +635,10 @@ document.querySelector('#audit-toggle')!.addEventListener('click', () => {
   const on = btn.getAttribute('aria-pressed') !== 'true';
   btn.setAttribute('aria-pressed', String(on));
   streamEl.classList.toggle('audit', on);
+  // ux-debt #3: an unlabelled toggle with an invisible result was a mystery —
+  // say what it does, then say what it did
+  const shown = streamEl.querySelectorAll('li:not([hidden])').length;
+  btn.textContent = on ? `Showing ${shown} actions · show all` : 'Audit trail';
 });
 
 document.querySelector('#control-deck')!.addEventListener('click', (e) => {

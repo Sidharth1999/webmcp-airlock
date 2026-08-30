@@ -26,11 +26,13 @@ const DEV_MODE = params.get('dev') === '1';
 const app = document.querySelector<HTMLDivElement>('#app')!;
 
 app.innerHTML = `
-  <div class="shell">
+  <div class="shell" data-site="off">
     <div class="masthead">
       <span class="health-lamp" aria-hidden="true"></span>
       <span class="wordmark">Release Airlock</span>
       <span class="health-word" id="health-word">Nominal</span>
+      <button type="button" id="site-toggle" data-testid="site-toggle" aria-pressed="false"
+              title="show what customers are seeing right now">Live site</button>
       <span class="spacer"></span>
       <div class="tele" id="tele" data-testid="tele">
         ${(['rps', 'err', 'p95'] as const)
@@ -70,19 +72,45 @@ app.innerHTML = `
         </select>
         <button type="button" id="sim-run" data-testid="sim-run" aria-pressed="false">Run sim</button>
       </header>
-      <div id="control-deck" data-testid="control-deck">
-        <div id="topology" data-testid="topology"></div>
-        <div class="deck-head">
-          <span class="deck-label">Controls</span>
-          <button type="button" id="audit-toggle" data-testid="audit-toggle" aria-pressed="false" title="filter the stream to who did what">Audit trail</button>
-          <span id="sim-status" data-testid="sim-status">seeded · paused</span>
-        </div>
-        <div id="flag-controls"></div>
-        <div id="service-controls"></div>
-        <div id="deploy-controls"></div>
-      </div>
       <div class="body">
-        <ol id="event-stream" data-testid="event-stream" aria-live="polite"></ol>
+        <div id="control-deck" data-testid="control-deck">
+
+          <!-- ZONE 1 — the situation, in a sentence. Everything below is
+               evidence for it. Computed from the log, never hardcoded. -->
+          <section id="situation" data-testid="situation" data-phase="calm">
+            <p class="sit-head" id="sit-head">Waiting for the shift to start.</p>
+            <p class="sit-detail" id="sit-detail">Press Run sim to bring the store online.</p>
+          </section>
+
+          <!-- ZONE 2 — what changed. Open while it matters. -->
+          <details class="zone" id="zone-changed" data-testid="zone-changed" open>
+            <summary><span class="zone-title">What changed</span><span class="zone-meta" id="zone-changed-meta"></span></summary>
+            <div class="zone-body"><div id="deploy-controls"></div></div>
+          </details>
+
+          <!-- ZONE 3 — the human's own hands. Closed until there's a reason. -->
+          <details class="zone" id="zone-controls" data-testid="zone-controls" open>
+            <summary><span class="zone-title">Manual controls</span><span class="zone-meta">flags · services · topology</span></summary>
+            <div class="zone-body">
+              <div id="topology" data-testid="topology"></div>
+              <div id="flag-controls"></div>
+              <div id="service-controls"></div>
+            </div>
+          </details>
+
+          <!-- ZONE 4 — the raw trail. Present for the audit story, not in the way. -->
+          <details class="zone" id="zone-activity" data-testid="zone-activity" open>
+            <summary>
+              <span class="zone-title">Activity</span>
+              <button type="button" id="audit-toggle" data-testid="audit-toggle" aria-pressed="false" title="filter the stream to who did what">Audit trail</button>
+              <span id="sim-status" data-testid="sim-status">seeded · paused</span>
+            </summary>
+            <div class="zone-body">
+              <ol id="event-stream" data-testid="event-stream" aria-live="polite"></ol>
+            </div>
+          </details>
+
+        </div>
       </div>
     </section>
 
@@ -100,12 +128,12 @@ app.innerHTML = `
           </div>
           <div class="sf-banner" data-testid="sf-banner" role="status"></div>
           <div class="sf-grid">
-            <div class="sf-card"><div class="sf-img sf-img-a"></div><div class="sf-name">field jacket</div><div class="sf-price">$128</div></div>
-            <div class="sf-card"><div class="sf-img sf-img-b"></div><div class="sf-name">canvas tote</div><div class="sf-price">$42</div></div>
-            <div class="sf-card"><div class="sf-img sf-img-c"></div><div class="sf-name">trail bottle</div><div class="sf-price">$28</div></div>
-            <div class="sf-card"><div class="sf-img sf-img-d"></div><div class="sf-name">wool beanie</div><div class="sf-price">$34</div></div>
-            <div class="sf-card"><div class="sf-img sf-img-e"></div><div class="sf-name">camp mug</div><div class="sf-price">$22</div></div>
-            <div class="sf-card"><div class="sf-img sf-img-f"></div><div class="sf-name">dry sack</div><div class="sf-price">$36</div></div>
+            <div class="sf-card"><div class="sf-img"><svg viewBox="0 0 100 100" aria-hidden="true"><rect x="26" y="18" width="48" height="60" rx="4" fill="#3f6b52"/><path d="M50 18v60" stroke="#2b4c39" stroke-width="2"/><path d="M38 18l12 14 12-14" fill="#31543f"/><rect x="18" y="22" width="10" height="40" rx="4" fill="#3f6b52"/><rect x="72" y="22" width="10" height="40" rx="4" fill="#3f6b52"/><rect x="32" y="52" width="12" height="9" rx="2" fill="#2b4c39"/><rect x="56" y="52" width="12" height="9" rx="2" fill="#2b4c39"/></svg></div><div class="sf-name">field jacket</div><div class="sf-price">$128</div></div>
+            <div class="sf-card"><div class="sf-img"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M28 34h44l-4 46H32z" fill="#c8a173"/><path d="M40 34c0-9 4-14 10-14s10 5 10 14" stroke="#8a6b45" stroke-width="3" fill="none" stroke-linecap="round"/><rect x="40" y="50" width="20" height="14" rx="2" fill="#a8834f"/></svg></div><div class="sf-name">canvas tote</div><div class="sf-price">$42</div></div>
+            <div class="sf-card"><div class="sf-img"><svg viewBox="0 0 100 100" aria-hidden="true"><rect x="38" y="26" width="24" height="54" rx="9" fill="#6f8fc4"/><rect x="43" y="14" width="14" height="12" rx="3" fill="#3f5c8d"/><rect x="38" y="44" width="24" height="12" fill="#5679b3"/><path d="M62 32c5 3 5 9 0 12" stroke="#3f5c8d" stroke-width="3" fill="none" stroke-linecap="round"/></svg></div><div class="sf-name">trail bottle</div><div class="sf-price">$28</div></div>
+            <div class="sf-card"><div class="sf-img"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M28 56a22 22 0 0 1 44 0z" fill="#c48f9a"/><rect x="24" y="56" width="52" height="13" rx="6" fill="#a86f7d"/><circle cx="50" cy="26" r="7" fill="#a86f7d"/></svg></div><div class="sf-name">wool beanie</div><div class="sf-price">$34</div></div>
+            <div class="sf-card"><div class="sf-img"><svg viewBox="0 0 100 100" aria-hidden="true"><rect x="30" y="32" width="36" height="42" rx="5" fill="#8d9c5c"/><rect x="30" y="32" width="36" height="8" rx="4" fill="#6f7d43"/><path d="M66 44h7a8 8 0 0 1 0 16h-7" stroke="#6f7d43" stroke-width="5" fill="none" stroke-linecap="round"/></svg></div><div class="sf-name">camp mug</div><div class="sf-price">$22</div></div>
+            <div class="sf-card"><div class="sf-img"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M32 40h36v34a6 6 0 0 1-6 6H38a6 6 0 0 1-6-6z" fill="#78889a"/><rect x="30" y="30" width="40" height="11" rx="5" fill="#56657a"/><path d="M36 30c0-5 6-8 14-8s14 3 14 8" stroke="#56657a" stroke-width="3" fill="none"/><rect x="32" y="56" width="36" height="4" fill="#66768a"/></svg></div><div class="sf-name">dry sack</div><div class="sf-price">$36</div></div>
           </div>
           <div class="sf-checkout">
             <button type="button" class="sf-buy" data-testid="sf-buy">Checkout — $48.00</button>
@@ -142,7 +170,7 @@ app.innerHTML = `
           WebMCP on this page: <span id="webmcp-status">…</span>
         </div>
         <ul id="tool-list" data-testid="tool-list"></ul>
-        <div class="placeholder rail-note">Write tools are mode-gated: they appear here only as the incident unlocks them, behind approval (M3-02+). Tombstones will narrate every change to this surface.</div>
+        <div class="placeholder rail-note">The agent only ever sees the tools listed above. Write tools appear as the incident escalates, and every one of them is a proposal — the agent cannot apply a change on its own.</div>
       </div>
     </section>
   </div>
@@ -503,9 +531,11 @@ function addApprovalCard(e: Event): void {
     anchor.insertAdjacentElement('afterend', card);
     anchor.classList.add('proposal-anchor');
   } else {
-    document.querySelector('#control-deck .deck-head')!.insertAdjacentElement('afterend', card);
+    document.querySelector('#situation')!.insertAdjacentElement('beforeend', card);
   }
   pendingCards.set(e.seq, { card, anchor });
+  // the human owes the agent an answer: put it where they're already looking
+  card.scrollIntoView({ block: 'center', behavior: 'smooth' });
 }
 
 function resolveApprovalCard(proposalSeq: number): void {
@@ -530,7 +560,9 @@ function moveAgentCursor(target: Element | null): void {
   if (!target) return;
   const r = target.getBoundingClientRect();
   if (r.width === 0) return;
-  agentCursor.style.transform = `translate(${Math.round(r.left - 10)}px, ${Math.round(r.top + r.height / 2)}px)`;
+  // ride the TOP-LEFT shoulder of the target: landing on the middle put the
+  // label straight over the Approve button the human needs to click
+  agentCursor.style.transform = `translate(${Math.round(r.left - 6)}px, ${Math.round(r.top - 9)}px)`;
   agentCursor.dataset.state = 'active';
   agentConn.dataset.state = 'live';
   agentConn.textContent = 'agent: working';
@@ -630,7 +662,34 @@ function setSelection(target: EntityRef | null): void {
   applySelectionVisual();
 }
 
-document.querySelector('#audit-toggle')!.addEventListener('click', () => {
+/**
+ * The live site is opt-in — the console shouldn't spend half the screen on a
+ * shop that is fine. But it REVEALS ITSELF the moment checkout starts
+ * failing: the consequence of a change is the one thing that should
+ * interrupt you. Once the human closes it, it stays closed (an auto-opening
+ * panel that keeps coming back is worse than one that never opens).
+ */
+let siteAutoRevealed = false;
+function setSite(on: boolean): void {
+  document.querySelector<HTMLElement>('.shell')!.dataset.site = on ? 'on' : 'off';
+  document.querySelector('#site-toggle')!.setAttribute('aria-pressed', String(on));
+}
+function revealSiteOnTrouble(phase: string): void {
+  if (siteAutoRevealed) return;
+  if (phase === 'incident' || phase === 'down') {
+    siteAutoRevealed = true;
+    setSite(true);
+  }
+}
+document.querySelector('#site-toggle')!.addEventListener('click', () => {
+  const on = document.querySelector('#site-toggle')!.getAttribute('aria-pressed') !== 'true';
+  siteAutoRevealed = true; // an explicit choice ends the automatic behaviour
+  setSite(on);
+});
+
+document.querySelector('#audit-toggle')!.addEventListener('click', (ev) => {
+  ev.preventDefault();  // it sits inside <summary>; don't let it collapse the zone
+  ev.stopPropagation();
   const btn = document.querySelector<HTMLButtonElement>('#audit-toggle')!;
   const on = btn.getAttribute('aria-pressed') !== 'true';
   btn.setAttribute('aria-pressed', String(on));
@@ -835,6 +894,88 @@ function applyHealth(w: World): void {
     'ok'
   );
   if (document.documentElement.dataset.health !== worst) setHealth(worst);
+  renderSituation(w, worst);
+  const phase = document.querySelector<HTMLElement>('#situation')!.dataset.phase!;
+  discloseFor(phase);
+  revealSiteOnTrouble(phase);
+}
+
+/**
+ * ZONE 1 — the console's answer to "what is going on", in a sentence.
+ *
+ * Written as PROSE, not a metric grid: an operator arriving cold should be
+ * able to read one line and know the state of the world. Everything below
+ * this is evidence FOR the sentence. Every value here is derived from the
+ * same event log the metrics come from — nothing is authored for the demo.
+ */
+function renderSituation(w: World, worst: Health): void {
+  const zone = document.querySelector<HTMLElement>('#situation')!;
+  const head = document.querySelector<HTMLElement>('#sit-head')!;
+  const detail = document.querySelector<HTMLElement>('#sit-detail')!;
+
+  const checkoutErr = w.traffic.byRoute['/checkout']?.errRate ?? w.traffic.errRate;
+  const pct = (n: number): string => `${(n * 100).toFixed(0)}%`;
+  const culprit = [...w.deploys].reverse().find((d) => d.status === 'live' && d.note);
+  const since = culprit ? ` It started after ${culprit.note!.split(/[;(]/)[0]!.trim()} shipped.` : '';
+  const hurt = w.damage.usersErrored;
+
+  // a decision the human owes the agent outranks everything else on screen
+  if (pendingCards.size > 0) {
+    zone.dataset.phase = 'decide';
+    head.textContent = 'The agent is waiting on you.';
+    detail.textContent =
+      `It has proposed a change it cannot make on its own. Approve or reject it below — ` +
+      `nothing has been applied yet.`;
+    return;
+  }
+
+  if (worst === 'down') {
+    zone.dataset.phase = 'down';
+    const dead = w.services.filter((s) => s.health === 'down').map((s) => s.name).join(', ');
+    head.textContent = `${dead} is down.`;
+    detail.textContent =
+      `The storefront cannot complete any checkout. ${hurt} customers have hit an error so far, ` +
+      `and $${w.damage.revenueLost.toFixed(2)} of orders have been lost.`;
+    return;
+  }
+
+  if (worst === 'degraded') {
+    zone.dataset.phase = 'incident';
+    head.textContent = 'Checkout is failing.';
+    detail.textContent =
+      `${pct(checkoutErr)} of payment attempts are erroring.${since} ` +
+      `${hurt} customers affected, $${w.damage.revenueLost.toFixed(2)} lost.`;
+    return;
+  }
+
+  zone.dataset.phase = 'calm';
+  if (w.damage.revenueLost > 0) {
+    head.textContent = 'Checkout is healthy again.';
+    detail.textContent =
+      `All ${w.services.length} services are responding. The incident cost ` +
+      `$${w.damage.revenueLost.toFixed(2)} and affected ${hurt} customers.`;
+  } else {
+    head.textContent = 'All services nominal.';
+    detail.textContent =
+      `${w.services.length} services responding · checkout at ${pct(checkoutErr)} error rate.`;
+  }
+}
+
+/**
+ * Progressive disclosure, driven by the phase rather than by the user
+ * hunting: a zone opens when it starts mattering, and is never auto-closed
+ * (closing is the human's call — a view that collapses under you is worse
+ * than one that shows too much).
+ */
+function discloseFor(phase: string): void {
+  const open = (id: string): void => {
+    const el = document.querySelector<HTMLDetailsElement>(id);
+    if (el && !el.open) el.open = true;
+  };
+  if (phase === 'incident' || phase === 'down' || phase === 'decide') {
+    open('#zone-changed');
+    open('#zone-controls');
+  }
 }
 
 function renderEvents(events: Event[], w: World): void {
@@ -867,7 +1008,7 @@ function renderEvents(events: Event[], w: World): void {
     if (!AUDIT_KINDS.test((victim as HTMLElement).dataset.kind ?? '')) victim.remove();
     victim = next;
   }
-  streamEl.lastElementChild?.scrollIntoView({ block: 'nearest' });
+  streamEl.scrollTop = streamEl.scrollHeight;
 
   eventCount += events.length;
   statusEl.textContent = `tick ${tickCount} · ${eventCount} events · seed ${SEED}`;

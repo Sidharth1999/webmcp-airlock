@@ -61,10 +61,25 @@ try {
   // dev=1: manual health buttons are dev-only since M2-06
   await page.goto(URL + '?dev=1', { waitUntil: 'networkidle' });
 
-  // the three instruments render and are visible
-  for (const id of ['console', 'site-pane', 'tool-rail']) {
+  // the two always-on instruments render and are visible
+  for (const id of ['console', 'tool-rail']) {
     check(`#${id} visible`, await page.locator(`#${id}`).isVisible());
   }
+  // the live site is OPT-IN as of 2026-08-30: closed until the store hurts
+  check(
+    'live site starts closed (console owns the room while nothing is wrong)',
+    (await page.locator('.shell').getAttribute('data-site')) === 'off' &&
+      !(await page.getByTestId('storefront').isVisible())
+  );
+  check(
+    'live site toggle opens it on demand',
+    await (async () => {
+      await page.getByTestId('site-toggle').click();
+      await page.waitForTimeout(500);
+      return page.getByTestId('storefront').isVisible();
+    })()
+  );
+  await page.getByTestId('site-toggle').click(); // back to closed for the rest
 
   // health-hue token demo: hit-test the 'down' control, hue must move teal→red
   const hueOf = () =>
@@ -374,6 +389,10 @@ try {
   );
   await siteIs(play, 'broken');
   check('site pane visibly breaks when the trap fires', await play.getByTestId('sf-banner').isVisible());
+  check(
+    'the store reveals ITSELF when checkout starts failing (no click needed)',
+    (await play.locator('.shell').getAttribute('data-site')) === 'on'
+  );
 
   await play.getByTestId('flag-toggle-new-checkout').click(); // mitigate: flag off
   await healthIs(play, 'ok');

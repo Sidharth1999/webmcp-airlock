@@ -54,9 +54,16 @@ Threading: `causedBy` chains proposal → approval → execution → consequence
 The audit view and the study metrics both ride this chain — never break it.
 
 ## Where M4 plugs in
-- Campaign runner (M4-03): drives an LLM through the SAME loop shape as
-  harness/run.ts — reads via runQuery, writes via propose+scripted-operator
-  (gated arm) or act (ungated). Spec: docs/campaign-runner-spec.md.
+- Campaign runner (M4-03, BUILT 2026-08-30): drives an LLM through the SAME
+  loop shape as harness/run.ts — reads via runQuery, writes via
+  propose+scripted-operator (gated arm) or act (ungated).
+  Spec: docs/campaign-runner-spec.md.
+  | module | owns | must stay true |
+  |---|---|---|
+  | study/campaign.ts | the run loop, the arms, cost math, resumability | pure of I/O — client AND store are injected, so every claim is a vitest test with no key; both arms get the identical tool surface (the gate is the treatment, not the menu) |
+  | study/mock-client.ts | harness personas as tool calls | decides from tool RESULTS only, never engine internals; resets on an empty transcript |
+  | study/openai-client.ts | the Responses API seam | stable prefix + verbatim echo of prior output items (cache ratio the cost projection assumes); usage read off the response, never estimated |
+  | tools/run-campaign.ts | fs + network + CLI | the ONLY campaign file allowed to touch either |
 - Curves (M4-04): computeMetrics over persisted campaign logs. No new
   metric sources — if a number isn't derivable from the event log, it
   doesn't go on screen (ratified consensus rule).

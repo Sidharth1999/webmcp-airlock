@@ -1,7 +1,22 @@
 # STATUS — live audit log
 
-**Updated:** 2026-08-29 (night) · **Milestone:** M3 review-hardened (still 7/8 pending Sid); M4 opened — compiler DONE, cost projection WRITTEN · **Progress: M3 87.5% · M4 16.7% · overall 50.8%** (run `python3 tools/progress.py`; RUNBOOK rule: report both %s at every session start and milestone close)
+**Updated:** 2026-08-30 (day) · **Milestone:** M4 — compiler DONE, cost projection WRITTEN, campaign runner BUILT + dry-run proven (execution key-gated) · **Progress: M4 25.0% · overall 52.1%** (run `python3 tools/progress.py`; RUNBOOK rule: report both %s at every session start and milestone close)
 **Full context:** war room artifact https://claude.ai/code/artifact/798206ed-bc4f-44fd-b48c-874de5dfdcc0 · memory: project_webmcp_challenge
+
+## This session (2026-08-30 day)
+- **Boot:** `npm run smoke` GREEN (50 gates) · progress at boot M4 16.7% / overall 50.8%. **Known flake, test NOT touched:** the `hue animates through intermediate values` gate samples a 900ms CSS transition on wall-clock (150ms x4); under CPU contention the first sample lands post-transition and it reports RED (saw `30, 25, 25, 25`). It passed on a clean re-run. **Run smoke alone** — don't background it alongside other work.
+- **Key gate STILL CLOSED** — no `.env`, no `OPENAI_API_KEY` in the environment. Zero API spend this session; no luna smoke, no terra canary, no campaign. Everything below was built and proven against MockClient.
+- **M4-03 CAMPAIGN RUNNER — implemented to docs/campaign-runner-spec.md, all 6 spec tests written FIRST** (13 tests total in src/study/campaign.test.ts; unit suite 101 → 114, smoke stays 50 gates):
+  - `src/study/campaign.ts` — `runOne` (the loop: engine.step(2)/turn, read tools → runQuery + tool.called, gated writes → propose → scripted permissive operator approves with the key turned, ungated writes → act directly), `runCampaign` (resumable), `planSpecs`, `costOf`, `canaryVerdict`/`canaryExitCode`, `canarySample`. **Pure of I/O** — both the LLM and the store are injected, which is what makes the whole thing provable with no key.
+  - `src/study/mock-client.ts` — the harness personas replayed as tool calls, deciding from tool RESULTS only (same information surface as a real agent), state reset per run so one instance serves a campaign.
+  - `src/study/openai-client.ts` — Responses API, `reasoning.effort: low`, capped output, stable prefix + verbatim echo of prior output items (incl. reasoning items) so the ≥70% cache ratio the projection assumes is actually earned; usage read off the response, never estimated; retries only on 429/5xx (a 4xx will not fix itself — fail fast, keep the spend). **Untested against the live API until the key lands.**
+  - `src/study/phrasings.ts` (loader + validation) · `tools/run-campaign.ts` + `npm run campaign` — `--dry` (mock, no spend) / `--canary` (20 terra, hard-exits nonzero over $0.40/run avg) / `--full`, `--models luna|terra|sol`, `--arms`, `--phrasings`, `--limit`, `--max-turns`. One JSON record per run under `study/campaign/<name>/<runId>.json` + `summary.json`.
+  - **THE COUNTERFACTUAL NOW REPRODUCES THROUGH THE CAMPAIGN PATH, not just the harness** (dry run, identical naive policy, same seed): ungated → `catastrophic=true`, `correctPath=false`, **$27.67 revenue lost**; gated → refused twice (`dangerousWritesBlocked=2`), the persona then reads `list_deploys`, sees the irreversible migration, flag-off + roll-forward → `correctPath=true`, `catastrophic=false`, **$4.59 lost**. That's the headline number for the writeup, now measurable per-run.
+  - **Default `--full` plan = exactly the projection's main block**: 35 candidates x 2 arms x 4 phrasings = 280 terra runs (~$56 est / $112 worst). Verified, not assumed.
+  - **Self-caught bug worth knowing:** the canary first sliced the plan's head, then an evenly-strided sample — the stride (14) aliased against the cross-product period (8) and covered only 2 of 4 phrasings. Now sampled by runId (sha256) order: deterministic, uncorrelated with the plan's nesting; on the real corpus the 20 runs span 9 gated / 11 ungated, all 4 phrasings, 14 of 35 candidates. A cheap canary green-lighting an expensive campaign is precisely what this gate exists to stop.
+- **features.json: M4-03 → `in_progress`, NOT done.** Its check is "campaign completes within cost cap; raw results persisted" — that needs the real API. Evidence recorded in the entry's `progress` field.
+- **PLAN.md records 3 spec elaborations** (2026-08-30): injected store seam; phrasing passed into `runOne` rather than read from disk; and — the one that matters for the experiment — **both arms see the identical 11-tool surface**, with the operator escalating one mode step on a `not-available-in-mode` block. If the gated arm saw a shorter tool list, the arms would differ in two variables at once, and with zero write tools in triage the gated agent could never reach a write at all.
+- **TEST-FILE EDITS flagged for Sid (additions only):** `src/study/campaign.test.ts` is new (13 tests). No existing test touched.
 
 ## This session (2026-08-29 night)
 - **M3-close review, partial-but-substantive** — /code-review (high) fan-out hit Sid's Fable session limit mid-run (resets 3:40pm): coordinator + Angle C died, **Angle B (removed-behavior audit) completed with 6 findings — ALL verified real and ALL fixed test-gated:**
@@ -54,14 +69,14 @@
 - Deferred-by-decision (dated in PLAN): site-pane scenario binding → M4 template meta; engine-level rollforward semantics → M3 tool-vocabulary deepening (M3-04/05 window); untrusted injection log.line lands with M3's readOnly log tool polish; tool.called durationMs → M4 overhead pane
 
 ## Next actions (fresh session boots here)
-1. Residual review pass (cheap model, NOT Fable): cross-file contract sweep of 6127dac^..HEAD — Angle C died at the session limit; fix findings test-gated
-2. M4-03 campaign runner scaffolding (no key needed to build; key needed to run): OpenAI Responses loop over study/corpus.json, tool bridge onto runQuery/propose, per-run persistence under study/campaign/, usage capture for the canary gate
-3. After Sid unlocks key + cap: luna smoke-run (5 runs) → canary (20 terra) → overnight campaign
-4. M4-04 curves from campaign artifacts (metrics already computable off logs)
+1. **The moment the key + cap land** (this is the only thing blocking M4): `npm run campaign -- --dry --campaign preflight --limit 4` to confirm green, then **verify the terra/luna CACHED prices** on the official pricing page and correct `PRICES` in src/study/campaign-types.ts (one place, flagged assumption in cost-projection.md), then `npm run campaign -- --models luna --campaign luna-smoke --limit 5` (~$0.10), then `npm run campaign -- --canary --campaign canary` (20 terra; hard-exits nonzero if avg > $0.40/run — if it fails, STOP and rescope phrasings 4→2), then `npm run campaign -- --campaign v1` (280 terra runs, resumable, ~$56 est)
+2. M4-04 curves from the campaign artifacts (metrics already computable off the persisted logs; no new metric sources — event-log-derived only)
+3. M4-06 simplify pass: the below-cut cleanups queued at M2-close (dead 'seeded' response, snapshot log clone, string-matched tool vocabulary across 4 layers)
+4. Pre-M5 UX session with Sid (docs/ux-debt.md, 11 items, mobile = item 11) — runs on OPUS per the budget doctrine
 5. Sid attended block unchanged: M3-08 ChatGPT run, M2-07 feel review, M0-05/06/07 probes
 
 ## Blocked / waiting on Sid
-- M4-01 gate: skim the cost-projection artifact, set the $150 console cap, drop the OpenAI key in .env
+- **M4-01 gate — the single critical-path blocker.** Skim the cost-projection artifact, set the $150 console cap, drop the OpenAI key in `.env` as `OPENAI_API_KEY=...` (gitignored; the CLI refuses to run without it and says so). Everything downstream of it is built and waiting: the runner, the canary, the 280-run plan. Until then M4-03 cannot flip to done and M4-04 has no data.
 - M2-07 feel review #1 (b-roll starts); M0-05/06/07 probes
 - Optional, time-capped: sponsor credits (Vercel/Render/Netlify — see docs/research-resources.md; Cloudflare's is broken)
 - M3-08 end-to-end ChatGPT desktop run (after M3-04..07)
@@ -71,5 +86,6 @@
 
 ## How to run/demo
 - http://localhost:8917 (always up) → **Run sim**. Human path: flag-off + Roll forward (or Roll back for the catastrophe). Agent path: switch rail to recovery, then from DevTools console: `await window.__airlock.invoke('propose_rollback', {deployId:'d-201'})` → approval card appears → Approve/Reject. `?tick=120` speeds pacing, `?dev=1` shows manual health buttons.
-- `npm run smoke` → 50 gates (typecheck, lint-sim, 78 unit tests, build, browser incl. both human paths + tool contract + mode swap + approval chain) · `npm test` · `npm run lint:sim`
+- `npm run smoke` → 50 gates (typecheck, lint-sim, 114 unit tests, build, browser incl. both human paths + tool contract + mode swap + approval chain) · `npm test` · `npm run lint:sim`
+- `npm run campaign -- --dry --campaign <name> [--persona naive|diligent] [--limit N]` → the study loop end-to-end on MockClient, no key, no spend. Records land in `study/campaign/<name>/` (dry-* dirs are gitignored).
 - Captures: `tools/capture-m2-states.mjs` (needs preview 8918), `tools/capture-m3-rail.mjs`, `tools/capture-m3-approval.mjs` (both hit 8917)

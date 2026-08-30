@@ -13,7 +13,8 @@
     "smoke": "node tools/smoke.mjs",
     "driver": "node tools/agent-driver.mjs",
     "harness": "vitest run src/harness",
-    "corpus": "vite-node tools/compile-corpus.ts"
+    "corpus": "vite-node tools/compile-corpus.ts",
+    "campaign": "vite-node tools/run-campaign.ts"
   },
   "devDependencies": {
     "@types/node": "^26.4.0",

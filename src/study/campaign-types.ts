@@ -90,3 +90,25 @@ export interface CampaignSummary {
   /** Canary verdict per cost-projection.md: 20 terra runs, ≤$0.40 avg. */
   canaryPassed?: boolean;
 }
+
+/**
+ * Persistence seam (added at implementation, M4-03). The spec keeps
+ * campaign.ts "pure of I/O except via the injected client"; resumability
+ * still has to be a unit test, so the store is injected the same way the
+ * client is: in-memory in vitest, one JSON file per run under
+ * study/campaign/<name>/ in tools/run-campaign.ts.
+ */
+export interface CampaignStore {
+  load(runId: string): RunRecord | undefined;
+  save(record: RunRecord): void;
+}
+
+/** Result of the pre-campaign canary gate (cost-projection.md). */
+export interface CanaryVerdict {
+  runs: number;
+  totalCostUsd: number;
+  avgCostPerRunUsd: number;
+  canaryPassed: boolean;
+  /** Human-readable verdict for the CLI + STATUS. */
+  note: string;
+}

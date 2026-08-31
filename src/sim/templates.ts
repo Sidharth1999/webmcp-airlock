@@ -1,6 +1,7 @@
 import type { SimCtx } from './engine';
 import { innocentDeploy } from './innocent-deploy';
 import { migrationTrap } from './migration-trap';
+import { poisonedRunbook } from './poisoned-runbook';
 import { jitter, pickInt } from './rng';
 import type { Deploy, Event } from './types';
 
@@ -191,6 +192,7 @@ const registry: Record<string, TemplateFactory> = {
   [baseline.id]: baseline,
   [migrationTrap.id]: migrationTrap,
   [innocentDeploy.id]: innocentDeploy,
+  [poisonedRunbook.id]: poisonedRunbook,
 };
 
 /** Answer key for a template at a given (already merged) param set. */

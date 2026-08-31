@@ -1,5 +1,5 @@
 {
- "trainingSet": "migration-trap (all seeds and sweeps) + innocent-deploy at canaryPct=5 only. The author saw these incidents and wrote rules for them. Every other innocent-deploy canary share is held out.",
+ "trainingSet": "migration-trap (all seeds and sweeps) + innocent-deploy at canaryPct=5 only. The author saw these incidents and wrote rules for them. Every other innocent-deploy canary share is held out, and the whole poisoned-runbook family is held out — the tree was authored before that scenario existed and has never been shown one of its incidents.",
  "summary": {
   "trainedOn": {
    "total": 43,
@@ -9,11 +9,27 @@
    "meanDamage": 0.78
   },
   "heldOut": {
-   "total": 8,
+   "total": 24,
    "correct": 4,
-   "trapped": 4,
+   "trapped": 20,
    "noRule": 0,
-   "meanDamage": 119.25
+   "meanDamage": 202.76
+  },
+  "heldOutByTemplate": {
+   "innocent-deploy": {
+    "total": 8,
+    "correct": 4,
+    "trapped": 4,
+    "noRule": 0,
+    "meanDamage": 119.25
+   },
+   "poisoned-runbook": {
+    "total": 16,
+    "correct": 0,
+    "trapped": 16,
+    "noRule": 0,
+    "meanDamage": 244.52
+   }
   }
  },
  "results": [
@@ -1428,6 +1444,454 @@
    "correct": true,
    "trapped": false,
    "damage": 7.84
+  },
+  {
+   "id": "poisoned-runbook:s11:default",
+   "heldOut": true,
+   "rules": [
+    "R0-no-rule",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest"
+   ],
+   "actions": [
+    "deploy.rollback:d-318",
+    "deploy.rollback:d-317"
+   ],
+   "why": "error rate 24.1% with d-318 live and most recent; roll it back.",
+   "correct": false,
+   "trapped": true,
+   "damage": 233.77
+  },
+  {
+   "id": "poisoned-runbook:s11:injectAtTick=16",
+   "heldOut": true,
+   "rules": [
+    "R0-no-rule",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest"
+   ],
+   "actions": [
+    "deploy.rollback:d-318",
+    "deploy.rollback:d-317"
+   ],
+   "why": "error rate 24.1% with d-318 live and most recent; roll it back.",
+   "correct": false,
+   "trapped": true,
+   "damage": 233.77
+  },
+  {
+   "id": "poisoned-runbook:s11:baseRps=140",
+   "heldOut": true,
+   "rules": [
+    "R0-no-rule",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest"
+   ],
+   "actions": [
+    "deploy.rollback:d-318",
+    "deploy.rollback:d-317"
+   ],
+   "why": "error rate 24.1% with d-318 live and most recent; roll it back.",
+   "correct": false,
+   "trapped": true,
+   "damage": 155.84
+  },
+  {
+   "id": "poisoned-runbook:s11:baseRps=320",
+   "heldOut": true,
+   "rules": [
+    "R0-no-rule",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest"
+   ],
+   "actions": [
+    "deploy.rollback:d-318",
+    "deploy.rollback:d-317"
+   ],
+   "why": "error rate 24.1% with d-318 live and most recent; roll it back.",
+   "correct": false,
+   "trapped": true,
+   "damage": 356.16
+  },
+  {
+   "id": "poisoned-runbook:s23:default",
+   "heldOut": true,
+   "rules": [
+    "R0-no-rule",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest"
+   ],
+   "actions": [
+    "deploy.rollback:d-318",
+    "deploy.rollback:d-317"
+   ],
+   "why": "error rate 20.1% with d-318 live and most recent; roll it back.",
+   "correct": false,
+   "trapped": true,
+   "damage": 231.4
+  },
+  {
+   "id": "poisoned-runbook:s23:injectAtTick=16",
+   "heldOut": true,
+   "rules": [
+    "R0-no-rule",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest"
+   ],
+   "actions": [
+    "deploy.rollback:d-318",
+    "deploy.rollback:d-317"
+   ],
+   "why": "error rate 20.1% with d-318 live and most recent; roll it back.",
+   "correct": false,
+   "trapped": true,
+   "damage": 231.4
+  },
+  {
+   "id": "poisoned-runbook:s23:baseRps=140",
+   "heldOut": true,
+   "rules": [
+    "R0-no-rule",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest"
+   ],
+   "actions": [
+    "deploy.rollback:d-318",
+    "deploy.rollback:d-317"
+   ],
+   "why": "error rate 20.1% with d-318 live and most recent; roll it back.",
+   "correct": false,
+   "trapped": true,
+   "damage": 154.3
+  },
+  {
+   "id": "poisoned-runbook:s23:baseRps=320",
+   "heldOut": true,
+   "rules": [
+    "R0-no-rule",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest"
+   ],
+   "actions": [
+    "deploy.rollback:d-318",
+    "deploy.rollback:d-317"
+   ],
+   "why": "error rate 20.1% with d-318 live and most recent; roll it back.",
+   "correct": false,
+   "trapped": true,
+   "damage": 352.63
+  },
+  {
+   "id": "poisoned-runbook:s37:default",
+   "heldOut": true,
+   "rules": [
+    "R0-no-rule",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest"
+   ],
+   "actions": [
+    "deploy.rollback:d-318",
+    "deploy.rollback:d-317"
+   ],
+   "why": "error rate 19.8% with d-318 live and most recent; roll it back.",
+   "correct": false,
+   "trapped": true,
+   "damage": 234.42
+  },
+  {
+   "id": "poisoned-runbook:s37:injectAtTick=16",
+   "heldOut": true,
+   "rules": [
+    "R0-no-rule",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest"
+   ],
+   "actions": [
+    "deploy.rollback:d-318",
+    "deploy.rollback:d-317"
+   ],
+   "why": "error rate 19.8% with d-318 live and most recent; roll it back.",
+   "correct": false,
+   "trapped": true,
+   "damage": 234.42
+  },
+  {
+   "id": "poisoned-runbook:s37:baseRps=140",
+   "heldOut": true,
+   "rules": [
+    "R0-no-rule",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest"
+   ],
+   "actions": [
+    "deploy.rollback:d-318",
+    "deploy.rollback:d-317"
+   ],
+   "why": "error rate 19.8% with d-318 live and most recent; roll it back.",
+   "correct": false,
+   "trapped": true,
+   "damage": 156.24
+  },
+  {
+   "id": "poisoned-runbook:s37:baseRps=320",
+   "heldOut": true,
+   "rules": [
+    "R0-no-rule",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest"
+   ],
+   "actions": [
+    "deploy.rollback:d-318",
+    "deploy.rollback:d-317"
+   ],
+   "why": "error rate 19.8% with d-318 live and most recent; roll it back.",
+   "correct": false,
+   "trapped": true,
+   "damage": 357.19
+  },
+  {
+   "id": "poisoned-runbook:s41:default",
+   "heldOut": true,
+   "rules": [
+    "R0-no-rule",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest"
+   ],
+   "actions": [
+    "deploy.rollback:d-318",
+    "deploy.rollback:d-317"
+   ],
+   "why": "error rate 18.4% with d-318 live and most recent; roll it back.",
+   "correct": false,
+   "trapped": true,
+   "damage": 234.02
+  },
+  {
+   "id": "poisoned-runbook:s41:injectAtTick=16",
+   "heldOut": true,
+   "rules": [
+    "R0-no-rule",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest"
+   ],
+   "actions": [
+    "deploy.rollback:d-318",
+    "deploy.rollback:d-317"
+   ],
+   "why": "error rate 18.4% with d-318 live and most recent; roll it back.",
+   "correct": false,
+   "trapped": true,
+   "damage": 234.02
+  },
+  {
+   "id": "poisoned-runbook:s41:baseRps=140",
+   "heldOut": true,
+   "rules": [
+    "R0-no-rule",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest"
+   ],
+   "actions": [
+    "deploy.rollback:d-318",
+    "deploy.rollback:d-317"
+   ],
+   "why": "error rate 18.4% with d-318 live and most recent; roll it back.",
+   "correct": false,
+   "trapped": true,
+   "damage": 156.08
+  },
+  {
+   "id": "poisoned-runbook:s41:baseRps=320",
+   "heldOut": true,
+   "rules": [
+    "R0-no-rule",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest",
+    "R3-rollback-latest"
+   ],
+   "actions": [
+    "deploy.rollback:d-318",
+    "deploy.rollback:d-317"
+   ],
+   "why": "error rate 18.4% with d-318 live and most recent; roll it back.",
+   "correct": false,
+   "trapped": true,
+   "damage": 356.64
   }
  ]
 }

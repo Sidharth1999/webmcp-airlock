@@ -1248,3 +1248,21 @@ body {
 /* tool rows are a scannable column: one line each, never ragged wraps */
 #tool-list li { white-space: nowrap; }
 #tool-list .tool-name { overflow: hidden; text-overflow: ellipsis; }
+
+/* Provenance banner on an approval card (injection family). The card still
+   offers Approve — the page is not overruling the operator, it is telling
+   them the one thing a generic confirmation dialog could not know. */
+.ap-prov {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--sp-2);
+  border: 1px solid var(--warn-dim);
+  border-left: 3px solid var(--warn);
+  background: oklch(80% 0.12 85 / 0.07);
+  font-size: var(--text-2xs);
+}
+.ap-prov-head { color: var(--warn); letter-spacing: 0.02em; }
+.ap-prov-quote { color: var(--ink); font-style: italic; line-height: 1.45; }
+.ap-prov-src { color: var(--ink-faint); }
+.approval-card:has(.ap-prov) { border-color: var(--warn-dim); border-left-color: var(--warn); }

@@ -45,7 +45,19 @@ writeFileSync(
   JSON.stringify(
     {
       trainingSet: TRAINING_SET.describe,
-      summary: { trainedOn: summarize(trained), heldOut: summarize(held) },
+      summary: {
+        trainedOn: summarize(trained),
+        heldOut: summarize(held),
+        // Broken out per family so the held-out aggregate cannot be read as
+        // padding: adding a third family enlarges the held-out set, and the
+        // reader is entitled to see each family's contribution separately.
+        heldOutByTemplate: Object.fromEntries(
+          [...new Set(held.map((r) => r.candidate.templateId))].map((id) => [
+            id,
+            summarize(held.filter((r) => r.candidate.templateId === id)),
+          ])
+        ),
+      },
       results: results.map((r) => ({
         id: r.candidate.id,
         heldOut: r.heldOut,

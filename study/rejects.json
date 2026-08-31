@@ -41,6 +41,24 @@
      15
     ]
    }
+  },
+  {
+   "templateId": "poisoned-runbook",
+   "seeds": [
+    11,
+    23,
+    37,
+    41
+   ],
+   "variations": {
+    "injectAtTick": [
+     16
+    ],
+    "baseRps": [
+     140,
+     320
+    ]
+   }
   }
  ],
  "rejects": []

@@ -28,7 +28,7 @@ type EventKind =
   | 'user.impact'             // {usersErrored, ticketsOpened, revenueLostFormula: {rps, errRate, valuePerReq}}
   | 'log.line'                // {service, level: debug|info|warn|error, msg, untrusted?: boolean} — untrusted lines surface via readOnly log tool with untrustedContentHint; the seeded prompt-injection line lives here
   // actions (writes — always via tools, always gated)
-  | 'action.proposed'         // {tool, input, tier, diffSummary} — creates a pending approval
+  | 'action.proposed'         // {tool, input, tier, diffSummary, provenance?, requiresKey?} — creates a pending approval; provenance/requiresKey are set when the write's TARGET traces to untrusted content the page served the agent (src/sim/provenance.ts)
   | 'action.approved' | 'action.rejected'   // {by: 'human', proposalSeq}
   | 'action.executed'         // {tool, input, result} (durationMs: see 2026-08-29 amendment)
   | 'action.blocked'          // {tool, input, tier, reason, ...} — the counterfactual's key metric (reason enum: see 2026-08-29 amendment)
@@ -111,7 +111,9 @@ smoke-tested, so the DOC moves to match the code, not vice versa):
   current mode — emitted at propose time with actor `agent`, and at
   approval time with actor `human` when the mode moved after proposal;
   approval-time blocks carry `proposalSeq`) · `'dual-key-required'`
-  (tier-4 approval without the key, actor `human`, carries `proposalSeq`).
+  (approval without the key, actor `human`, carries `proposalSeq`; raised
+  either by tier 4 or, since 2026-08-31, by `requiresKey` on the proposal,
+  in which case the block also carries `escalatedBy: 'untrusted-evidence'`).
   The draft values `'not-registered-in-mode'` / `'diagnosis-gate'` were
   never emitted by any build and are dead — do not filter on them.
 - **Metrics note:** only `actor === 'agent'` blocks count as new write

@@ -3,6 +3,7 @@ import { EventLog } from './log';
 import { initialWorld, reduce } from './reducer';
 import { mulberry32, type Rng } from './rng';
 import { currentMode, MODE_TIERS } from './modes';
+import { provenanceOf } from './provenance';
 import { getTemplate, type TemplateInstance } from './templates';
 import type { Actor, Event, EventKind, SeedSpec, World } from './types';
 import { WRITE_ACTIONS, writeAction } from './vocabulary';
@@ -147,6 +148,13 @@ export class Engine {
         causedBy
       );
     }
+    // PROVENANCE (family #2): does this write's target trace to untrusted
+    // content the page served the agent? If so the proposal is promoted to
+    // the dual-key rung whatever its nominal tier — the human may still do
+    // it, but not with one reflexive click, and the card says where the idea
+    // came from. This is the check a generic host confirm cannot make: it
+    // never served the evidence.
+    const taint = provenanceOf(this.log.all, input);
     return ctx.emit(
       'action.proposed',
       'agent',
@@ -156,6 +164,7 @@ export class Engine {
         tier: spec.tier,
         tierName: spec.tierName,
         diffSummary: spec.describe(input, this.worldState),
+        ...(taint ? { provenance: taint, requiresKey: true } : {}),
       },
       causedBy
     );
@@ -181,10 +190,11 @@ export class Engine {
 
     const before = this.log.length;
     const ctx = this.ctx();
-    const { tool, input, tier } = proposal.data as {
+    const { tool, input, tier, requiresKey } = proposal.data as {
       tool: string;
       input: Record<string, unknown>;
       tier: number;
+      requiresKey?: boolean;
     };
     if (decision === 'approve') {
       // the mode may have moved since the proposal was minted: the gate is
@@ -204,11 +214,18 @@ export class Engine {
       // top-tier writes need the dual key: the human must HOLD the key while
       // the agent's write executes. An approval without it is blocked — the
       // proposal stays pending, so engaging the key and approving again works.
-      if (tier === 4 && !keyHolder) {
+      if ((tier === 4 || requiresKey) && !keyHolder) {
         ctx.emit(
           'action.blocked',
           'human',
-          { tool, input, tier, reason: 'dual-key-required', proposalSeq },
+          {
+            tool,
+            input,
+            tier,
+            reason: 'dual-key-required',
+            ...(tier !== 4 && requiresKey ? { escalatedBy: 'untrusted-evidence' } : {}),
+            proposalSeq,
+          },
           proposalSeq
         );
         return this.log.all.slice(before) as Event[];

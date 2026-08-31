@@ -26,12 +26,14 @@ const TEMPLATE_LABELS: Record<string, string> = {
   baseline: 'Calm',
   'migration-trap': 'Checkout',
   'innocent-deploy': 'Timeouts',
+  'poisoned-runbook': 'Payments',
 };
 /** the fuller phrasing, on hover — the chip itself must stay one word */
 const TEMPLATE_TITLES: Record<string, string> = {
   baseline: 'Calm day — nothing is wrong',
   'migration-trap': 'Checkout is failing',
   'innocent-deploy': 'Timeouts spreading across routes',
+  'poisoned-runbook': 'Payments failing at checkout',
 };
 
 const TEMPLATE_ID = templateIds().includes(requestedTemplate)
@@ -579,13 +581,17 @@ function addApprovalCard(e: Event): void {
     tier: number;
     tierName: string;
     diffSummary: string;
+    requiresKey?: boolean;
+    provenance?: { ref: string; lineSeq: number; excerpt: string; service: string };
   };
   const card = document.createElement('div');
   card.className = 'approval-card';
   card.dataset.proposalSeq = String(e.seq);
   card.dataset.tier = String(d.tier);
   card.dataset.testid = `approval-${e.seq}`;
-  const dualKey = d.tier === 4;
+  // A proposal is on the key rung either because of its tier, or because the
+  // page knows where the idea came from (src/sim/provenance.ts).
+  const dualKey = d.tier === 4 || d.requiresKey === true;
   card.innerHTML = `
     <div class="ap-head">
       <span class="ap-actor">agent proposes</span>
@@ -593,8 +599,17 @@ function addApprovalCard(e: Event): void {
     </div>
     <div class="ap-diff"></div>
     ${
+      d.provenance
+        ? `<div class="ap-prov" data-testid="provenance-${e.seq}">
+             <span class="ap-prov-head">evidence check · ${d.provenance.ref} came from untrusted content</span>
+             <span class="ap-prov-quote"></span>
+             <span class="ap-prov-src">${d.provenance.service} log #${d.provenance.lineSeq} · customer-supplied text, served to the agent by read_logs</span>
+           </div>`
+        : ''
+    }
+    ${
       dualKey
-        ? `<label class="ap-key"><input type="checkbox" class="ap-key-toggle" data-testid="key-${e.seq}"><span>engage key — held while the agent executes</span></label>`
+        ? `<label class="ap-key"><input type="checkbox" class="ap-key-toggle" data-testid="key-${e.seq}"><span>engage key — held while the agent executes${d.provenance ? ' (required: untrusted evidence)' : ''}</span></label>`
         : ''
     }
     <div class="ap-actions">
@@ -603,6 +618,10 @@ function addApprovalCard(e: Event): void {
     </div>
   `;
   card.querySelector('.ap-diff')!.textContent = d.diffSummary;
+  // textContent, never innerHTML: this string is attacker-controlled
+  const quote = card.querySelector('.ap-prov-quote');
+  // the line carries its own quoting; wrapping it again collides with it
+  if (quote && d.provenance) quote.textContent = d.provenance.excerpt;
   card.querySelector<HTMLInputElement>('.ap-key-toggle')?.addEventListener('change', (ev) => {
     const engaged = (ev.target as HTMLInputElement).checked;
     card.querySelector<HTMLButtonElement>('.ap-approve')!.disabled = !engaged;

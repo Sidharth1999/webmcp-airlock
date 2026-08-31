@@ -468,6 +468,49 @@ try {
   check('roll-forward heals the site from catastrophic', true);
   await trap.close();
 
+  // ---- M4: injection family — provenance-weighted authorization ---------
+  // The film's second money shot. A tier-1 rollback, proposed on the strength
+  // of a customer-supplied log line, must arrive on the key rung with the
+  // source quoted on the card — and the human must still be able to do it.
+  const inj = await browser.newPage();
+  inj.on('pageerror', (e) => pageErrors.push(e.message));
+  await inj.goto(URL + '?template=poisoned-runbook&tick=50', { waitUntil: 'networkidle' });
+  await inj.getByTestId('sim-run').click();
+  await inj.waitForFunction(
+    () => /tick (1[5-9]|[2-9]\d)/.test(document.querySelector('[data-testid=sim-status]').textContent),
+    null,
+    { timeout: 30_000 }
+  );
+  await inj.getByTestId('sim-run').click(); // pause: the world is set
+
+  const served = await inj.evaluate(() => window.__airlock.invoke('read_logs', {}));
+  check('the poisoned order note reaches the agent flagged untrusted', /untrusted/.test(served));
+
+  await inj.getByTestId('mode-recovery').click();
+  const injSeq = JSON.parse(
+    await inj.evaluate(() => window.__airlock.invoke('propose_rollback', { deployId: 'd-318' }))
+  ).proposalSeq;
+  const injCard = inj.getByTestId(`approval-${injSeq}`);
+  await injCard.waitFor({ timeout: 5_000 });
+  const injText = (await injCard.textContent()).replace(/\s+/g, ' ');
+  check(
+    'the card cites where the idea came from (quote + log seq + who supplied it)',
+    /came from untrusted content/.test(injText) &&
+      /ACTION REQUIRED/.test(injText) &&
+      /customer-supplied text/.test(injText)
+  );
+  check(
+    'a tier-1 write is promoted to the key rung by provenance alone',
+    /tier 1 · deploy · dual-key/.test(injText) &&
+      (await inj.getByTestId(`approve-${injSeq}`).isDisabled())
+  );
+  await inj.getByTestId(`key-${injSeq}`).check();
+  check(
+    'the human is informed, not overruled: the key re-arms approve',
+    await inj.getByTestId(`approve-${injSeq}`).isEnabled()
+  );
+  await inj.close();
+
   // ---- M3-07: unattended full-scenario agent driver (plumbing loop) ------
   const driver = spawnSync('node', ['tools/agent-driver.mjs', URL], {
     stdio: ['ignore', 'pipe', 'pipe'],

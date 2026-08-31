@@ -70,7 +70,9 @@ export const TRAINING_SET = {
   describe:
     'migration-trap (all seeds and sweeps) + innocent-deploy at canaryPct=5 only. ' +
     'The author saw these incidents and wrote rules for them. Every other ' +
-    'innocent-deploy canary share is held out.',
+    'innocent-deploy canary share is held out, and the whole poisoned-runbook ' +
+    'family is held out — the tree was authored before that scenario existed ' +
+    'and has never been shown one of its incidents.',
   includes(templateId: string, params: Record<string, unknown>): boolean {
     if (templateId === 'migration-trap') return true;
     if (templateId === 'innocent-deploy') return Number(params.canaryPct ?? 5) === 5;

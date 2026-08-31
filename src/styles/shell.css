@@ -173,7 +173,7 @@ body {
   flex: 1;
   min-height: 0;
   overflow: auto;
-  padding: var(--sp-4);
+  padding: var(--sp-5);
   color: var(--ink-dim);
   font-size: var(--text-sm);
 }
@@ -216,14 +216,16 @@ body {
   .shell[data-site='off'] #control-deck {
     display: grid;
     grid-template-columns: minmax(400px, 1.1fr) minmax(330px, 1fr);
-    grid-template-rows: auto auto auto 1fr;
+    grid-template-rows: auto auto auto auto auto 1fr;
     column-gap: var(--sp-6);
     align-items: start;
   }
   .shell[data-site='off'] #situation     { grid-column: 1 / -1; grid-row: 1; }
-  .shell[data-site='off'] #zone-changed  { grid-column: 1; grid-row: 2; }
-  .shell[data-site='off'] #zone-controls { grid-column: 1; grid-row: 3; }
-  .shell[data-site='off'] #zone-activity { grid-column: 2; grid-row: 2 / span 3; }
+  .shell[data-site='off'] #stats         { grid-column: 1 / -1; grid-row: 2; }
+  .shell[data-site='off'] #err-chart     { grid-column: 1 / -1; grid-row: 3; }
+  .shell[data-site='off'] #zone-changed  { grid-column: 1; grid-row: 4; }
+  .shell[data-site='off'] #zone-controls { grid-column: 1; grid-row: 5; }
+  .shell[data-site='off'] #zone-activity { grid-column: 2; grid-row: 4 / span 3; }
 }
 #site-toggle[aria-pressed='true'] { color: var(--ink); border-color: var(--ink-faint); background: oklch(100% 0 0 / 0.06); }
 
@@ -233,6 +235,11 @@ body {
 /* ux-debt #5: each pane says what it is, once, quietly */
 .pane-sub {
   margin-right: auto;
+  /* the subtitle yields first: controls must never clip */
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-family: var(--font-prose);
   font-size: var(--text-xs);
   font-weight: 400;
@@ -282,7 +289,8 @@ body {
 }
 .ctl-btn.primary:hover:not(:disabled) { background: var(--ink); color: var(--bg); opacity: 0.9; }
 
-#sim-run { margin-left: auto; }
+#sim-run { margin-left: auto; flex: none; }
+.pane > header > .seg, .pane > header > button { flex: none; }
 #sim-run[aria-pressed='true'] {
   color: var(--health-bright);
   border-color: var(--health-dim);
@@ -338,10 +346,10 @@ body {
 /* ZONE 1 — read this and you know the state of the world. */
 #situation {
   position: sticky;
-  top: calc(var(--sp-4) * -1);
+  top: calc(var(--sp-5) * -1);
   z-index: 5;
-  padding: var(--sp-3) var(--sp-4) var(--sp-4);
-  margin: calc(var(--sp-4) * -1) calc(var(--sp-4) * -1) 0;
+  padding: var(--sp-4) var(--sp-5) var(--sp-4);
+  margin: calc(var(--sp-5) * -1) calc(var(--sp-5) * -1) 0;
   background: var(--panel);
   border-bottom: 1px solid var(--line);
 }
@@ -411,12 +419,18 @@ body {
 #situation[data-phase='calm'] .sit-head { color: var(--ink); }
 
 /* ZONES 2-4 — evidence, controls, trail. Open when they start mattering. */
-.zone { border-bottom: 1px solid var(--line); }
+.zone {
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: oklch(100% 0 0 / 0.015);
+  margin-top: var(--sp-4);
+}
+.zone[open] > summary { border-bottom: 1px solid var(--line); }
 .zone > summary {
   display: flex;
   align-items: center;
   gap: var(--sp-2);
-  padding: var(--sp-3) 0;
+  padding: var(--sp-3) var(--sp-4);
   cursor: pointer;
   list-style: none;
   user-select: none;
@@ -436,7 +450,125 @@ body {
 .zone-title { font-size: var(--text-sm); font-weight: 600; color: var(--ink-dim); }
 .zone[open] > summary .zone-title { color: var(--ink); }
 .zone-meta { margin-left: auto; font-size: var(--text-xs); color: var(--ink-ghost); }
-.zone-body { padding-bottom: var(--sp-3); }
+.zone-body { padding: var(--sp-4); }
+
+/* --- impact cards: label, big value, context (Vercel card anatomy) ------ */
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(158px, 1fr));
+  gap: var(--sp-3);
+  margin-top: var(--sp-4);
+}
+.stat {
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: oklch(100% 0 0 / 0.02);
+  padding: var(--sp-3) var(--sp-4) var(--sp-4);
+  min-width: 0;
+}
+.stat-k {
+  font-family: var(--font-prose);
+  font-size: var(--text-2xs);
+  color: var(--ink-ghost);
+  letter-spacing: 0.02em;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.stat-v {
+  margin-top: 6px;
+  font-family: var(--font-instrument);
+  font-size: 1.75rem;
+  font-weight: 600;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  transition: color var(--dur-settle) var(--ease-settle);
+}
+.stat-sub {
+  margin-top: 5px;
+  font-family: var(--font-prose);
+  font-size: var(--text-2xs);
+  color: var(--ink-ghost);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.stat[data-tone='warn'] .stat-v { color: var(--warn); }
+.stat[data-tone='bad']  .stat-v { color: var(--bad); }
+
+/* --- error-rate plot: the incident has a shape ------------------------- */
+.chart {
+  margin-top: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: oklch(100% 0 0 / 0.02);
+  padding: var(--sp-3) var(--sp-4) var(--sp-3);
+}
+.chart-head { display: flex; align-items: baseline; gap: var(--sp-2); }
+.chart-k {
+  font-family: var(--font-prose);
+  font-size: var(--text-2xs);
+  color: var(--ink-ghost);
+}
+.chart-max {
+  margin-left: auto;
+  font-family: var(--font-instrument);
+  font-size: var(--text-2xs);
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+.chart-plot {
+  position: relative;
+  height: 86px;
+  margin-top: var(--sp-2);
+  /* faint horizontal rules, like a real plot ground */
+  background-image: repeating-linear-gradient(
+    to top, transparent 0 21px, oklch(100% 0 0 / 0.045) 21px 22px
+  );
+}
+.chart-plot svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.chart-area { fill: var(--health-glow); transition: fill var(--dur-settle) var(--ease-settle); }
+.chart-line {
+  fill: none;
+  stroke: var(--health);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+  transition: stroke var(--dur-settle) var(--ease-settle);
+}
+.chart[data-tone='warn'] .chart-line { stroke: var(--warn); }
+.chart[data-tone='bad'] .chart-line { stroke: var(--bad); }
+/* the error budget, drawn where it actually falls on this scale */
+.chart-slo {
+  position: absolute;
+  left: 0; right: 0;
+  height: 0;
+  border-top: 1px dashed var(--line-strong);
+  pointer-events: none;
+}
+.chart[data-empty='true'] .chart-slo { display: none; }
+.chart-axis {
+  display: flex;
+  justify-content: space-between;
+  margin-top: 6px;
+  font-family: var(--font-instrument);
+  font-size: var(--text-2xs);
+  color: var(--ink-ghost);
+}
+
+/* --- designed empty states: never leave a region blank ------------------ */
+.empty {
+  padding: var(--sp-5) var(--sp-4);
+  text-align: center;
+  color: var(--ink-ghost);
+  font-family: var(--font-prose);
+  font-size: var(--text-xs);
+  line-height: 1.6;
+  border: 1px dashed var(--line-strong);
+  border-radius: var(--r-md);
+}
+.empty[hidden] { display: none; }
 @media (prefers-reduced-motion: reduce) {
   .zone > summary::before, .shell, #site-pane { transition: none; }
 }

@@ -89,10 +89,35 @@ app.innerHTML = `
             <dl class="sit-fields" id="sit-fields"></dl>
           </section>
 
+          <!-- IMPACT — big numbers with their unit and trend, Vercel-style
+               card anatomy: label, value, context. Fills the pane honestly
+               because every figure is live. -->
+          <section class="stats" id="stats" data-testid="stats"></section>
+
+          <!-- the incident has a SHAPE. A console that only shows "now" hides
+               when it started and whether it is recovering. -->
+          <section class="chart" id="err-chart" data-testid="err-chart">
+            <div class="chart-head">
+              <span class="chart-k">Checkout error rate</span>
+              <span class="chart-max" id="chart-max">—</span>
+            </div>
+            <div class="chart-plot">
+              <svg viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true">
+                <path class="chart-area" d="" />
+                <path class="chart-line" d="" vector-effect="non-scaling-stroke" />
+              </svg>
+              <span class="chart-slo" id="chart-slo" title="1% error budget"></span>
+            </div>
+            <div class="chart-axis"><span>60 ticks ago</span><span>now</span></div>
+          </section>
+
           <!-- ZONE 2 — what changed. Open while it matters. -->
           <details class="zone" id="zone-changed" data-testid="zone-changed" open>
             <summary><span class="zone-title">What changed</span><span class="zone-meta" id="zone-changed-meta"></span></summary>
-            <div class="zone-body"><div id="deploy-controls"></div></div>
+            <div class="zone-body">
+              <div id="deploy-controls"></div>
+              <p class="empty" id="deploys-empty">No deploys in this scenario yet.</p>
+            </div>
           </details>
 
           <!-- ZONE 3 — the human's own hands. Closed until there's a reason. -->
@@ -114,6 +139,7 @@ app.innerHTML = `
             </summary>
             <div class="zone-body">
               <ol id="event-stream" data-testid="event-stream" aria-live="polite"></ol>
+              <p class="empty" id="stream-empty">Nothing has happened yet. Start the scenario to bring the store online.</p>
             </div>
           </details>
 
@@ -783,7 +809,38 @@ function teleFormat(metric: 'rps' | 'err' | 'p95', v: number): string {
   return String(Math.round(v));
 }
 
+/** The error-rate history as a real plot: area + line, axis, SLO line. */
+function renderErrChart(): void {
+  const buf = teleBuffers.err;
+  const card = document.querySelector<HTMLElement>('#err-chart')!;
+  const area = card.querySelector<SVGPathElement>('.chart-area')!;
+  const line = card.querySelector<SVGPathElement>('.chart-line')!;
+  const maxEl = card.querySelector<HTMLElement>('#chart-max')!;
+  if (buf.length < 2) {
+    area.setAttribute('d', '');
+    line.setAttribute('d', '');
+    maxEl.textContent = '—';
+    card.dataset.empty = 'true';
+    return;
+  }
+  card.dataset.empty = 'false';
+  // scale to the window's own peak, floored at 2% so a calm run isn't all noise
+  const peak = Math.max(0.02, ...buf);
+  const step = 300 / (TELE_WINDOW - 1);
+  const x0 = 300 - (buf.length - 1) * step; // newest pinned to the right edge
+  const pts = buf.map((v, i) => [x0 + i * step, 100 - (v / peak) * 92] as const);
+  const d = pts.map(([x, y], i) => `${i === 0 ? 'M' : 'L'}${x.toFixed(1)},${y.toFixed(1)}`).join(' ');
+  line.setAttribute('d', d);
+  area.setAttribute('d', `${d} L300,100 L${x0.toFixed(1)},100 Z`);
+  maxEl.textContent = `peak ${(peak * 100).toFixed(1)}%`;
+  const latest = buf[buf.length - 1]!;
+  card.dataset.tone = latest > 0.08 ? 'bad' : latest > 0.01 ? 'warn' : 'ok';
+  // the 1% error budget, drawn where it actually falls
+  card.querySelector<HTMLElement>('#chart-slo')!.style.bottom = `${Math.min(96, (0.01 / peak) * 92)}%`;
+}
+
 function renderTele(): void {
+  renderErrChart();
   for (const metric of ['rps', 'err', 'p95'] as const) {
     const buf = teleBuffers[metric];
     const inst = document.querySelector<HTMLElement>(`.tele-inst[data-metric="${metric}"]`);
@@ -933,7 +990,61 @@ function clock(ms: number): string {
   return `T+${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
 }
 
+/**
+ * The impact row. Card anatomy borrowed from Vercel's observability cards —
+ * label, then a BIG value, then the context line — because a console's
+ * headline numbers should be readable across a room, not 11px.
+ */
+function renderStats(w: World, worst: Health): void {
+  const el = document.querySelector<HTMLElement>('#stats')!;
+  if (w.services.length === 0) {
+    el.innerHTML = '';
+    return;
+  }
+  const checkoutErr = w.traffic.byRoute['/checkout']?.errRate ?? w.traffic.errRate;
+  const tone = worst === 'down' ? 'bad' : worst === 'degraded' ? 'warn' : 'ok';
+  const cards: Array<{ k: string; v: string; sub: string; tone?: string }> = [
+    {
+      k: 'Checkout error rate',
+      v: `${(checkoutErr * 100).toFixed(1)}%`,
+      sub: `${w.traffic.rps} req/s across all routes`,
+      tone,
+    },
+    {
+      k: 'Customers affected',
+      v: String(w.damage.usersErrored),
+      sub: `${w.damage.ticketsOpened} support tickets opened`,
+      tone: w.damage.usersErrored > 0 ? tone : undefined,
+    },
+    {
+      k: 'Revenue lost',
+      v: `$${w.damage.revenueLost.toFixed(2)}`,
+      sub: 'Σ rps × err × value per request',
+      tone: w.damage.revenueLost > 0 ? tone : undefined,
+    },
+    {
+      k: 'Elapsed',
+      v: clock(simNowMs).replace('T+', ''),
+      sub: `p95 ${w.traffic.p95}ms`,
+    },
+  ];
+  el.innerHTML = cards
+    .map(
+      (c) => `<div class="stat"${c.tone ? ` data-tone="${c.tone}"` : ''}>
+        <div class="stat-k">${c.k}</div>
+        <div class="stat-v">${c.v}</div>
+        <div class="stat-sub">${c.sub}</div>
+      </div>`
+    )
+    .join('');
+}
+
 function renderSituation(w: World, worst: Health): void {
+  renderStats(w, worst);
+  const hasDeploys = w.deploys.length > 0;
+  document.querySelector<HTMLElement>('#deploys-empty')!.hidden = hasDeploys;
+  document.querySelector<HTMLElement>('#stream-empty')!.hidden =
+    (document.querySelector('#event-stream')?.childElementCount ?? 0) > 0;
   const zone = document.querySelector<HTMLElement>('#situation')!;
   const state = document.querySelector<HTMLElement>('#sit-state')!;
   const head = document.querySelector<HTMLElement>('#sit-head')!;

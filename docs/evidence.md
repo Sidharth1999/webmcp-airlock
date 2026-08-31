@@ -1,5 +1,36 @@
 # Evidence base — is the Release Airlock the right thing to build?
 
+## STATUS: **SETTLED 2026-08-30. DO NOT RE-OPEN.**
+
+**Verdict: the premise holds. No pivot. Zero code changed as a result of this
+review.** Every question raised — is the problem real, is the control the one
+practitioners ask for, does mitigation happen in a console, is the work complex
+enough to need an agent, is dynamic tool registration a genuine pattern, and why
+WebMCP over CLI or Playwright — is answered below with sources.
+
+**Why this file exists at all (the honest post-mortem):** the project was chosen
+on a 3-AI consensus. That was a *design* convergence, not evidence — three
+systems with correlated priors agreeing that an idea sounds good. The original
+research had already shown every concept lane is reachable in 1–2 prompts, so
+agreement was never going to be informative. This external check belonged on day
+one. It was done on 2026-08-30 instead, it came back YES on every axis, and it
+is now closed.
+
+**Rule for every future session: this question is answered. Do not re-litigate
+it, and do not run fresh validation searches on the premise.** Cite this file.
+Re-open only if a judge, a competitor, or new evidence directly contradicts a
+sourced claim here — in which case amend the specific section, dated.
+
+**What the review actually changed:** no build changes. Two framing corrections
+(call it the mitigation/write surface, not incident management; lead with the
+flag kill-switch rather than the rollback) and four *stronger* arguments we did
+not previously have — JIT-access-for-agents (§8b), automation-without-judgment-
+fires-the-trap (§7), diagnosis-is-2-3x-everything-else (§8a), and the
+CLI/Playwright leverage table (§6).
+
+---
+
+
 > Written 2026-08-30 because Sid asked the honest question: the 3-AI alignment
 > at the start agreed this was a good project, but agreement is not evidence.
 > This file is the evidence, INCLUDING the parts that cut against us.

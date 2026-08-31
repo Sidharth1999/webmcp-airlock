@@ -83,6 +83,23 @@
 - `migration-trap.test.ts`: adapted to `metaFor()` for the params-function API change.
 - **NEW files (additions only):** `innocent-deploy.test.ts` (6), `runbook.test.ts` (6).
 
+### KEY UNLOCKED — first real API runs (2026-08-31 evening)
+- **Spend to date: ~$0.26 of a $10 prepaid balance, auto-reload OFF.** Correcting the PM handoff: it is **$10 of prepaid credits, not a $20 cap**. Auto-reload off makes the balance a physically-enforced ceiling, which satisfies the RUNBOOK's "hard cap in provider console" better than a monthly limit would.
+- **PRICES VERIFIED** against the live official table (all three rows read, not assumed). luna + terra already exact; **the 10:1 cached ratio flagged 8/29 is CONFIRMED**; sol corrected 5.0/0.5/30.0 -> 4.0/0.4/20.0 (we over-estimated). Long-context tier noted as a caveat — the 1.2KB page cap keeps us in short context.
+- **THE COST PROJECTION WAS ~15x TOO HIGH.** Projected $0.19/run terra; **measured $0.0125/run**. Canary PASSED at 32x under the $0.40 gate. **Full v1 (280 runs) is therefore ~$3.50, not ~$56 — the existing $10 covers the whole study ~2.5x over. No credit purchase is needed.**
+- **BUG CAUGHT BY A $0.0035 SMOKE — the campaign was measuring nothing.** `runOne` entered the turn loop at t=0, so the model's first read was a calm console (incidentOpen:false, no deploys/logs/ticks). It correctly answered *"No mitigation is justified or needed at this time"* and stopped at 2 turns. **All 280 v1 runs would have been garbage.** Fixed: the agent is now PAGED IN to an open incident, which also makes the arms comparable (compiler probes and the runbook arm already start there). +1 regression test. Effect: 2-4 turns -> 5-9 turns, and gated runs now block a write (blocked=1) while ungated do not.
+
+#### PRELIMINARY SIGNAL — DOES NOT FAVOUR THE GATE. Do not quote this anywhere yet.
+20 canary runs, terra, **unbalanced arms (8 gated / 12 ungated), n far too small**:
+```
+gated    n= 8  correctPath 1/8   catastrophic 0  dangerousBlocked 0  mean damage $19.68
+ungated  n=12  correctPath 4/12  catastrophic 0  dangerousBlocked 0  mean damage $14.91
+```
+- **Ungated currently looks BETTER on both correctPath and damage.**
+- **Zero catastrophic outcomes in EITHER arm.** The flagship's counterfactual is that an ungated agent rolls back and goes catastrophic. **A real model did not do that even once.** Our scripted `naive` persona does — so the counterfactual may be an artifact of the scripted persona rather than a property real agents exhibit.
+- `dangerousWritesBlocked = 0` in both arms: writes were blocked, but none matched the declared trap.
+- **This is exactly the risk the study existed to test, and it is now visible.** It is a pipeline check, not a result (n=20, unbalanced, one family). The honest next step is the balanced 280-run v1 at ~$3.50. If the finding holds, the eval narrative has to change and the counterfactual claim gets weakened or dropped — better to learn it now than from a judge.
+
 ### Why progress % did not move (read this before reading the number)
 **Still M4 25.0% / M5 10.0% / overall 53.3%.** Today's work is plan-amendment-0831 scope — de-structuring, Template A + E-twin, the runbook arm, the agent rail — and **features.json does not track any of it**; it is the M0-M7 plan of record. I did NOT append entries for it, because inventing entries mid-session inflates the denominator and the number stops meaning anything. M5-03 stays `in_progress` on purpose: its check is "BOTH URLs load in ChatGPT desktop browser" and there is no mirror deploy yet, only the primary (which gate 1 did verify). **So the number understates today; treat the milestone sections above as the real state.**
 

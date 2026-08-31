@@ -1,0 +1,15 @@
+{
+  "name": "canary",
+  "completed": 20,
+  "skipped": 0,
+  "errors": 0,
+  "totalCostUsd": 0.25079959999999996,
+  "avgCostPerRunUsd": 0.012539979999999997,
+  "canary": {
+    "runs": 20,
+    "totalCostUsd": 0.25079959999999996,
+    "avgCostPerRunUsd": 0.012539979999999997,
+    "canaryPassed": true,
+    "note": "canary PASSED: $0.0125/run ≤ $0.40"
+  }
+}

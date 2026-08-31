@@ -226,6 +226,8 @@ app.innerHTML = `
           </span>
         </div>
 
+        <p class="agent-doing" id="agent-doing" aria-live="polite" hidden></p>
+
         <div class="agent-can" id="agent-can">
           <p class="can-line" id="can-read"></p>
           <p class="can-line" id="can-write"></p>
@@ -663,8 +665,42 @@ const setPresence = (state: 'off' | 'idle' | 'live', label: string): void => {
 };
 let agentIdleTimer: number | undefined;
 
+/**
+ * The cursor is positioned in VIEWPORT coordinates, so anything that scrolls
+ * afterwards (an approval card calling scrollIntoView, the human scrolling
+ * the console) leaves the label pointing at nothing. A label pointing at the
+ * wrong thing is worse than no label, so it follows its target and hides when
+ * the target leaves the viewport. Caught by screenshot.
+ */
+let lastAgentTarget: Element | null = null;
+
+function placeAgentCursor(target: Element): void {
+  const r = target.getBoundingClientRect();
+  if (r.width === 0) return;
+  const offscreen = r.bottom < 0 || r.top > window.innerHeight;
+  agentCursor.hidden = offscreen;
+  if (offscreen) return;
+  const labelY = Math.max(4, Math.round(r.top - 22));
+  agentCursor.style.transform = `translate(${Math.round(r.left - 6)}px, ${labelY}px)`;
+}
+
+function repositionAgentCursor(): void {
+  if (lastAgentTarget && lastAgentTarget.isConnected) placeAgentCursor(lastAgentTarget);
+}
+// capture phase: the console's inner scrollers do not bubble scroll events
+window.addEventListener('scroll', repositionAgentCursor, { capture: true, passive: true });
+window.addEventListener('resize', repositionAgentCursor, { passive: true });
+
 function moveAgentCursor(target: Element | null): void {
   if (!target) return;
+  // The cursor exists to show CO-PRESENCE on the shared surface — the console
+  // both parties operate. Inside the agent's own rail it is redundant (the
+  // presence card and the narration line already say it, better) and it lands
+  // on top of the labels it would explain. Caught by screenshot.
+  if (target.closest('#tool-rail')) {
+    agentCursor.dataset.state = 'idle';
+    return;
+  }
   const r = target.getBoundingClientRect();
   if (r.width === 0) return;
   // ride the TOP-LEFT shoulder of the target: landing on the middle put the
@@ -673,8 +709,8 @@ function moveAgentCursor(target: Element | null): void {
   // the first ~9px of a full-width row (it was landing on the db service
   // line); clamp so a target near the top of the viewport keeps the label
   // on screen. Caught by screenshot, like the Approve-button overlap before.
-  const labelY = Math.max(4, Math.round(r.top - 22));
-  agentCursor.style.transform = `translate(${Math.round(r.left - 6)}px, ${labelY}px)`;
+  lastAgentTarget = target;
+  placeAgentCursor(target);
   agentCursor.dataset.state = 'active';
   setPresence('live', 'Agent is working');
   window.clearTimeout(agentIdleTimer);
@@ -682,6 +718,97 @@ function moveAgentCursor(target: Element | null): void {
     agentCursor.dataset.state = 'idle';
     setPresence('idle', 'Agent connected, waiting');
   }, 4000);
+}
+
+/**
+ * AGENT LEGIBILITY (ux-debt #12 follow-on, Sid: "really clear, elegant
+ * transitions that make you feel safe and understood").
+ *
+ * One idea, applied everywhere: THE AGENT'S ATTENTION IS ALWAYS VISIBLE ON
+ * THE SURFACE IT IS TOUCHING. A read is not a log entry — it is the console
+ * region lighting up because someone just looked at it. The point is not
+ * decoration: if the gate cannot promise rescue, what it can promise is that
+ * you always know what the agent looked at, what it can reach, and what it
+ * wants to change.
+ */
+
+/** Each read tool, said as a person would say it, and where it reads FROM. */
+const READ_NARRATION: Record<string, { says: string; region: string }> = {
+  airlock_status: { says: 'checking service health and impact', region: '#situation' },
+  list_deploys: { says: 'reviewing what shipped recently', region: '#zone-changed' },
+  read_logs: { says: 'reading service logs', region: '#zone-activity' },
+  list_changes: { says: 'checking flags, env and routes', region: '#zone-controls' },
+  traffic_history: { says: 'looking at the error-rate history', region: '#err-chart' },
+  explain_surface: { says: 'asking why its tools changed', region: '#tool-surface' },
+};
+
+const WRITE_NARRATION: Record<string, string> = {
+  propose_flag_change: 'asking to change a feature flag',
+  propose_rollback: 'asking to roll a deploy back',
+  propose_rollforward: 'asking to ship a fixed build forward',
+  propose_env_change: 'asking to change an environment value',
+  propose_route_change: 'asking to move traffic',
+};
+
+let narrationTimer: number | undefined;
+
+/** Say what the agent is doing, in words, where the human is already looking. */
+function narrate(text: string | null): void {
+  const el = document.querySelector<HTMLElement>('#agent-doing');
+  if (!el) return;
+  window.clearTimeout(narrationTimer);
+  if (!text) {
+    el.hidden = true;
+    return;
+  }
+  el.textContent = text;
+  el.hidden = false;
+  // it describes the present tense, so it must not outlive it
+  narrationTimer = window.setTimeout(() => {
+    el.hidden = true;
+  }, 4000);
+}
+
+/**
+ * Light up the region the data actually came from. This is the "you can see
+ * it looking around" beat, and it is why a read is worth rendering at all.
+ */
+function touchRegion(selector: string): void {
+  const el = document.querySelector<HTMLElement>(selector);
+  if (!el) return;
+  // ATTENTION IS SINGULAR. Reads arrive in bursts, so without this the whole
+  // console glows at once and the signal becomes wallpaper — the opposite of
+  // legible. Exactly one region is ever lit: where it is looking NOW.
+  for (const prev of document.querySelectorAll('.agent-touch')) {
+    prev.classList.remove('agent-touch');
+  }
+  void el.offsetWidth; // restart the animation on a repeat read
+  el.classList.add('agent-touch');
+  window.setTimeout(() => el.classList.remove('agent-touch'), 1400);
+}
+
+/** Called for every agent event: narrate it and touch what it touched. */
+function showAgentAttention(e: Event): void {
+  const d = e.data as Record<string, unknown>;
+  if (e.kind === 'tool.called') {
+    const tool = String(d.tool);
+    const read = READ_NARRATION[tool];
+    if (read) {
+      narrate(`Agent is ${read.says}`);
+      touchRegion(read.region);
+    } else if (WRITE_NARRATION[tool]) {
+      narrate(`Agent is ${WRITE_NARRATION[tool]}`);
+    }
+    return;
+  }
+  if (e.kind === 'action.proposed') {
+    narrate('Agent is waiting on your decision');
+    return;
+  }
+  if (e.kind === 'action.blocked') {
+    narrate('Agent tried something it cannot reach in this mode');
+    touchRegion('#tool-surface');
+  }
 }
 
 function agentTargetFor(e: Event): Element | null {
@@ -1231,7 +1358,10 @@ function renderEvents(events: Event[], w: World): void {
     } else if (e.kind === 'annotation.added' && e.actor === 'agent') {
       telestrate((e.data as { target: EntityRef }).target);
     }
-    if (e.actor === 'agent') moveAgentCursor(agentTargetFor(e));
+    if (e.actor === 'agent') {
+      moveAgentCursor(agentTargetFor(e));
+      showAgentAttention(e);
+    }
   }
   // cap the stream DOM, but never evict the agency trail — the audit view is
   // this same DOM filtered by CSS, and action/mode rows are its whole point

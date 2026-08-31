@@ -619,6 +619,9 @@ body {
   transition: transform var(--dur-agent) var(--ease-agent),
               opacity var(--dur-settle) var(--ease-settle);
 }
+/* `display:flex` above beats the hidden ATTRIBUTE, so state it explicitly —
+   without this the off-viewport hide silently does nothing. */
+#agent-cursor[hidden] { display: none; }
 #agent-cursor[data-state='active'] { opacity: 1; }
 #agent-cursor[data-state='idle'] { opacity: 0.35; }
 #agent-cursor .ac-dot {
@@ -1266,3 +1269,90 @@ body {
 .ap-prov-quote { color: var(--ink); font-style: italic; line-height: 1.45; }
 .ap-prov-src { color: var(--ink-faint); }
 .approval-card:has(.ap-prov) { border-color: var(--warn-dim); border-left-color: var(--warn); }
+
+/* ======================================================================
+   AGENT LEGIBILITY — the agent's attention, made visible.
+   Every rule here answers one question the operator is already asking:
+   "what is it doing, and where is it looking?"
+   ====================================================================== */
+
+/* --- what it is doing, in words, in the rail ------------------------- */
+.agent-doing {
+  margin: 0 0 var(--sp-3);
+  padding: var(--sp-2) var(--sp-3);
+  border-left: 2px solid var(--actor-agent);
+  background: color-mix(in oklch, var(--actor-agent) 8%, transparent);
+  color: var(--ink);
+  font-size: var(--text-sm);
+  line-height: 1.45;
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  animation: doing-in 220ms cubic-bezier(.2,.7,.3,1) both;
+}
+@keyframes doing-in {
+  from { opacity: 0; transform: translateX(-4px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* --- where it is looking: the region it just read ---------------------
+   A brief wash plus a travelling edge. Deliberately quiet: this fires on
+   every read, so anything louder would become noise within seconds. */
+.agent-touch {
+  animation: touch-wash 1400ms cubic-bezier(.25,.6,.25,1) both;
+  position: relative;
+}
+@keyframes touch-wash {
+  0%   { box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--actor-agent) 55%, transparent),
+                     0 0 0 0 color-mix(in oklch, var(--actor-agent) 30%, transparent); }
+  35%  { box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--actor-agent) 45%, transparent),
+                     0 0 0 5px color-mix(in oklch, var(--actor-agent) 0%, transparent); }
+  100% { box-shadow: inset 0 0 0 1px transparent, 0 0 0 0 transparent; }
+}
+
+/* --- tool materialization: THE moment. Tools do not blink into being. --
+   Staggered so the set reads as arriving in sequence rather than all at
+   once; six rows land in ~260ms, which is legible without being slow. */
+#tool-list li[data-status='active'] { animation: tool-in 260ms cubic-bezier(.2,.7,.3,1) both; }
+#tool-list li:nth-child(1)  { animation-delay: 0ms; }
+#tool-list li:nth-child(2)  { animation-delay: 26ms; }
+#tool-list li:nth-child(3)  { animation-delay: 52ms; }
+#tool-list li:nth-child(4)  { animation-delay: 78ms; }
+#tool-list li:nth-child(5)  { animation-delay: 104ms; }
+#tool-list li:nth-child(6)  { animation-delay: 130ms; }
+#tool-list li:nth-child(7)  { animation-delay: 156ms; }
+#tool-list li:nth-child(8)  { animation-delay: 182ms; }
+#tool-list li:nth-child(9)  { animation-delay: 208ms; }
+#tool-list li:nth-child(10) { animation-delay: 234ms; }
+#tool-list li:nth-child(11) { animation-delay: 260ms; }
+@keyframes tool-in {
+  from { opacity: 0; transform: translateY(-3px); }
+  to   { opacity: 1; transform: none; }
+}
+/* leaving is a different feeling from arriving: it recedes, it does not slide */
+#tool-list li[data-status='tombstoned'] { animation: tool-out 320ms ease both; }
+@keyframes tool-out {
+  from { opacity: 0.5; }
+  to   { opacity: 0.42; }
+}
+
+/* --- a proposal ARRIVES; it does not pop ----------------------------- */
+.approval-card { animation: proposal-in 300ms cubic-bezier(.2,.75,.3,1) both; }
+@keyframes proposal-in {
+  from { opacity: 0; transform: translateY(-6px) scale(.985); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* --- the capability sentence changes on a mode flip: mark the change -- */
+.can-line { transition: color 200ms ease, border-color 200ms ease; }
+
+/* --- accessibility: motion is a preference, not a requirement --------- */
+@media (prefers-reduced-motion: reduce) {
+  .agent-doing,
+  #tool-list li[data-status='active'],
+  #tool-list li[data-status='tombstoned'],
+  .approval-card { animation: none; }
+  .agent-touch { animation: touch-static 1400ms steps(1, end) both; }
+  @keyframes touch-static {
+    0%, 99% { box-shadow: inset 0 0 0 1px color-mix(in oklch, var(--actor-agent) 55%, transparent); }
+    100%    { box-shadow: none; }
+  }
+}

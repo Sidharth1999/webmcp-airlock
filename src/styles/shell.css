@@ -1356,3 +1356,75 @@ body {
     100%    { box-shadow: none; }
   }
 }
+
+/* --- storefront chrome: a real shop's nav, not a row of dot separators --- */
+.sf-nav { display: flex; align-items: center; gap: var(--sp-4); }
+.sf-nav-link {
+  color: var(--sf-ink-dim, #5b6660);
+  text-decoration: none;
+  font-size: 13.5px;
+  padding: 3px 0;
+  border-bottom: 1.5px solid transparent;
+  transition: color 140ms ease, border-color 140ms ease;
+}
+.sf-nav-link:hover { color: var(--sf-ink, #1d2621); }
+.sf-nav-link[aria-current='page'] {
+  color: var(--sf-ink, #1d2621);
+  border-bottom-color: var(--sf-ink, #1d2621);
+}
+.sf-cart {
+  display: inline-flex; align-items: center; gap: 6px;
+  color: var(--sf-ink, #1d2621); text-decoration: none; font-size: 13.5px;
+  padding: 5px 11px; border: 1px solid rgba(29,38,33,.18); border-radius: 999px;
+}
+.sf-cart:hover { border-color: rgba(29,38,33,.4); }
+.sf-cart-count {
+  display: inline-grid; place-items: center;
+  min-width: 17px; height: 17px; padding: 0 4px;
+  border-radius: 999px; background: #1d2621; color: #fff;
+  font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums;
+}
+
+/* --- catalogue: typographic, not six big beige squares -------------------
+   The illustration supports the product; it does not dominate the card. */
+.sf-card { padding: var(--sp-2) var(--sp-2) var(--sp-3); gap: 0; }
+.sf-img {
+  height: 86px;
+  background: linear-gradient(170deg, oklch(97.5% 0.008 95), oklch(94.5% 0.012 95));
+  border: 1px solid oklch(92% 0.008 95);
+}
+.sf-img svg { width: 62%; height: 62%; }
+.sf-name {
+  margin-top: var(--sp-2);
+  font-size: 14px; font-weight: 600; letter-spacing: -.005em;
+  color: oklch(28% 0.015 160);
+}
+.sf-price { margin-top: 2px; font-size: 13px; color: oklch(48% 0.02 160); }
+
+/* --- checkout: a cart summary, not an alarm ------------------------------
+   A shop's primary action is confident and dark. Failure is communicated by
+   the banner and the inline line beneath, not by turning the button red. */
+.sf-checkout { align-items: stretch; gap: var(--sp-2); max-width: 420px; margin-inline: auto; width: 100%; }
+.sf-cart-line {
+  display: flex; align-items: baseline; justify-content: space-between;
+  padding-bottom: var(--sp-2);
+  border-bottom: 1px solid oklch(90% 0.008 160);
+}
+.sf-cart-items { font-size: 13px; color: oklch(48% 0.02 160); }
+.sf-cart-total {
+  font-size: 17px; font-weight: 650; color: oklch(26% 0.015 160);
+  font-variant-numeric: tabular-nums;
+}
+.sf-buy {
+  max-width: none;
+  background: oklch(26% 0.03 160);
+  border-radius: var(--r-sm);
+  letter-spacing: -.005em;
+}
+.sf-buy:hover { background: oklch(21% 0.03 160); }
+#storefront[data-state='broken'] .sf-buy {
+  background: oklch(30% 0.02 160);
+  box-shadow: inset 0 0 0 1px oklch(70% 0.14 25);
+}
+.sf-feed { text-align: center; color: oklch(50% 0.02 160); font-weight: 400; }
+#storefront[data-state='broken'] .sf-feed { color: oklch(48% 0.02 160); }

@@ -167,28 +167,37 @@ app.innerHTML = `
     </section>
 
     <section class="pane" id="site-pane" aria-label="Site pane">
-      <header>Live Site<span class="pane-sub">what customers see</span></header>
+      <header>Storefront<span class="pane-sub">aperture supply co.</span></header>
       <div class="body">
         <div id="storefront" data-testid="storefront" data-state="ok">
           <div class="sf-chrome">
-            <span class="sf-brand">aperture supply co.</span>
-            <span class="sf-nav">shop · about · cart (1)</span>
+            <span class="sf-brand">Aperture Supply Co.</span>
+            <nav class="sf-nav" aria-label="Store">
+              <a href="#" class="sf-nav-link" aria-current="page">Shop</a>
+              <a href="#" class="sf-nav-link">Journal</a>
+              <a href="#" class="sf-nav-link">About</a>
+              <a href="#" class="sf-cart" aria-label="Cart, 1 item"><span class="sf-cart-count">1</span> Cart</a>
+            </nav>
           </div>
           <div class="sf-hero">
-            <span class="sf-hero-kicker">new for fall</span>
+            <span class="sf-hero-kicker">New for Fall</span>
             <span class="sf-hero-line">Field-tested goods, guaranteed for the long trail.</span>
           </div>
           <div class="sf-banner" data-testid="sf-banner" role="status"></div>
           <div class="sf-grid">
-            <div class="sf-card"><div class="sf-img"><svg viewBox="0 0 100 100" aria-hidden="true"><rect x="26" y="18" width="48" height="60" rx="4" fill="#3f6b52"/><path d="M50 18v60" stroke="#2b4c39" stroke-width="2"/><path d="M38 18l12 14 12-14" fill="#31543f"/><rect x="18" y="22" width="10" height="40" rx="4" fill="#3f6b52"/><rect x="72" y="22" width="10" height="40" rx="4" fill="#3f6b52"/><rect x="32" y="52" width="12" height="9" rx="2" fill="#2b4c39"/><rect x="56" y="52" width="12" height="9" rx="2" fill="#2b4c39"/></svg></div><div class="sf-name">field jacket</div><div class="sf-price">$128</div></div>
-            <div class="sf-card"><div class="sf-img"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M28 34h44l-4 46H32z" fill="#c8a173"/><path d="M40 34c0-9 4-14 10-14s10 5 10 14" stroke="#8a6b45" stroke-width="3" fill="none" stroke-linecap="round"/><rect x="40" y="50" width="20" height="14" rx="2" fill="#a8834f"/></svg></div><div class="sf-name">canvas tote</div><div class="sf-price">$42</div></div>
-            <div class="sf-card"><div class="sf-img"><svg viewBox="0 0 100 100" aria-hidden="true"><rect x="38" y="26" width="24" height="54" rx="9" fill="#6f8fc4"/><rect x="43" y="14" width="14" height="12" rx="3" fill="#3f5c8d"/><rect x="38" y="44" width="24" height="12" fill="#5679b3"/><path d="M62 32c5 3 5 9 0 12" stroke="#3f5c8d" stroke-width="3" fill="none" stroke-linecap="round"/></svg></div><div class="sf-name">trail bottle</div><div class="sf-price">$28</div></div>
-            <div class="sf-card"><div class="sf-img"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M28 56a22 22 0 0 1 44 0z" fill="#c48f9a"/><rect x="24" y="56" width="52" height="13" rx="6" fill="#a86f7d"/><circle cx="50" cy="26" r="7" fill="#a86f7d"/></svg></div><div class="sf-name">wool beanie</div><div class="sf-price">$34</div></div>
-            <div class="sf-card"><div class="sf-img"><svg viewBox="0 0 100 100" aria-hidden="true"><rect x="30" y="32" width="36" height="42" rx="5" fill="#8d9c5c"/><rect x="30" y="32" width="36" height="8" rx="4" fill="#6f7d43"/><path d="M66 44h7a8 8 0 0 1 0 16h-7" stroke="#6f7d43" stroke-width="5" fill="none" stroke-linecap="round"/></svg></div><div class="sf-name">camp mug</div><div class="sf-price">$22</div></div>
-            <div class="sf-card"><div class="sf-img"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M32 40h36v34a6 6 0 0 1-6 6H38a6 6 0 0 1-6-6z" fill="#78889a"/><rect x="30" y="30" width="40" height="11" rx="5" fill="#56657a"/><path d="M36 30c0-5 6-8 14-8s14 3 14 8" stroke="#56657a" stroke-width="3" fill="none"/><rect x="32" y="56" width="36" height="4" fill="#66768a"/></svg></div><div class="sf-name">dry sack</div><div class="sf-price">$36</div></div>
+            <div class="sf-card"><div class="sf-img"><svg viewBox="0 0 100 100" aria-hidden="true"><rect x="26" y="18" width="48" height="60" rx="4" fill="#3f6b52"/><path d="M50 18v60" stroke="#2b4c39" stroke-width="2"/><path d="M38 18l12 14 12-14" fill="#31543f"/><rect x="18" y="22" width="10" height="40" rx="4" fill="#3f6b52"/><rect x="72" y="22" width="10" height="40" rx="4" fill="#3f6b52"/><rect x="32" y="52" width="12" height="9" rx="2" fill="#2b4c39"/><rect x="56" y="52" width="12" height="9" rx="2" fill="#2b4c39"/></svg></div><div class="sf-name">Field Jacket</div><div class="sf-price">$128</div></div>
+            <div class="sf-card"><div class="sf-img"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M28 34h44l-4 46H32z" fill="#c8a173"/><path d="M40 34c0-9 4-14 10-14s10 5 10 14" stroke="#8a6b45" stroke-width="3" fill="none" stroke-linecap="round"/><rect x="40" y="50" width="20" height="14" rx="2" fill="#a8834f"/></svg></div><div class="sf-name">Canvas Tote</div><div class="sf-price">$42</div></div>
+            <div class="sf-card"><div class="sf-img"><svg viewBox="0 0 100 100" aria-hidden="true"><rect x="38" y="26" width="24" height="54" rx="9" fill="#6f8fc4"/><rect x="43" y="14" width="14" height="12" rx="3" fill="#3f5c8d"/><rect x="38" y="44" width="24" height="12" fill="#5679b3"/><path d="M62 32c5 3 5 9 0 12" stroke="#3f5c8d" stroke-width="3" fill="none" stroke-linecap="round"/></svg></div><div class="sf-name">Trail Bottle</div><div class="sf-price">$28</div></div>
+            <div class="sf-card"><div class="sf-img"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M28 56a22 22 0 0 1 44 0z" fill="#c48f9a"/><rect x="24" y="56" width="52" height="13" rx="6" fill="#a86f7d"/><circle cx="50" cy="26" r="7" fill="#a86f7d"/></svg></div><div class="sf-name">Wool Beanie</div><div class="sf-price">$34</div></div>
+            <div class="sf-card"><div class="sf-img"><svg viewBox="0 0 100 100" aria-hidden="true"><rect x="30" y="32" width="36" height="42" rx="5" fill="#8d9c5c"/><rect x="30" y="32" width="36" height="8" rx="4" fill="#6f7d43"/><path d="M66 44h7a8 8 0 0 1 0 16h-7" stroke="#6f7d43" stroke-width="5" fill="none" stroke-linecap="round"/></svg></div><div class="sf-name">Camp Mug</div><div class="sf-price">$22</div></div>
+            <div class="sf-card"><div class="sf-img"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M32 40h36v34a6 6 0 0 1-6 6H38a6 6 0 0 1-6-6z" fill="#78889a"/><rect x="30" y="30" width="40" height="11" rx="5" fill="#56657a"/><path d="M36 30c0-5 6-8 14-8s14 3 14 8" stroke="#56657a" stroke-width="3" fill="none"/><rect x="32" y="56" width="36" height="4" fill="#66768a"/></svg></div><div class="sf-name">Dry Sack</div><div class="sf-price">$36</div></div>
           </div>
           <div class="sf-checkout">
-            <button type="button" class="sf-buy" data-testid="sf-buy">Checkout — $48.00</button>
+            <div class="sf-cart-line">
+              <span class="sf-cart-items">1 item · Field Jacket</span>
+              <span class="sf-cart-total">$48.00</span>
+            </div>
+            <button type="button" class="sf-buy" data-testid="sf-buy">Checkout · $48.00</button>
             <div class="sf-feed" data-testid="sf-feed"></div>
           </div>
           <div class="sf-outage" data-testid="sf-outage">
@@ -238,13 +247,9 @@ app.innerHTML = `
           <ul id="tool-list" data-testid="tool-list"></ul>
         </details>
 
-        <p class="rail-foot">Nothing here changes the world on its own. The agent proposes; you decide.</p>
-
         <div class="agent-empty" id="agent-empty">
-          <p class="ae-head">No agent has joined yet</p>
-          <p class="ae-body">Open this page in a browser that speaks WebMCP and an assistant will
-          discover the checks above on its own — no setup, no keys, no copying context across.</p>
-          <p class="ae-body">You stay in the console either way. The page works exactly the same without one.</p>
+          <p class="ae-head">No agent connected</p>
+          <p class="ae-body">Assistance is optional. Every control in this console works without one.</p>
         </div>
       </div>
     </section>
@@ -1139,17 +1144,17 @@ function renderSite(w: World): void {
         : 'ok';
   storefront.dataset.state = state;
 
+  // A SHOP TALKS TO SHOPPERS. It never quotes an error rate or a throughput
+  // figure — those exist for the operator and live in the console. Anything
+  // here that explains the incident is presentation, not product.
   if (state === 'ok') {
     sfBanner.textContent = '';
-    sfBuy.textContent = 'Checkout — $48.00';
-    if (checkout && checkout.rps > 0) {
-      orderNo += 1;
-      sfFeed.textContent = `✓ order #${orderNo} confirmed · ${checkout.rps}/s checking out`;
-    }
+    sfBuy.textContent = 'Checkout · $48.00';
+    sfFeed.textContent = 'Free returns within 30 days';
   } else if (state === 'broken') {
-    sfBanner.textContent = `Checkout is failing — ${(checkout!.errRate * 100).toFixed(0)}% of payments erroring`;
-    sfBuy.textContent = 'Payment failed — try again';
-    sfFeed.textContent = `✗ ${Math.round(checkout!.rps * checkout!.errRate)}/s checkouts failing`;
+    sfBanner.textContent = "We're having trouble taking payments right now. Your card has not been charged.";
+    sfBuy.textContent = 'Try payment again';
+    sfFeed.textContent = 'Your basket is saved.';
   }
   // 'down' shows the outage overlay via CSS; feed/banner stay as they were
 }

@@ -136,6 +136,37 @@ describe('read-tool query contract (M3-01)', () => {
     }
   });
 
+  // The enum invariant above only sweeps JSON KEYS. A seeded log line reading
+  // "sessions v2 (irreversible)" passed it while handing the decision to a
+  // single read_logs call — the verdict has to be absent from the PROSE too,
+  // up to the moment the operator decides. After the trap fires, the FATAL
+  // consequence line is allowed to say it: that is the outcome, not the tell.
+  it('no read surface states the verdict in PROSE before the decision point', () => {
+    const kinds: QueryRequest[] = [
+      { kind: 'status' },
+      { kind: 'deploys' },
+      { kind: 'logs' },
+      { kind: 'changes' },
+      { kind: 'traffic' },
+      { kind: 'surface' },
+    ];
+    const e = new Engine({ templateId: 'migration-trap', seed: 42 });
+    for (let tick = 0; tick < 30; tick++) {
+      e.step(1);
+      for (const k of kinds) {
+        let cursor: number | undefined;
+        do {
+          const r = query(e, { ...k, ...(cursor !== undefined ? { cursor } : {}) } as QueryRequest);
+          expect(
+            JSON.stringify(r),
+            `${k.kind} leaked the verdict in prose at tick ${tick}`
+          ).not.toMatch(/reversib/i);
+          cursor = (r as { nextCursor?: number }).nextCursor;
+        } while (cursor !== undefined);
+      }
+    }
+  });
+
   it('the migration tell requires TWO tools to assemble', () => {
     const e = new Engine({ templateId: 'migration-trap', seed: 42 });
     e.step(12);

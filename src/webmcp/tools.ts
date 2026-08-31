@@ -55,7 +55,7 @@ export const READ_TOOLS: ReadToolSpec[] = [
   {
     name: 'list_deploys',
     description:
-      'Recent deploys, newest first, with decision-grade metadata: status (live/superseded/rolled_back), migration presence and reversibility, canary deltas, flags touched, diffstat, author note. Read before proposing any deploy action. Paginated via cursor.',
+      'Recent deploys, newest first, with decision-grade metadata: status (live/superseded/rolled_back), any migration the deploy applied and the author’s note on it, canary share and deltas, flags touched, diffstat. Read before proposing any deploy action. Paginated via cursor.',
     inputSchema: CURSOR_SCHEMA,
     toQuery: (i) => ({ kind: 'deploys', cursor: i.cursor }),
   },
@@ -70,7 +70,7 @@ export const READ_TOOLS: ReadToolSpec[] = [
   {
     name: 'list_changes',
     description:
-      'Current change surface: feature flags (state, owning deploy), env vars (values redacted), routes, and applied migrations with reversibility. The inventory of what can be changed and what already was.',
+      'Current change surface: feature flags (state, owning deploy), env vars (values redacted), routes, and applied migrations with their notes and how many rows are already written in the new format. The inventory of what can be changed and what already was.',
     inputSchema: NO_INPUT_SCHEMA,
     toQuery: () => ({ kind: 'changes' }),
   },

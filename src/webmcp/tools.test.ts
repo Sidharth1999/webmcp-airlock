@@ -1,7 +1,9 @@
 import { describe, expect, it } from 'vitest';
 import type { QueryRequest } from '../sim/queries';
 import type { ModelContextLike, ToolDescriptor } from './shim';
-import { createAirlockTools } from './tools';
+import { createAirlockTools, READ_TOOLS, WRITE_TOOLS } from './tools';
+import { Engine } from '../sim/engine';
+import { runQuery } from '../sim/queries';
 
 // M3-02: mode-gated dynamic registration against a fake modelContext —
 // registration lifetimes (AbortController), tombstones, proposal flow.
@@ -134,5 +136,95 @@ describe('reset (M3-close review): a fresh world gets a fresh rail', () => {
     expect(tools.mode()).toBe('triage');
     expect(tools.list().filter((t) => t.status === 'tombstoned')).toHaveLength(0);
     expect(registered.size).toBe(6); // write registrations really aborted
+  });
+});
+
+// M4 readOnlyHint audit: the annotations a host reads before it decides
+// whether to ask. These are load-bearing claims about our tools, so they are
+// asserted, not trusted — including the one honest exception (the audit
+// trail) and the de-structuring invariant reaching the agent-visible copy.
+describe('readOnlyHint audit — the six reads (M4)', () => {
+  it('every read is annotated read-only; only read_logs is annotated untrusted', () => {
+    const { tools, registered } = fixture();
+    tools.setMode('recovery'); // writes on stage too, so the contrast is real
+    for (const spec of READ_TOOLS) {
+      const t = registered.get(spec.name)!;
+      expect(t.annotations?.readOnlyHint, spec.name).toBe(true);
+    }
+    const untrusted = [...registered.values()]
+      .filter((t) => t.annotations?.untrustedContentHint)
+      .map((t) => t.name);
+    expect(untrusted).toEqual(['read_logs']);
+  });
+
+  it('every proposal tool is annotated NOT read-only', () => {
+    const { tools, registered } = fixture();
+    tools.setMode('recovery');
+    for (const spec of WRITE_TOOLS) {
+      const t = registered.get(spec.name)!;
+      expect(t.annotations?.readOnlyHint, spec.name).toBe(false);
+    }
+  });
+
+  it('reads stay registered through every mode transition (the airlock gates writes, never observability)', () => {
+    const { tools, registered } = fixture();
+    for (const to of ['diagnosis', 'recovery', 'triage'] as const) {
+      tools.setMode(to);
+      for (const spec of READ_TOOLS) {
+        expect(registered.has(spec.name), `${spec.name} after → ${to}`).toBe(true);
+      }
+    }
+  });
+
+  it('no description or input schema advertises a reversibility enum (de-structuring reaches the UI copy)', () => {
+    const { tools, registered } = fixture();
+    tools.setMode('recovery');
+    for (const t of registered.values()) {
+      const copy = `${t.description} ${JSON.stringify(t.inputSchema)}`;
+      expect(copy, `${t.name} copy`).not.toMatch(/reversib|irreversib/i);
+    }
+  });
+
+  it('parameter descriptions hold the Chrome budget (≤150)', () => {
+    const { tools, registered } = fixture();
+    tools.setMode('recovery');
+    for (const t of registered.values()) {
+      const props = (t.inputSchema as { properties?: Record<string, { description?: string }> })
+        .properties ?? {};
+      for (const [k, v] of Object.entries(props)) {
+        expect(v.description?.length ?? 0, `${t.name}.${k}`).toBeLessThanOrEqual(150);
+      }
+    }
+  });
+
+  it('invoking any read leaves the world byte-identical; the audit trail is the only trace', async () => {
+    const engine = new Engine({ templateId: 'migration-trap', seed: 42 });
+    engine.step(30); // a world with deploys, traffic, logs — not a fresh one
+    const { mc } = fakeMc();
+    const tools = createAirlockTools(
+      async (q, viaTool) => {
+        // mirrors src/sim/worker.ts: answer from the log, then audit the call
+        const result = runQuery(engine.events, engine.world, q);
+        if (viaTool) {
+          engine.record('tool.called', 'agent', {
+            tool: viaTool,
+            input: {},
+            resultBytes: JSON.stringify(result).length,
+          });
+        }
+        return result;
+      },
+      async () => ({ seq: 0, outcome: 'proposed' as const }),
+      mc
+    );
+
+    for (const spec of READ_TOOLS) {
+      const worldBefore = JSON.stringify(engine.world);
+      const seqBefore = engine.events.length;
+      await tools.invoke(spec.name, {});
+      expect(JSON.stringify(engine.world), `${spec.name} mutated the world`).toBe(worldBefore);
+      const added = engine.events.slice(seqBefore);
+      expect(added.map((e) => e.kind), `${spec.name} side effects`).toEqual(['tool.called']);
+    }
   });
 });

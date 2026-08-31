@@ -1,6 +1,6 @@
 # STATUS — live audit log
 
-**Updated:** 2026-08-30 (day) · **Milestone:** M4 — compiler DONE, cost projection WRITTEN, campaign runner BUILT + dry-run proven (execution key-gated) · **Progress: M4 25.0% · overall 52.1%** (run `python3 tools/progress.py`; RUNBOOK rule: report both %s at every session start and milestone close)
+**Updated:** 2026-08-30 (day) · **Milestone:** M4 — compiler DONE, cost projection WRITTEN, campaign runner BUILT + dry-run proven (execution key-gated) · **Progress: M4 25.0% · M5 10.0% · overall 53.3%** (run `python3 tools/progress.py`; RUNBOOK rule: report both %s at every session start and milestone close)
 **Full context:** war room artifact https://claude.ai/code/artifact/798206ed-bc4f-44fd-b48c-874de5dfdcc0 · memory: project_webmcp_challenge
 
 ## This session (2026-08-30 day)
@@ -17,6 +17,41 @@
 - **features.json: M4-03 → `in_progress`, NOT done.** Its check is "campaign completes within cost cap; raw results persisted" — that needs the real API. Evidence recorded in the entry's `progress` field.
 - **PLAN.md records 3 spec elaborations** (2026-08-30): injected store seam; phrasing passed into `runOne` rather than read from disk; and — the one that matters for the experiment — **both arms see the identical 11-tool surface**, with the operator escalating one mode step on a `not-available-in-mode` block. If the gated arm saw a shorter tool list, the arms would differ in two variables at once, and with zero write tools in triage the gated agent could never reach a write at all.
 - **TEST-FILE EDITS flagged for Sid (additions only):** `src/study/campaign.test.ts` is new (13 tests). No existing test touched.
+
+## Deploy rehearsal — 2026-08-30 (M5-03 de-risked early, Sid-approved)
+
+**The most valuable finding of the day, and it is exactly the failure the
+organizer email warns about:** Vercel turns **Deployment Protection ON by
+default** (`ssoProtection: all_except_custom_domains`). An anonymous fetch of
+our production URL 302s to `vercel.com/sso-api` — a judge opens the link and
+sees a login wall, i.e. "a working project looks broken". We would have hit
+this at M5 with no slack behind it.
+
+- Deployed `vercel-scope/release-airlock` → `release-airlock-8tv6zukb4-vercel-scope.vercel.app`
+  (production, Ready). Built from `dist/` ONLY via CLI — **no Git connection, no
+  source uploaded**. Deploy dir `.deploy/release-airlock` (gitignored) keeps the
+  project link across sessions.
+- **STAYS PROTECTED (Sid, 8/30).** Private by default is the project rule; public
+  only when it must be, at M7. Going live later is one toggle: Settings →
+  Deployment Protection → Vercel Authentication → Disabled (or
+  `PATCH /v9/projects/release-airlock {ssoProtection:null}`).
+- **The app is PROVEN off localhost regardless of the auth wall:** a throwaway
+  localtunnel against the production build showed the worker booting, the sim
+  running to the incident, 6 read tools registering, and an agent write proposal
+  returning `{"status":"proposed"}` over public https. Only console errors were
+  CORS on Google Fonts caused by my own test-harness header — tunnel artifact,
+  absent on Vercel.
+- Also caught: `vite preview` 403s any non-localhost host (`allowedHosts`) —
+  irrelevant on a static host but exactly the "works on my machine" class.
+- **Still untested, needs Sid + an unprotected URL:** ChatGPT desktop discovering
+  WebMCP tools on a deployed origin. Every WebMCP verification we have is on
+  localhost. Last untested assumption in the submission.
+- Setup note: `npm i -g vercel` fails EACCES here — use `npx vercel`.
+
+## Privacy posture (settled, do not re-litigate)
+Local git only: **no remotes, no GitHub repo, 50 commits that have never left
+this machine.** Vercel deploy is auth-walled. `index.html` carries
+`noindex, nofollow`. Everything goes public at M7 and not before.
 
 ## This session (2026-08-29 night)
 - **M3-close review, partial-but-substantive** — /code-review (high) fan-out hit Sid's Fable session limit mid-run (resets 3:40pm): coordinator + Angle C died, **Angle B (removed-behavior audit) completed with 6 findings — ALL verified real and ALL fixed test-gated:**

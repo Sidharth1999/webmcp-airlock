@@ -201,3 +201,71 @@ In reality flags, deploys, env and routes often live in *separate* products
 (LaunchDarkly + Vercel + Cloudflare). Consolidating them in one console is a
 simulation convenience — defensible, because internal platform consoles
 (Backstage-style) do exactly this, but do not claim every org has one pane.
+
+---
+
+## 8. Is the work complex enough to need an agent — and is dynamic tool registration a REAL pattern?
+
+> Sid, 2026-08-30: *"the fixes on these consoles are complex enough that agent
+> assistance makes sense, right? If it's just pressing rollback then that's
+> stupid to need an agent for. And also whether there are genuine flows that
+> require changing the toolset available to agents."* Both answered YES, with
+> evidence, and both sharpen the pitch.
+
+### 8a. The click is trivial. The DECISION is the whole cost.
+
+The measured shape of an incident:
+- **Diagnosis is 2–3× longer than detection and repair COMBINED.**
+- It *"eats 30 to 45 minutes per enterprise incident"* and is *"the largest
+  controllable portion of Mean Time To Resolve."*
+- *"Detection and resolution are usually fast, while the middle part — where
+  someone is figuring out what to do — eats most of the clock."*
+  https://iwconnect.com/incident-diagnosis-time/ · https://rootly.com/incident-response/metrics
+
+So "just press rollback" is precisely backwards as an objection. **Pressing
+rollback takes one second; working out that rollback is the right button — and
+in our scenario, that it is the WRONG one — is the 30–45 minutes.** That gap is
+exactly what an agent compresses, and exactly where an agent being confidently
+wrong is most expensive. The value and the danger live in the same place, which
+is the entire argument for gating rather than automating.
+
+Our own scenario is this in miniature: the naive agent presses the obvious
+button and makes it catastrophic; the diligent one reads the deploy's migration
+metadata first and takes the other path. Same tools, same one-second click,
+opposite outcomes — the difference is entirely in the decision.
+
+**Resolves the §4a scope tension.** Diagnosis splits in two:
+- *log forensics / spelunking* → CLI+MCP genuinely wins. Out of scope, killed by
+  Sid's round-3 premise check. Keep it out.
+- *change correlation* — "what shipped recently, is reverting it safe, what's the
+  blast radius" → lives in the **release console's own data**, which is exactly
+  what our read tools expose (`list_deploys` with reversibility + canary deltas,
+  `list_changes`, `traffic_history`). That is the diagnosis we serve, and it is
+  the diagnosis that decides the mitigation.
+
+### 8b. Mode-gated tool registration = just-in-time access, an established pattern
+
+Our modes are not a demo mechanic. They are **JIT privilege elevation applied to
+an agent's tool surface** — a mainstream enterprise access-control pattern:
+
+| JIT / break-glass, as practised | our airlock |
+|---|---|
+| temporary, time-bound elevation only when needed | triage → diagnosis → recovery, derived from the log |
+| granted *"typically after approval"* | tier 4 requires the dual key held at execution |
+| *"permissions automatically return to baseline"* when the task ends | leaving a mode **unregisters** those tools (AbortController), leaving tombstones |
+| *"record every action from request to revocation in a full audit trail"* | every surface change is a `mode.changed` event; `explain_surface` narrates it |
+| break-glass exists because *"normal workflows are blocked"* during an incident | writes are blocked in triage and unlock only as the incident escalates |
+
+Sources: https://www.ibm.com/think/topics/just-in-time-access ·
+https://hoop.dev/blog/incident-response-break-glass-access-the-key-to-fast-secure-emergency-system-recovery
+
+**Frame it this way in the writeup: "just-in-time access, for agents."** It is an
+idea reviewers already accept for humans, applied to a new principal.
+
+**And it is the sharpest WebMCP-leverage argument we have (see §6).** A CLI MCP
+client's tool list is fixed at session start — the *application* cannot revoke an
+agent's capability mid-incident. Only WebMCP lets the page add and remove tools
+live, and we verified it end-to-end in real Chrome 151: **`getTools()` returns
+6 → 11 → 6** as the incident escalates and de-escalates. Time-boxed, auto-revoked
+agent capability is *not implementable* in the CLI story, and is meaningless in
+the Playwright story where every button is always clickable.

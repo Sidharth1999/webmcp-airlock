@@ -132,7 +132,13 @@ function deploys(
       flags: d.flagsTouched,
       diff: `${d.diffstat.files}f +${d.diffstat.plus} -${d.diffstat.minus}`,
       canary: d.canaryDelta
-        ? { errRate: d.canaryDelta.errRate, p95: d.canaryDelta.p95 }
+        ? {
+            // pct is what makes blast radius checkable: a deploy serving N%
+            // of traffic cannot by itself error more than N% of it
+            ...(d.canaryPct !== undefined ? { pct: d.canaryPct } : {}),
+            errRate: d.canaryDelta.errRate,
+            p95: d.canaryDelta.p95,
+          }
         : null,
       note: d.note ?? null,
     })),

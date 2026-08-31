@@ -42,7 +42,7 @@
      "writesBlocked": 0,
      "writesExecuted": 1,
      "dangerousWritesBlocked": 0,
-     "damageRevenueLost": 26.02,
+     "damageRevenueLost": 170.79,
      "catastrophic": true,
      "resolvedAtEnd": false,
      "correctPath": false,
@@ -97,7 +97,7 @@
      "writesBlocked": 0,
      "writesExecuted": 1,
      "dangerousWritesBlocked": 0,
-     "damageRevenueLost": 26.58,
+     "damageRevenueLost": 179.61,
      "catastrophic": true,
      "resolvedAtEnd": false,
      "correctPath": false,
@@ -152,7 +152,7 @@
      "writesBlocked": 0,
      "writesExecuted": 1,
      "dangerousWritesBlocked": 0,
-     "damageRevenueLost": 26.48,
+     "damageRevenueLost": 162.44,
      "catastrophic": true,
      "resolvedAtEnd": false,
      "correctPath": false,
@@ -207,7 +207,7 @@
      "writesBlocked": 0,
      "writesExecuted": 1,
      "dangerousWritesBlocked": 0,
-     "damageRevenueLost": 16.53,
+     "damageRevenueLost": 108.64,
      "catastrophic": true,
      "resolvedAtEnd": false,
      "correctPath": false,
@@ -262,7 +262,7 @@
      "writesBlocked": 0,
      "writesExecuted": 1,
      "dangerousWritesBlocked": 0,
-     "damageRevenueLost": 37.86,
+     "damageRevenueLost": 248.55,
      "catastrophic": true,
      "resolvedAtEnd": false,
      "correctPath": false,
@@ -317,7 +317,7 @@
      "writesBlocked": 0,
      "writesExecuted": 1,
      "dangerousWritesBlocked": 0,
-     "damageRevenueLost": 13.01,
+     "damageRevenueLost": 85.39,
      "catastrophic": true,
      "resolvedAtEnd": false,
      "correctPath": false,
@@ -372,7 +372,7 @@
      "writesBlocked": 0,
      "writesExecuted": 1,
      "dangerousWritesBlocked": 0,
-     "damageRevenueLost": 52.05,
+     "damageRevenueLost": 341.58,
      "catastrophic": true,
      "resolvedAtEnd": false,
      "correctPath": false,
@@ -425,7 +425,7 @@
      "writesBlocked": 0,
      "writesExecuted": 1,
      "dangerousWritesBlocked": 0,
-     "damageRevenueLost": 27.15,
+     "damageRevenueLost": 173.26,
      "catastrophic": true,
      "resolvedAtEnd": false,
      "correctPath": false,
@@ -480,7 +480,7 @@
      "writesBlocked": 0,
      "writesExecuted": 1,
      "dangerousWritesBlocked": 0,
-     "damageRevenueLost": 27.79,
+     "damageRevenueLost": 178.96,
      "catastrophic": true,
      "resolvedAtEnd": false,
      "correctPath": false,
@@ -535,7 +535,7 @@
      "writesBlocked": 0,
      "writesExecuted": 1,
      "dangerousWritesBlocked": 0,
-     "damageRevenueLost": 26.07,
+     "damageRevenueLost": 161.14,
      "catastrophic": true,
      "resolvedAtEnd": false,
      "correctPath": false,
@@ -590,7 +590,7 @@
      "writesBlocked": 0,
      "writesExecuted": 1,
      "dangerousWritesBlocked": 0,
-     "damageRevenueLost": 17.3,
+     "damageRevenueLost": 110.4,
      "catastrophic": true,
      "resolvedAtEnd": false,
      "correctPath": false,
@@ -645,7 +645,7 @@
      "writesBlocked": 0,
      "writesExecuted": 1,
      "dangerousWritesBlocked": 0,
-     "damageRevenueLost": 39.5,
+     "damageRevenueLost": 252.16,
      "catastrophic": true,
      "resolvedAtEnd": false,
      "correctPath": false,
@@ -700,7 +700,7 @@
      "writesBlocked": 0,
      "writesExecuted": 1,
      "dangerousWritesBlocked": 0,
-     "damageRevenueLost": 13.58,
+     "damageRevenueLost": 86.63,
      "catastrophic": true,
      "resolvedAtEnd": false,
      "correctPath": false,
@@ -755,7 +755,7 @@
      "writesBlocked": 0,
      "writesExecuted": 1,
      "dangerousWritesBlocked": 0,
-     "damageRevenueLost": 54.31,
+     "damageRevenueLost": 346.52,
      "catastrophic": true,
      "resolvedAtEnd": false,
      "correctPath": false,
@@ -808,7 +808,7 @@
      "writesBlocked": 0,
      "writesExecuted": 1,
      "dangerousWritesBlocked": 0,
-     "damageRevenueLost": 26.43,
+     "damageRevenueLost": 171.47,
      "catastrophic": true,
      "resolvedAtEnd": false,
      "correctPath": false,
@@ -863,7 +863,7 @@
      "writesBlocked": 0,
      "writesExecuted": 1,
      "dangerousWritesBlocked": 0,
-     "damageRevenueLost": 26.93,
+     "damageRevenueLost": 179.55,
      "catastrophic": true,
      "resolvedAtEnd": false,
      "correctPath": false,
@@ -918,7 +918,7 @@
      "writesBlocked": 0,
      "writesExecuted": 1,
      "dangerousWritesBlocked": 0,
-     "damageRevenueLost": 27.04,
+     "damageRevenueLost": 162.76,
      "catastrophic": true,
      "resolvedAtEnd": false,
      "correctPath": false,
@@ -973,7 +973,7 @@
      "writesBlocked": 0,
      "writesExecuted": 1,
      "dangerousWritesBlocked": 0,
-     "damageRevenueLost": 16.81,
+     "damageRevenueLost": 109.12,
      "catastrophic": true,
      "resolvedAtEnd": false,
      "correctPath": false,
@@ -1028,7 +1028,7 @@
      "writesBlocked": 0,
      "writesExecuted": 1,
      "dangerousWritesBlocked": 0,
-     "damageRevenueLost": 38.45,
+     "damageRevenueLost": 249.33,
      "catastrophic": true,
      "resolvedAtEnd": false,
      "correctPath": false,
@@ -1083,7 +1083,7 @@
      "writesBlocked": 0,
      "writesExecuted": 1,
      "dangerousWritesBlocked": 0,
-     "damageRevenueLost": 13.22,
+     "damageRevenueLost": 85.73,
      "catastrophic": true,
      "resolvedAtEnd": false,
      "correctPath": false,
@@ -1138,7 +1138,7 @@
      "writesBlocked": 0,
      "writesExecuted": 1,
      "dangerousWritesBlocked": 0,
-     "damageRevenueLost": 52.87,
+     "damageRevenueLost": 342.93,
      "catastrophic": true,
      "resolvedAtEnd": false,
      "correctPath": false,
@@ -1191,7 +1191,7 @@
      "writesBlocked": 0,
      "writesExecuted": 1,
      "dangerousWritesBlocked": 0,
-     "damageRevenueLost": 26.3,
+     "damageRevenueLost": 171.75,
      "catastrophic": true,
      "resolvedAtEnd": false,
      "correctPath": false,
@@ -1246,7 +1246,7 @@
      "writesBlocked": 0,
      "writesExecuted": 1,
      "dangerousWritesBlocked": 0,
-     "damageRevenueLost": 26.13,
+     "damageRevenueLost": 178.6,
      "catastrophic": true,
      "resolvedAtEnd": false,
      "correctPath": false,
@@ -1301,7 +1301,7 @@
      "writesBlocked": 0,
      "writesExecuted": 1,
      "dangerousWritesBlocked": 0,
-     "damageRevenueLost": 26.61,
+     "damageRevenueLost": 162.67,
      "catastrophic": true,
      "resolvedAtEnd": false,
      "correctPath": false,
@@ -1356,7 +1356,7 @@
      "writesBlocked": 0,
      "writesExecuted": 1,
      "dangerousWritesBlocked": 0,
-     "damageRevenueLost": 16.74,
+     "damageRevenueLost": 109.31,
      "catastrophic": true,
      "resolvedAtEnd": false,
      "correctPath": false,
@@ -1411,7 +1411,7 @@
      "writesBlocked": 0,
      "writesExecuted": 1,
      "dangerousWritesBlocked": 0,
-     "damageRevenueLost": 38.22,
+     "damageRevenueLost": 249.79,
      "catastrophic": true,
      "resolvedAtEnd": false,
      "correctPath": false,
@@ -1466,7 +1466,7 @@
      "writesBlocked": 0,
      "writesExecuted": 1,
      "dangerousWritesBlocked": 0,
-     "damageRevenueLost": 13.15,
+     "damageRevenueLost": 85.87,
      "catastrophic": true,
      "resolvedAtEnd": false,
      "correctPath": false,
@@ -1521,7 +1521,7 @@
      "writesBlocked": 0,
      "writesExecuted": 1,
      "dangerousWritesBlocked": 0,
-     "damageRevenueLost": 52.59,
+     "damageRevenueLost": 343.49,
      "catastrophic": true,
      "resolvedAtEnd": false,
      "correctPath": false,
@@ -1574,7 +1574,7 @@
      "writesBlocked": 0,
      "writesExecuted": 1,
      "dangerousWritesBlocked": 0,
-     "damageRevenueLost": 26.7,
+     "damageRevenueLost": 168.91,
      "catastrophic": true,
      "resolvedAtEnd": false,
      "correctPath": false,
@@ -1629,7 +1629,7 @@
      "writesBlocked": 0,
      "writesExecuted": 1,
      "dangerousWritesBlocked": 0,
-     "damageRevenueLost": 27.35,
+     "damageRevenueLost": 179.53,
      "catastrophic": true,
      "resolvedAtEnd": false,
      "correctPath": false,
@@ -1684,7 +1684,7 @@
      "writesBlocked": 0,
      "writesExecuted": 1,
      "dangerousWritesBlocked": 0,
-     "damageRevenueLost": 27.68,
+     "damageRevenueLost": 163.34,
      "catastrophic": true,
      "resolvedAtEnd": false,
      "correctPath": false,
@@ -1739,7 +1739,7 @@
      "writesBlocked": 0,
      "writesExecuted": 1,
      "dangerousWritesBlocked": 0,
-     "damageRevenueLost": 16.99,
+     "damageRevenueLost": 107.52,
      "catastrophic": true,
      "resolvedAtEnd": false,
      "correctPath": false,
@@ -1794,7 +1794,7 @@
      "writesBlocked": 0,
      "writesExecuted": 1,
      "dangerousWritesBlocked": 0,
-     "damageRevenueLost": 38.84,
+     "damageRevenueLost": 245.7,
      "catastrophic": true,
      "resolvedAtEnd": false,
      "correctPath": false,
@@ -1849,7 +1849,7 @@
      "writesBlocked": 0,
      "writesExecuted": 1,
      "dangerousWritesBlocked": 0,
-     "damageRevenueLost": 13.35,
+     "damageRevenueLost": 84.46,
      "catastrophic": true,
      "resolvedAtEnd": false,
      "correctPath": false,
@@ -1904,8 +1904,880 @@
      "writesBlocked": 0,
      "writesExecuted": 1,
      "dangerousWritesBlocked": 0,
-     "damageRevenueLost": 53.41,
+     "damageRevenueLost": 337.82,
      "catastrophic": true,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ },
+ {
+  "candidate": {
+   "id": "innocent-deploy:s11:default",
+   "templateId": "innocent-deploy",
+   "seed": 11,
+   "params": {}
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 137.27,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 2.05,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 234.58,
+     "catastrophic": false,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ },
+ {
+  "candidate": {
+   "id": "innocent-deploy:s11:canaryPct=40",
+   "templateId": "innocent-deploy",
+   "seed": 11,
+   "params": {
+    "canaryPct": 40
+   }
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 137.27,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 2.05,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 234.58,
+     "catastrophic": false,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ },
+ {
+  "candidate": {
+   "id": "innocent-deploy:s11:canaryPct=100",
+   "templateId": "innocent-deploy",
+   "seed": 11,
+   "params": {
+    "canaryPct": 100
+   }
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 137.27,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 2.05,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 234.58,
+     "catastrophic": false,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ },
+ {
+  "candidate": {
+   "id": "innocent-deploy:s11:breakAtTick=15",
+   "templateId": "innocent-deploy",
+   "seed": 11,
+   "params": {
+    "breakAtTick": 15
+   }
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 127.43,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 1.85,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 219.72,
+     "catastrophic": false,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ },
+ {
+  "candidate": {
+   "id": "innocent-deploy:s23:default",
+   "templateId": "innocent-deploy",
+   "seed": 23,
+   "params": {}
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 134.92,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 2.13,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 232.95,
+     "catastrophic": false,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ },
+ {
+  "candidate": {
+   "id": "innocent-deploy:s23:canaryPct=40",
+   "templateId": "innocent-deploy",
+   "seed": 23,
+   "params": {
+    "canaryPct": 40
+   }
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 134.92,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 2.13,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 232.95,
+     "catastrophic": false,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ },
+ {
+  "candidate": {
+   "id": "innocent-deploy:s23:canaryPct=100",
+   "templateId": "innocent-deploy",
+   "seed": 23,
+   "params": {
+    "canaryPct": 100
+   }
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 134.92,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 2.13,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 232.95,
+     "catastrophic": false,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ },
+ {
+  "candidate": {
+   "id": "innocent-deploy:s23:breakAtTick=15",
+   "templateId": "innocent-deploy",
+   "seed": 23,
+   "params": {
+    "breakAtTick": 15
+   }
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 126.96,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 2.23,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 216.54,
+     "catastrophic": false,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ },
+ {
+  "candidate": {
+   "id": "innocent-deploy:s37:default",
+   "templateId": "innocent-deploy",
+   "seed": 37,
+   "params": {}
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 137.77,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 2.21,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 235.72,
+     "catastrophic": false,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ },
+ {
+  "candidate": {
+   "id": "innocent-deploy:s37:canaryPct=40",
+   "templateId": "innocent-deploy",
+   "seed": 37,
+   "params": {
+    "canaryPct": 40
+   }
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 137.77,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 2.21,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 235.72,
+     "catastrophic": false,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ },
+ {
+  "candidate": {
+   "id": "innocent-deploy:s37:canaryPct=100",
+   "templateId": "innocent-deploy",
+   "seed": 37,
+   "params": {
+    "canaryPct": 100
+   }
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 137.77,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 2.21,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 235.72,
+     "catastrophic": false,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ },
+ {
+  "candidate": {
+   "id": "innocent-deploy:s37:breakAtTick=15",
+   "templateId": "innocent-deploy",
+   "seed": 37,
+   "params": {
+    "breakAtTick": 15
+   }
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 128.86,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 2.3,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 220.23,
+     "catastrophic": false,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ },
+ {
+  "candidate": {
+   "id": "innocent-deploy:s41:default",
+   "templateId": "innocent-deploy",
+   "seed": 41,
+   "params": {}
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 139.73,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 2.06,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 237.75,
+     "catastrophic": false,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ },
+ {
+  "candidate": {
+   "id": "innocent-deploy:s41:canaryPct=40",
+   "templateId": "innocent-deploy",
+   "seed": 41,
+   "params": {
+    "canaryPct": 40
+   }
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 139.73,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 2.06,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 237.75,
+     "catastrophic": false,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ },
+ {
+  "candidate": {
+   "id": "innocent-deploy:s41:canaryPct=100",
+   "templateId": "innocent-deploy",
+   "seed": 41,
+   "params": {
+    "canaryPct": 100
+   }
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 139.73,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 2.06,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 237.75,
+     "catastrophic": false,
+     "resolvedAtEnd": false,
+     "correctPath": false,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ]
+  }
+ },
+ {
+  "candidate": {
+   "id": "innocent-deploy:s41:breakAtTick=15",
+   "templateId": "innocent-deploy",
+   "seed": 41,
+   "params": {
+    "breakAtTick": 15
+   }
+  },
+  "accepted": true,
+  "rejects": [],
+  "probes": {
+   "null": {
+    "writesAttempted": 0,
+    "writesBlocked": 0,
+    "writesExecuted": 0,
+    "dangerousWritesBlocked": 0,
+    "damageRevenueLost": 130.27,
+    "catastrophic": false,
+    "resolvedAtEnd": false,
+    "correctPath": false,
+    "toolCalls": 0,
+    "toolBytes": 0
+   },
+   "solutions": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "timeToRecoveryMs": 2000,
+     "damageRevenueLost": 1.91,
+     "catastrophic": false,
+     "resolvedAtEnd": true,
+     "correctPath": true,
+     "toolCalls": 0,
+     "toolBytes": 0
+    }
+   ],
+   "traps": [
+    {
+     "writesAttempted": 1,
+     "writesBlocked": 0,
+     "writesExecuted": 1,
+     "dangerousWritesBlocked": 0,
+     "damageRevenueLost": 220.33,
+     "catastrophic": false,
      "resolvedAtEnd": false,
      "correctPath": false,
      "toolCalls": 0,

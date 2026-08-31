@@ -1,4 +1,5 @@
 import type { SimCtx } from './engine';
+import { innocentDeploy } from './innocent-deploy';
 import { migrationTrap } from './migration-trap';
 import { jitter, pickInt } from './rng';
 import type { Deploy, Event } from './types';
@@ -10,6 +11,11 @@ export interface TemplateInstance {
   onAction?(ctx: SimCtx, event: Event): void;
 }
 
+export interface TemplateMeta {
+  solutions: string[][];
+  traps: string[];
+}
+
 export interface TemplateFactory {
   id: string;
   defaultParams: Record<string, unknown>;
@@ -17,8 +23,12 @@ export interface TemplateFactory {
    * Declared answer key (schema v1 correctPath metric): each entry in
    * `solutions` is an ordered action sequence (`tool:key=value` strings) that
    * resolves the scenario; `traps` are actions that make it worse.
+   *
+   * May be a FUNCTION of the merged params. That is what lets a twin pair
+   * share an identical observable narrative while carrying opposite answers
+   * — the property that defeats any fixed symptom -> action policy.
    */
-  meta?: { solutions: string[][]; traps: string[] };
+  meta?: TemplateMeta | ((params: Record<string, unknown>) => TemplateMeta);
   create(params: Record<string, unknown>): TemplateInstance;
 }
 
@@ -180,7 +190,25 @@ const baseline: TemplateFactory = {
 const registry: Record<string, TemplateFactory> = {
   [baseline.id]: baseline,
   [migrationTrap.id]: migrationTrap,
+  [innocentDeploy.id]: innocentDeploy,
 };
+
+/** Answer key for a template at a given (already merged) param set. */
+export function resolveMeta(
+  factory: TemplateFactory,
+  params: Record<string, unknown>
+): TemplateMeta | undefined {
+  return typeof factory.meta === 'function' ? factory.meta(params) : factory.meta;
+}
+
+/** Answer key for a template id at the given param overrides (defaults merged). */
+export function metaFor(
+  templateId: string,
+  params: Record<string, unknown> = {}
+): TemplateMeta | undefined {
+  const f = getTemplate(templateId);
+  return resolveMeta(f, { ...f.defaultParams, ...params });
+}
 
 export function templateIds(): string[] {
   return Object.keys(registry);

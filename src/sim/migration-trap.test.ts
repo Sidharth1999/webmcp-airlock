@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Engine } from './engine';
-import { getTemplate } from './templates';
+import { getTemplate, metaFor } from './templates';
 
 // M2-04 gate: "template declares solution set; both paths verified by
 // scripted run (correct resolves, naive worsens)".
@@ -15,7 +15,7 @@ function toIncident(seed = 42): Engine {
 
 describe('migration-trap: setup and incident', () => {
   it('declares its solution set and trap', () => {
-    const meta = getTemplate('migration-trap').meta!;
+    const meta = metaFor('migration-trap')!;
     expect(meta.solutions).toEqual([['flag.set:new-checkout=off', 'deploy.rollforward:api']]);
     expect(meta.traps).toContain('deploy.rollback:d-201');
   });

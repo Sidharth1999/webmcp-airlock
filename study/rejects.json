@@ -1,27 +1,47 @@
 {
- "space": {
-  "templateId": "migration-trap",
-  "seeds": [
-   11,
-   23,
-   37,
-   41,
-   53
-  ],
-  "variations": {
-   "deployAtTick": [
-    4,
-    9
+ "spaces": [
+  {
+   "templateId": "migration-trap",
+   "seeds": [
+    11,
+    23,
+    37,
+    41,
+    53
    ],
-   "baseRps": [
-    140,
-    320
+   "variations": {
+    "deployAtTick": [
+     4,
+     9
+    ],
+    "baseRps": [
+     140,
+     320
+    ],
+    "valuePerReq": [
+     0.02,
+     0.08
+    ]
+   }
+  },
+  {
+   "templateId": "innocent-deploy",
+   "seeds": [
+    11,
+    23,
+    37,
+    41
    ],
-   "valuePerReq": [
-    0.02,
-    0.08
-   ]
+   "variations": {
+    "canaryPct": [
+     40,
+     100
+    ],
+    "breakAtTick": [
+     15
+    ]
+   }
   }
- },
+ ],
  "rejects": []
 }

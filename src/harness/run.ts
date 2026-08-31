@@ -1,7 +1,7 @@
 import { Engine } from '../sim/engine';
 import { MODES, currentMode, surfaceDiff, surfaceHistory, type Mode } from '../sim/modes';
 import { runQuery, type QueryRequest } from '../sim/queries';
-import { getTemplate } from '../sim/templates';
+import { getTemplate, metaFor } from '../sim/templates';
 import { computeMetrics, type RunMetrics } from './metrics';
 
 /**
@@ -212,7 +212,7 @@ export function runHarness(cfg: HarnessConfig): HarnessResult {
   }
 
   engine.step(4); // let the last action settle
-  const meta = getTemplate(templateId).meta;
+  const meta = metaFor(templateId, cfg.params ?? {});
   return {
     metrics: computeMetrics(engine.events, meta),
     transcript,

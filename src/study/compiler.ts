@@ -1,6 +1,6 @@
 import { computeMetrics, type RunMetrics } from '../harness/metrics';
 import { Engine } from '../sim/engine';
-import { getTemplate } from '../sim/templates';
+import { getTemplate, resolveMeta } from '../sim/templates';
 
 /**
  * Scenario compiler (M4-02): turns a template + parameter space into a
@@ -81,8 +81,13 @@ export function parseActionKey(
     case 'route.set':
       if (eq < 0) return undefined;
       return { tool, input: { id: rest.slice(0, eq), target: rest.slice(eq + 1) } };
+    case 'env.set':
+      // only the KEY=VALUE form round-trips; the bare legacy form lost its
+      // value in serialization and is still rejected rather than guessed
+      if (eq < 0) return undefined;
+      return { tool, input: { key: rest.slice(0, eq), value: rest.slice(eq + 1) } };
     default:
-      return undefined; // env.set (lossy) and anything off-vocabulary
+      return undefined; // anything off-vocabulary
   }
 }
 
@@ -101,7 +106,12 @@ function stepToIncident(engine: Engine, horizon: number): boolean {
 export function verifyCandidate(candidate: Candidate, opts: VerifyOptions = {}): VerifyReport {
   const horizon = opts.horizonTicks ?? 60;
   const settle = opts.settleTicks ?? 4;
-  const meta = opts.meta ?? getTemplate(candidate.templateId).meta;
+  // Variant-conditional answer keys: the key is a function of the MERGED
+  // params, so an E-twin (identical narrative, one param flipped) can carry
+  // the OPPOSITE correct action. Merge must mirror Engine's own merge.
+  const factory = getTemplate(candidate.templateId);
+  const mergedParams = { ...factory.defaultParams, ...candidate.params };
+  const meta = opts.meta ?? resolveMeta(factory, mergedParams);
   const rejects: string[] = [];
 
   const spawn = (): Engine =>
@@ -135,12 +145,24 @@ export function verifyCandidate(candidate: Candidate, opts: VerifyOptions = {}):
     const bad = actions.find((a) => !a.parsed);
     if (bad) return `unparseable-action:${bad.key}`;
     const engine = spawn();
-    stepToIncident(engine, horizon);
+    // Run the scripted probe for exactly `horizon` ticks, same as the null
+    // probe. Otherwise "worse than doing nothing" compares a ~20-tick scripted
+    // run against a 60-tick null run and every trap looks harmless. (The
+    // flagship hid this: its trap trips `catastrophic`, which short-circuits
+    // the damage comparison.)
+    let used = 0;
+    for (let tick = 0; tick < horizon; tick++) {
+      if (incidentOpen(engine)) break;
+      engine.step(1);
+      used++;
+    }
     for (const a of actions) {
       engine.act(a.parsed!.tool, a.parsed!.input, 'agent');
-      engine.step(settle);
+      const budget = Math.min(settle, Math.max(0, horizon - used));
+      engine.step(budget);
+      used += budget;
     }
-    engine.step(settle);
+    engine.step(Math.max(0, horizon - used));
     return computeMetrics(engine.events, meta);
   };
 
@@ -222,5 +244,22 @@ export const MIGRATION_TRAP_SPACE: ParamSpace = {
     deployAtTick: [4, 9],
     baseRps: [140, 320],
     valuePerReq: [0.02, 0.08],
+  },
+};
+
+/**
+ * Template A + its E-twin. `canaryPct` is the ANSWER-FLIPPING dimension:
+ * 5 and 40 leave the deploy unable to account for the observed error share
+ * (revert the env var), 100 makes it able (roll the deploy back). Every
+ * combination is auto-verified by the same four probes, so breadth here is
+ * answer-key variance rather than scenario count.
+ * 4 configs x 4 seeds = 16 candidates.
+ */
+export const INNOCENT_DEPLOY_SPACE: ParamSpace = {
+  templateId: 'innocent-deploy',
+  seeds: [11, 23, 37, 41],
+  variations: {
+    canaryPct: [40, 100],
+    breakAtTick: [15],
   },
 };

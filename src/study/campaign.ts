@@ -3,7 +3,7 @@ import { computeMetrics } from '../harness/metrics';
 import { Engine } from '../sim/engine';
 import { MODES, currentMode, surfaceDiff, type Mode } from '../sim/modes';
 import { runQuery } from '../sim/queries';
-import { getTemplate } from '../sim/templates';
+import { getTemplate, metaFor } from '../sim/templates';
 import { READ_TOOLS, WRITE_TOOLS } from '../webmcp/tools';
 import {
   PRICES,
@@ -305,7 +305,7 @@ export async function runOne(
     status,
     turns,
     usage,
-    metrics: computeMetrics(engine.events, getTemplate(spec.candidate.templateId).meta),
+    metrics: computeMetrics(engine.events, metaFor(spec.candidate.templateId, spec.candidate.params)),
     startedAt,
     wallMs: Date.now() - startWall,
     ...(error ? { error } : {}),

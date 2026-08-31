@@ -31,7 +31,12 @@ export function actionKey(tool: string, input: Record<string, unknown>): string 
     case 'deploy.rollforward':
       return `deploy.rollforward:${input.service}`;
     case 'env.set':
-      return `env.set:${input.key}`;
+      // round-trippable when a value is present, so an env revert can be a
+      // declared (and compiler-executable) answer key. Bare `env.set:KEY`
+      // remains the lossy legacy form and stays unparseable by design.
+      return input.value === undefined
+        ? `env.set:${input.key}`
+        : `env.set:${input.key}=${input.value}`;
     case 'route.set':
       return `route.set:${input.id}=${input.target}`;
     default:

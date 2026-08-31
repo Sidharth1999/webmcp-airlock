@@ -2,21 +2,37 @@
 // the accepted corpus + rejects log for the campaign runner (M4-03).
 // Usage: npm run corpus   (vite-node; pure computation, no browser, no API)
 import { mkdirSync, writeFileSync } from 'node:fs';
-import { MIGRATION_TRAP_SPACE, compileCorpus } from '../src/study/compiler';
+import {
+  INNOCENT_DEPLOY_SPACE,
+  MIGRATION_TRAP_SPACE,
+  compileCorpus,
+} from '../src/study/compiler';
 
-const result = compileCorpus(MIGRATION_TRAP_SPACE);
+const results = [MIGRATION_TRAP_SPACE, INNOCENT_DEPLOY_SPACE].map((space) =>
+  compileCorpus(space)
+);
+
+const accepted = results.flatMap((r) => r.accepted);
+const rejects = results.flatMap((r) => r.rejects);
 
 mkdirSync('study', { recursive: true });
-writeFileSync('study/corpus.json', JSON.stringify(result.accepted, null, 1) + '\n');
+writeFileSync('study/corpus.json', JSON.stringify(accepted, null, 1) + '\n');
 writeFileSync(
   'study/rejects.json',
-  JSON.stringify({ space: result.space, rejects: result.rejects }, null, 1) + '\n'
+  JSON.stringify(
+    { spaces: results.map((r) => r.space), rejects },
+    null,
+    1
+  ) + '\n'
 );
 
-console.log(
-  `[corpus] ${result.space.templateId}: generated ${result.generated}, ` +
-    `accepted ${result.accepted.length}, rejected ${result.rejects.length}`
-);
-for (const r of result.rejects) console.log(`[corpus]   reject ${r.id}: ${r.reasons.join(', ')}`);
+for (const r of results) {
+  console.log(
+    `[corpus] ${r.space.templateId}: generated ${r.generated}, ` +
+      `accepted ${r.accepted.length}, rejected ${r.rejects.length}`
+  );
+  for (const rej of r.rejects) console.log(`[corpus]   reject ${rej.id}: ${rej.reasons.join(', ')}`);
+}
+console.log(`[corpus] TOTAL accepted ${accepted.length}`);
 console.log('[corpus] wrote study/corpus.json + study/rejects.json');
-if (result.accepted.length === 0) process.exit(1);
+if (accepted.length === 0 || rejects.length > 0) process.exit(1);

@@ -60,6 +60,12 @@ export interface Deploy {
   flagsTouched: string[];
   diffstat: { files: number; plus: number; minus: number };
   canaryDelta?: { errRate: number; p95: number };
+  /**
+   * Share of traffic this deploy actually serves (percent). Load-bearing:
+   * blast-radius arithmetic (observed error share vs this) is what separates
+   * a guilty deploy from an innocent one, and it flips the correct action.
+   */
+  canaryPct?: number;
   note?: string; // sim persona's commit message — flavor + red herrings
   status: 'live' | 'rolled_back' | 'superseded';
 }

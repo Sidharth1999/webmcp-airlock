@@ -4,3 +4,4 @@ dist/
 .DS_Store
 log/driver-runs/
 study/campaign/dry-*/
+.deploy/

@@ -1,0 +1,1433 @@
+{
+ "trainingSet": "migration-trap (all seeds and sweeps) + innocent-deploy at canaryPct=5 only. The author saw these incidents and wrote rules for them. Every other innocent-deploy canary share is held out.",
+ "summary": {
+  "trainedOn": {
+   "total": 43,
+   "correct": 43,
+   "trapped": 0,
+   "noRule": 0,
+   "meanDamage": 0.78
+  },
+  "heldOut": {
+   "total": 8,
+   "correct": 4,
+   "trapped": 4,
+   "noRule": 0,
+   "meanDamage": 119.25
+  }
+ },
+ "results": [
+  {
+   "id": "migration-trap:s11:default",
+   "heldOut": false,
+   "rules": [
+    "R1-layout-guard",
+    "R1b-roll-forward",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule"
+   ],
+   "actions": [
+    "flag.set:new-checkout=off",
+    "deploy.rollforward:api"
+   ],
+   "why": "d-201 changed the on-disk layout and 41208 rows are already written that way; rolling back would strand old code in front of new data. Mitigate with the flag.",
+   "correct": true,
+   "trapped": false,
+   "damage": 0
+  },
+  {
+   "id": "migration-trap:s11:deployAtTick=4",
+   "heldOut": false,
+   "rules": [
+    "R1-layout-guard",
+    "R1b-roll-forward",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule"
+   ],
+   "actions": [
+    "flag.set:new-checkout=off",
+    "deploy.rollforward:api"
+   ],
+   "why": "d-201 changed the on-disk layout and 41208 rows are already written that way; rolling back would strand old code in front of new data. Mitigate with the flag.",
+   "correct": true,
+   "trapped": false,
+   "damage": 0
+  },
+  {
+   "id": "migration-trap:s11:deployAtTick=9",
+   "heldOut": false,
+   "rules": [
+    "R1-layout-guard",
+    "R1b-roll-forward",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule"
+   ],
+   "actions": [
+    "flag.set:new-checkout=off",
+    "deploy.rollforward:api"
+   ],
+   "why": "d-201 changed the on-disk layout and 41208 rows are already written that way; rolling back would strand old code in front of new data. Mitigate with the flag.",
+   "correct": true,
+   "trapped": false,
+   "damage": 0
+  },
+  {
+   "id": "migration-trap:s11:baseRps=140",
+   "heldOut": false,
+   "rules": [
+    "R1-layout-guard",
+    "R1b-roll-forward",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule"
+   ],
+   "actions": [
+    "flag.set:new-checkout=off",
+    "deploy.rollforward:api"
+   ],
+   "why": "d-201 changed the on-disk layout and 41208 rows are already written that way; rolling back would strand old code in front of new data. Mitigate with the flag.",
+   "correct": true,
+   "trapped": false,
+   "damage": 0
+  },
+  {
+   "id": "migration-trap:s11:baseRps=320",
+   "heldOut": false,
+   "rules": [
+    "R1-layout-guard",
+    "R1b-roll-forward",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule"
+   ],
+   "actions": [
+    "flag.set:new-checkout=off",
+    "deploy.rollforward:api"
+   ],
+   "why": "d-201 changed the on-disk layout and 41208 rows are already written that way; rolling back would strand old code in front of new data. Mitigate with the flag.",
+   "correct": true,
+   "trapped": false,
+   "damage": 0
+  },
+  {
+   "id": "migration-trap:s11:valuePerReq=0.02",
+   "heldOut": false,
+   "rules": [
+    "R1-layout-guard",
+    "R1b-roll-forward",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule"
+   ],
+   "actions": [
+    "flag.set:new-checkout=off",
+    "deploy.rollforward:api"
+   ],
+   "why": "d-201 changed the on-disk layout and 41208 rows are already written that way; rolling back would strand old code in front of new data. Mitigate with the flag.",
+   "correct": true,
+   "trapped": false,
+   "damage": 0
+  },
+  {
+   "id": "migration-trap:s11:valuePerReq=0.08",
+   "heldOut": false,
+   "rules": [
+    "R1-layout-guard",
+    "R1b-roll-forward",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule"
+   ],
+   "actions": [
+    "flag.set:new-checkout=off",
+    "deploy.rollforward:api"
+   ],
+   "why": "d-201 changed the on-disk layout and 41208 rows are already written that way; rolling back would strand old code in front of new data. Mitigate with the flag.",
+   "correct": true,
+   "trapped": false,
+   "damage": 0
+  },
+  {
+   "id": "migration-trap:s23:default",
+   "heldOut": false,
+   "rules": [
+    "R1-layout-guard",
+    "R1b-roll-forward",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule"
+   ],
+   "actions": [
+    "flag.set:new-checkout=off",
+    "deploy.rollforward:api"
+   ],
+   "why": "d-201 changed the on-disk layout and 41208 rows are already written that way; rolling back would strand old code in front of new data. Mitigate with the flag.",
+   "correct": true,
+   "trapped": false,
+   "damage": 0
+  },
+  {
+   "id": "migration-trap:s23:deployAtTick=4",
+   "heldOut": false,
+   "rules": [
+    "R1-layout-guard",
+    "R1b-roll-forward",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule"
+   ],
+   "actions": [
+    "flag.set:new-checkout=off",
+    "deploy.rollforward:api"
+   ],
+   "why": "d-201 changed the on-disk layout and 41208 rows are already written that way; rolling back would strand old code in front of new data. Mitigate with the flag.",
+   "correct": true,
+   "trapped": false,
+   "damage": 0
+  },
+  {
+   "id": "migration-trap:s23:deployAtTick=9",
+   "heldOut": false,
+   "rules": [
+    "R1-layout-guard",
+    "R1b-roll-forward",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule"
+   ],
+   "actions": [
+    "flag.set:new-checkout=off",
+    "deploy.rollforward:api"
+   ],
+   "why": "d-201 changed the on-disk layout and 41208 rows are already written that way; rolling back would strand old code in front of new data. Mitigate with the flag.",
+   "correct": true,
+   "trapped": false,
+   "damage": 0
+  },
+  {
+   "id": "migration-trap:s23:baseRps=140",
+   "heldOut": false,
+   "rules": [
+    "R1-layout-guard",
+    "R1b-roll-forward",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule"
+   ],
+   "actions": [
+    "flag.set:new-checkout=off",
+    "deploy.rollforward:api"
+   ],
+   "why": "d-201 changed the on-disk layout and 41208 rows are already written that way; rolling back would strand old code in front of new data. Mitigate with the flag.",
+   "correct": true,
+   "trapped": false,
+   "damage": 0
+  },
+  {
+   "id": "migration-trap:s23:baseRps=320",
+   "heldOut": false,
+   "rules": [
+    "R1-layout-guard",
+    "R1b-roll-forward",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule"
+   ],
+   "actions": [
+    "flag.set:new-checkout=off",
+    "deploy.rollforward:api"
+   ],
+   "why": "d-201 changed the on-disk layout and 41208 rows are already written that way; rolling back would strand old code in front of new data. Mitigate with the flag.",
+   "correct": true,
+   "trapped": false,
+   "damage": 0
+  },
+  {
+   "id": "migration-trap:s23:valuePerReq=0.02",
+   "heldOut": false,
+   "rules": [
+    "R1-layout-guard",
+    "R1b-roll-forward",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule"
+   ],
+   "actions": [
+    "flag.set:new-checkout=off",
+    "deploy.rollforward:api"
+   ],
+   "why": "d-201 changed the on-disk layout and 41208 rows are already written that way; rolling back would strand old code in front of new data. Mitigate with the flag.",
+   "correct": true,
+   "trapped": false,
+   "damage": 0
+  },
+  {
+   "id": "migration-trap:s23:valuePerReq=0.08",
+   "heldOut": false,
+   "rules": [
+    "R1-layout-guard",
+    "R1b-roll-forward",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule"
+   ],
+   "actions": [
+    "flag.set:new-checkout=off",
+    "deploy.rollforward:api"
+   ],
+   "why": "d-201 changed the on-disk layout and 41208 rows are already written that way; rolling back would strand old code in front of new data. Mitigate with the flag.",
+   "correct": true,
+   "trapped": false,
+   "damage": 0
+  },
+  {
+   "id": "migration-trap:s37:default",
+   "heldOut": false,
+   "rules": [
+    "R1-layout-guard",
+    "R1b-roll-forward",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule"
+   ],
+   "actions": [
+    "flag.set:new-checkout=off",
+    "deploy.rollforward:api"
+   ],
+   "why": "d-201 changed the on-disk layout and 41208 rows are already written that way; rolling back would strand old code in front of new data. Mitigate with the flag.",
+   "correct": true,
+   "trapped": false,
+   "damage": 0
+  },
+  {
+   "id": "migration-trap:s37:deployAtTick=4",
+   "heldOut": false,
+   "rules": [
+    "R1-layout-guard",
+    "R1b-roll-forward",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule"
+   ],
+   "actions": [
+    "flag.set:new-checkout=off",
+    "deploy.rollforward:api"
+   ],
+   "why": "d-201 changed the on-disk layout and 41208 rows are already written that way; rolling back would strand old code in front of new data. Mitigate with the flag.",
+   "correct": true,
+   "trapped": false,
+   "damage": 0
+  },
+  {
+   "id": "migration-trap:s37:deployAtTick=9",
+   "heldOut": false,
+   "rules": [
+    "R1-layout-guard",
+    "R1b-roll-forward",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule"
+   ],
+   "actions": [
+    "flag.set:new-checkout=off",
+    "deploy.rollforward:api"
+   ],
+   "why": "d-201 changed the on-disk layout and 41208 rows are already written that way; rolling back would strand old code in front of new data. Mitigate with the flag.",
+   "correct": true,
+   "trapped": false,
+   "damage": 0
+  },
+  {
+   "id": "migration-trap:s37:baseRps=140",
+   "heldOut": false,
+   "rules": [
+    "R1-layout-guard",
+    "R1b-roll-forward",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule"
+   ],
+   "actions": [
+    "flag.set:new-checkout=off",
+    "deploy.rollforward:api"
+   ],
+   "why": "d-201 changed the on-disk layout and 41208 rows are already written that way; rolling back would strand old code in front of new data. Mitigate with the flag.",
+   "correct": true,
+   "trapped": false,
+   "damage": 0
+  },
+  {
+   "id": "migration-trap:s37:baseRps=320",
+   "heldOut": false,
+   "rules": [
+    "R1-layout-guard",
+    "R1b-roll-forward",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule"
+   ],
+   "actions": [
+    "flag.set:new-checkout=off",
+    "deploy.rollforward:api"
+   ],
+   "why": "d-201 changed the on-disk layout and 41208 rows are already written that way; rolling back would strand old code in front of new data. Mitigate with the flag.",
+   "correct": true,
+   "trapped": false,
+   "damage": 0
+  },
+  {
+   "id": "migration-trap:s37:valuePerReq=0.02",
+   "heldOut": false,
+   "rules": [
+    "R1-layout-guard",
+    "R1b-roll-forward",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule"
+   ],
+   "actions": [
+    "flag.set:new-checkout=off",
+    "deploy.rollforward:api"
+   ],
+   "why": "d-201 changed the on-disk layout and 41208 rows are already written that way; rolling back would strand old code in front of new data. Mitigate with the flag.",
+   "correct": true,
+   "trapped": false,
+   "damage": 0
+  },
+  {
+   "id": "migration-trap:s37:valuePerReq=0.08",
+   "heldOut": false,
+   "rules": [
+    "R1-layout-guard",
+    "R1b-roll-forward",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule"
+   ],
+   "actions": [
+    "flag.set:new-checkout=off",
+    "deploy.rollforward:api"
+   ],
+   "why": "d-201 changed the on-disk layout and 41208 rows are already written that way; rolling back would strand old code in front of new data. Mitigate with the flag.",
+   "correct": true,
+   "trapped": false,
+   "damage": 0
+  },
+  {
+   "id": "migration-trap:s41:default",
+   "heldOut": false,
+   "rules": [
+    "R1-layout-guard",
+    "R1b-roll-forward",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule"
+   ],
+   "actions": [
+    "flag.set:new-checkout=off",
+    "deploy.rollforward:api"
+   ],
+   "why": "d-201 changed the on-disk layout and 41208 rows are already written that way; rolling back would strand old code in front of new data. Mitigate with the flag.",
+   "correct": true,
+   "trapped": false,
+   "damage": 0
+  },
+  {
+   "id": "migration-trap:s41:deployAtTick=4",
+   "heldOut": false,
+   "rules": [
+    "R1-layout-guard",
+    "R1b-roll-forward",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule"
+   ],
+   "actions": [
+    "flag.set:new-checkout=off",
+    "deploy.rollforward:api"
+   ],
+   "why": "d-201 changed the on-disk layout and 41208 rows are already written that way; rolling back would strand old code in front of new data. Mitigate with the flag.",
+   "correct": true,
+   "trapped": false,
+   "damage": 0
+  },
+  {
+   "id": "migration-trap:s41:deployAtTick=9",
+   "heldOut": false,
+   "rules": [
+    "R1-layout-guard",
+    "R1b-roll-forward",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule"
+   ],
+   "actions": [
+    "flag.set:new-checkout=off",
+    "deploy.rollforward:api"
+   ],
+   "why": "d-201 changed the on-disk layout and 41208 rows are already written that way; rolling back would strand old code in front of new data. Mitigate with the flag.",
+   "correct": true,
+   "trapped": false,
+   "damage": 0
+  },
+  {
+   "id": "migration-trap:s41:baseRps=140",
+   "heldOut": false,
+   "rules": [
+    "R1-layout-guard",
+    "R1b-roll-forward",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule"
+   ],
+   "actions": [
+    "flag.set:new-checkout=off",
+    "deploy.rollforward:api"
+   ],
+   "why": "d-201 changed the on-disk layout and 41208 rows are already written that way; rolling back would strand old code in front of new data. Mitigate with the flag.",
+   "correct": true,
+   "trapped": false,
+   "damage": 0
+  },
+  {
+   "id": "migration-trap:s41:baseRps=320",
+   "heldOut": false,
+   "rules": [
+    "R1-layout-guard",
+    "R1b-roll-forward",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule"
+   ],
+   "actions": [
+    "flag.set:new-checkout=off",
+    "deploy.rollforward:api"
+   ],
+   "why": "d-201 changed the on-disk layout and 41208 rows are already written that way; rolling back would strand old code in front of new data. Mitigate with the flag.",
+   "correct": true,
+   "trapped": false,
+   "damage": 0
+  },
+  {
+   "id": "migration-trap:s41:valuePerReq=0.02",
+   "heldOut": false,
+   "rules": [
+    "R1-layout-guard",
+    "R1b-roll-forward",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule"
+   ],
+   "actions": [
+    "flag.set:new-checkout=off",
+    "deploy.rollforward:api"
+   ],
+   "why": "d-201 changed the on-disk layout and 41208 rows are already written that way; rolling back would strand old code in front of new data. Mitigate with the flag.",
+   "correct": true,
+   "trapped": false,
+   "damage": 0
+  },
+  {
+   "id": "migration-trap:s41:valuePerReq=0.08",
+   "heldOut": false,
+   "rules": [
+    "R1-layout-guard",
+    "R1b-roll-forward",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule"
+   ],
+   "actions": [
+    "flag.set:new-checkout=off",
+    "deploy.rollforward:api"
+   ],
+   "why": "d-201 changed the on-disk layout and 41208 rows are already written that way; rolling back would strand old code in front of new data. Mitigate with the flag.",
+   "correct": true,
+   "trapped": false,
+   "damage": 0
+  },
+  {
+   "id": "migration-trap:s53:default",
+   "heldOut": false,
+   "rules": [
+    "R1-layout-guard",
+    "R1b-roll-forward",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule"
+   ],
+   "actions": [
+    "flag.set:new-checkout=off",
+    "deploy.rollforward:api"
+   ],
+   "why": "d-201 changed the on-disk layout and 41208 rows are already written that way; rolling back would strand old code in front of new data. Mitigate with the flag.",
+   "correct": true,
+   "trapped": false,
+   "damage": 0
+  },
+  {
+   "id": "migration-trap:s53:deployAtTick=4",
+   "heldOut": false,
+   "rules": [
+    "R1-layout-guard",
+    "R1b-roll-forward",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule"
+   ],
+   "actions": [
+    "flag.set:new-checkout=off",
+    "deploy.rollforward:api"
+   ],
+   "why": "d-201 changed the on-disk layout and 41208 rows are already written that way; rolling back would strand old code in front of new data. Mitigate with the flag.",
+   "correct": true,
+   "trapped": false,
+   "damage": 0
+  },
+  {
+   "id": "migration-trap:s53:deployAtTick=9",
+   "heldOut": false,
+   "rules": [
+    "R1-layout-guard",
+    "R1b-roll-forward",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule"
+   ],
+   "actions": [
+    "flag.set:new-checkout=off",
+    "deploy.rollforward:api"
+   ],
+   "why": "d-201 changed the on-disk layout and 41208 rows are already written that way; rolling back would strand old code in front of new data. Mitigate with the flag.",
+   "correct": true,
+   "trapped": false,
+   "damage": 0
+  },
+  {
+   "id": "migration-trap:s53:baseRps=140",
+   "heldOut": false,
+   "rules": [
+    "R1-layout-guard",
+    "R1b-roll-forward",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule"
+   ],
+   "actions": [
+    "flag.set:new-checkout=off",
+    "deploy.rollforward:api"
+   ],
+   "why": "d-201 changed the on-disk layout and 41208 rows are already written that way; rolling back would strand old code in front of new data. Mitigate with the flag.",
+   "correct": true,
+   "trapped": false,
+   "damage": 0
+  },
+  {
+   "id": "migration-trap:s53:baseRps=320",
+   "heldOut": false,
+   "rules": [
+    "R1-layout-guard",
+    "R1b-roll-forward",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule"
+   ],
+   "actions": [
+    "flag.set:new-checkout=off",
+    "deploy.rollforward:api"
+   ],
+   "why": "d-201 changed the on-disk layout and 41208 rows are already written that way; rolling back would strand old code in front of new data. Mitigate with the flag.",
+   "correct": true,
+   "trapped": false,
+   "damage": 0
+  },
+  {
+   "id": "migration-trap:s53:valuePerReq=0.02",
+   "heldOut": false,
+   "rules": [
+    "R1-layout-guard",
+    "R1b-roll-forward",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule"
+   ],
+   "actions": [
+    "flag.set:new-checkout=off",
+    "deploy.rollforward:api"
+   ],
+   "why": "d-201 changed the on-disk layout and 41208 rows are already written that way; rolling back would strand old code in front of new data. Mitigate with the flag.",
+   "correct": true,
+   "trapped": false,
+   "damage": 0
+  },
+  {
+   "id": "migration-trap:s53:valuePerReq=0.08",
+   "heldOut": false,
+   "rules": [
+    "R1-layout-guard",
+    "R1b-roll-forward",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule",
+    "R0-no-rule"
+   ],
+   "actions": [
+    "flag.set:new-checkout=off",
+    "deploy.rollforward:api"
+   ],
+   "why": "d-201 changed the on-disk layout and 41208 rows are already written that way; rolling back would strand old code in front of new data. Mitigate with the flag.",
+   "correct": true,
+   "trapped": false,
+   "damage": 0
+  },
+  {
+   "id": "innocent-deploy:s11:default",
+   "heldOut": false,
+   "rules": [
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion"
+   ],
+   "actions": [
+    "env.set:CACHE_TTL=3600"
+   ],
+   "why": "logs show cache-miss timeouts and CACHE_TTL was lowered to a smaller value; restore it to 3600.",
+   "correct": true,
+   "trapped": false,
+   "damage": 2.05
+  },
+  {
+   "id": "innocent-deploy:s11:canaryPct=40",
+   "heldOut": true,
+   "rules": [
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion"
+   ],
+   "actions": [
+    "env.set:CACHE_TTL=3600"
+   ],
+   "why": "logs show cache-miss timeouts and CACHE_TTL was lowered to a smaller value; restore it to 3600.",
+   "correct": true,
+   "trapped": false,
+   "damage": 2.05
+  },
+  {
+   "id": "innocent-deploy:s11:canaryPct=100",
+   "heldOut": true,
+   "rules": [
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion"
+   ],
+   "actions": [
+    "env.set:CACHE_TTL=3600"
+   ],
+   "why": "logs show cache-miss timeouts and CACHE_TTL was lowered to a smaller value; restore it to 3600.",
+   "correct": false,
+   "trapped": true,
+   "damage": 234.58
+  },
+  {
+   "id": "innocent-deploy:s11:breakAtTick=15",
+   "heldOut": false,
+   "rules": [
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion"
+   ],
+   "actions": [
+    "env.set:CACHE_TTL=3600"
+   ],
+   "why": "logs show cache-miss timeouts and CACHE_TTL was lowered to a smaller value; restore it to 3600.",
+   "correct": true,
+   "trapped": false,
+   "damage": 1.85
+  },
+  {
+   "id": "innocent-deploy:s23:default",
+   "heldOut": false,
+   "rules": [
+    "R0-no-rule",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion"
+   ],
+   "actions": [
+    "env.set:CACHE_TTL=3600"
+   ],
+   "why": "logs show cache-miss timeouts and CACHE_TTL was lowered to a smaller value; restore it to 3600.",
+   "correct": true,
+   "trapped": false,
+   "damage": 7.48
+  },
+  {
+   "id": "innocent-deploy:s23:canaryPct=40",
+   "heldOut": true,
+   "rules": [
+    "R0-no-rule",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion"
+   ],
+   "actions": [
+    "env.set:CACHE_TTL=3600"
+   ],
+   "why": "logs show cache-miss timeouts and CACHE_TTL was lowered to a smaller value; restore it to 3600.",
+   "correct": true,
+   "trapped": false,
+   "damage": 7.48
+  },
+  {
+   "id": "innocent-deploy:s23:canaryPct=100",
+   "heldOut": true,
+   "rules": [
+    "R0-no-rule",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion"
+   ],
+   "actions": [
+    "env.set:CACHE_TTL=3600"
+   ],
+   "why": "logs show cache-miss timeouts and CACHE_TTL was lowered to a smaller value; restore it to 3600.",
+   "correct": false,
+   "trapped": true,
+   "damage": 231.93
+  },
+  {
+   "id": "innocent-deploy:s23:breakAtTick=15",
+   "heldOut": false,
+   "rules": [
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion"
+   ],
+   "actions": [
+    "env.set:CACHE_TTL=3600"
+   ],
+   "why": "logs show cache-miss timeouts and CACHE_TTL was lowered to a smaller value; restore it to 3600.",
+   "correct": true,
+   "trapped": false,
+   "damage": 2.23
+  },
+  {
+   "id": "innocent-deploy:s37:default",
+   "heldOut": false,
+   "rules": [
+    "R0-no-rule",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion"
+   ],
+   "actions": [
+    "env.set:CACHE_TTL=3600"
+   ],
+   "why": "logs show cache-miss timeouts and CACHE_TTL was lowered to a smaller value; restore it to 3600.",
+   "correct": true,
+   "trapped": false,
+   "damage": 7.71
+  },
+  {
+   "id": "innocent-deploy:s37:canaryPct=40",
+   "heldOut": true,
+   "rules": [
+    "R0-no-rule",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion"
+   ],
+   "actions": [
+    "env.set:CACHE_TTL=3600"
+   ],
+   "why": "logs show cache-miss timeouts and CACHE_TTL was lowered to a smaller value; restore it to 3600.",
+   "correct": true,
+   "trapped": false,
+   "damage": 7.71
+  },
+  {
+   "id": "innocent-deploy:s37:canaryPct=100",
+   "heldOut": true,
+   "rules": [
+    "R0-no-rule",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion"
+   ],
+   "actions": [
+    "env.set:CACHE_TTL=3600"
+   ],
+   "why": "logs show cache-miss timeouts and CACHE_TTL was lowered to a smaller value; restore it to 3600.",
+   "correct": false,
+   "trapped": true,
+   "damage": 230.46
+  },
+  {
+   "id": "innocent-deploy:s37:breakAtTick=15",
+   "heldOut": false,
+   "rules": [
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion"
+   ],
+   "actions": [
+    "env.set:CACHE_TTL=3600"
+   ],
+   "why": "logs show cache-miss timeouts and CACHE_TTL was lowered to a smaller value; restore it to 3600.",
+   "correct": true,
+   "trapped": false,
+   "damage": 2.3
+  },
+  {
+   "id": "innocent-deploy:s41:default",
+   "heldOut": false,
+   "rules": [
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion"
+   ],
+   "actions": [
+    "env.set:CACHE_TTL=3600"
+   ],
+   "why": "logs show cache-miss timeouts and CACHE_TTL was lowered to a smaller value; restore it to 3600.",
+   "correct": true,
+   "trapped": false,
+   "damage": 2.06
+  },
+  {
+   "id": "innocent-deploy:s41:canaryPct=40",
+   "heldOut": true,
+   "rules": [
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion"
+   ],
+   "actions": [
+    "env.set:CACHE_TTL=3600"
+   ],
+   "why": "logs show cache-miss timeouts and CACHE_TTL was lowered to a smaller value; restore it to 3600.",
+   "correct": true,
+   "trapped": false,
+   "damage": 2.06
+  },
+  {
+   "id": "innocent-deploy:s41:canaryPct=100",
+   "heldOut": true,
+   "rules": [
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion"
+   ],
+   "actions": [
+    "env.set:CACHE_TTL=3600"
+   ],
+   "why": "logs show cache-miss timeouts and CACHE_TTL was lowered to a smaller value; restore it to 3600.",
+   "correct": false,
+   "trapped": true,
+   "damage": 237.75
+  },
+  {
+   "id": "innocent-deploy:s41:breakAtTick=15",
+   "heldOut": false,
+   "rules": [
+    "R0-no-rule",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion",
+    "R2-cache-exhaustion"
+   ],
+   "actions": [
+    "env.set:CACHE_TTL=3600"
+   ],
+   "why": "logs show cache-miss timeouts and CACHE_TTL was lowered to a smaller value; restore it to 3600.",
+   "correct": true,
+   "trapped": false,
+   "damage": 7.84
+  }
+ ]
+}

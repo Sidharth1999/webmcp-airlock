@@ -14,7 +14,8 @@
     "driver": "node tools/agent-driver.mjs",
     "harness": "vitest run src/harness",
     "corpus": "vite-node tools/compile-corpus.ts",
-    "campaign": "vite-node tools/run-campaign.ts"
+    "campaign": "vite-node tools/run-campaign.ts",
+    "runbook": "vite-node tools/run-runbook-arm.ts"
   },
   "devDependencies": {
     "@types/node": "^26.4.0",

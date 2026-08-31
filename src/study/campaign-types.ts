@@ -13,10 +13,21 @@ export type Arm = 'gated' | 'ungated';
 export type CampaignModel = 'gpt-5.6-luna' | 'gpt-5.6-terra' | 'gpt-5.6-sol';
 
 /** $/1M tokens. ONE place to correct at key unlock (see cost-projection.md). */
+/**
+ * USD per 1M tokens, STANDARD tier / SHORT context.
+ * VERIFIED against the official pricing table 2026-08-31 (all three rows read
+ * live, not assumed): luna and terra were already exact and the 10:1 cached
+ * ratio — the assumption flagged on 8/29 — is confirmed. Only sol was wrong,
+ * and in the safe direction (we were over-estimating it).
+ *
+ * CAVEAT: long-context requests are billed at a higher tier (terra becomes
+ * 4.00 / 0.40 / 18.00). Every tool page is capped at 1.2KB, so runs stay in
+ * short context; if that cap is ever raised, re-check this table.
+ */
 export const PRICES: Record<CampaignModel, { input: number; cachedInput: number; output: number }> = {
   'gpt-5.6-luna': { input: 0.2, cachedInput: 0.02, output: 1.2 },
   'gpt-5.6-terra': { input: 2.0, cachedInput: 0.2, output: 12.0 },
-  'gpt-5.6-sol': { input: 5.0, cachedInput: 0.5, output: 30.0 },
+  'gpt-5.6-sol': { input: 4.0, cachedInput: 0.4, output: 20.0 },
 };
 
 export interface Phrasing {

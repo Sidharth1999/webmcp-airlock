@@ -134,6 +134,9 @@ export interface RunOptions {
  * stepped on a fixed schedule (2 ticks per model turn — the world does not
  * wait for the agent, same as harness/run.ts).
  */
+/** Ticks to wait for the incident to open before the agent's first turn. */
+const INCIDENT_WAIT_TICKS = 40;
+
 export async function runOne(
   spec: RunSpec,
   client: LLMClient,
@@ -259,6 +262,18 @@ export async function runOne(
   let error: string | undefined;
 
   try {
+    // PAGE THE AGENT IN. Without this the model's first look is a calm
+    // console -- no incident, no deploys, no logs -- and it correctly says
+    // "no mitigation is needed" and stops. Every run then scores
+    // correctPath=false while measuring nothing at all.
+    //
+    // It is also what makes the arms comparable: the compiler probes and the
+    // runbook arm both start from an open incident, so the model must too.
+    for (let t = 0; t < INCIDENT_WAIT_TICKS; t++) {
+      if (engine.world.services.some((sv) => sv.health !== 'ok')) break;
+      engine.step(1);
+    }
+
     for (let turn = 0; turn < maxTurns; turn++) {
       engine.step(2); // the world does not wait for the agent
 

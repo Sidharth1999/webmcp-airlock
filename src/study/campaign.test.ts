@@ -276,3 +276,29 @@ describe('campaign plumbing', () => {
     expect(store.saved[0]!.error).toContain('rate limited');
   });
 });
+
+describe('the agent is paged into an OPEN incident', () => {
+  it('first observation shows a live incident, not a calm console', async () => {
+    // Regression: runOne used to enter the turn loop at t=0, so the model's
+    // first read was a healthy world with no deploys or logs. It answered
+    // "no mitigation is needed" and stopped, and every run scored
+    // correctPath=false while measuring nothing. Caught by a $0.0035 smoke.
+    const client = new MockClient('diligent');
+    const rec = await runOne(
+      {
+        candidate: { id: 'migration-trap:s42:default', templateId: 'migration-trap', seed: 42, params: {} },
+        arm: 'gated',
+        phrasingId: 'neutral',
+        model: 'gpt-5.6-luna',
+        runId: 'paged-in-test',
+      },
+      client,
+      { id: 'neutral', system: 'test' }
+    );
+    const firstStatus = rec.turns
+      .flatMap((t) => t.toolCalls)
+      .find((c) => c.tool === 'airlock_status');
+    expect(firstStatus, 'the agent should read status first').toBeTruthy();
+    expect(JSON.parse(firstStatus!.result).incidentOpen).toBe(true);
+  });
+});

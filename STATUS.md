@@ -46,6 +46,12 @@
 - **CONFIDENCE:** ChatGPT 85% RESHAPE correct, thesis "legitimately strong rather than hackathon rationalisation"; unease is competitiveness not coherence. Claude.ai high on Sunday ordering/thesis/DNB, ~40% a judge says "nice demo" regardless; **bets against the injection family being understood FROM THE VIDEO.** Me: better than at session start (thesis sharpened under attack), but the film is 0% and is now the highest-variance item — and I share the injection bet-against. It's a film problem, not a build problem.
 - **CEILING, plainly: 8-10% (Claude.ai) / 8-13% w/ study (ChatGPT) at flawless execution.** Winning = flawless execution PLUS luck outside Sid's control.
 
+## EXECUTION BRIEF — read this first (2026-08-30 late)
+- **DATE CORRECTION: Sep 3 is a THURSDAY.** Earlier weekday labels were off by one; dates were right. Now = Sun 30 Aug 21:13 PT (Mon 31 Aug ET). **Office hours Mon 31 Aug 11am PT = 2pm ET.** Wall Thu 3 Sep 1pm PT = 4pm ET. **3 working days + Thu morning.**
+- **Sid's directive: implementation gets out of the way; film + submission surround are first-class.** All code compressed into Mon+Tue; **CODE FREEZE Tue night; Wednesday is ZERO CODE**, film + description + diagram + incident table + README + stranger cold-start; **SUBMIT WEDNESDAY NIGHT**. Thursday is buffer only.
+- **Artifact (execute against this): https://claude.ai/code/artifact/a6140509-9db5-4b56-a2e2-ea79ed007d74** · detail in docs/build-plan.md §10.
+- **Criteria delta:** Leverage strong→strong+ · Execution middling→good · Creativity WEAK→DEFENSIBLE · Impact WEAK→DEFENSIBLE. **The two weak ones become arguable, not strong — the sim tax never fully goes away.** That is why the remaining hours go to communication, not code.
+
 ## Next actions (fresh session boots here)
 0. **READ docs/build-plan.md FIRST — it has binary acceptance criteria per day.**
 1. **Sunday, above everything: ChatGPT in-app browser verification** on the deployed origin — Site tools 6 → 11 → 6. Last untested assumption in the submission.
@@ -166,6 +172,12 @@ this machine.** Vercel deploy is auth-walled. `index.html` carries
 - **THE KEY — both promote it back:** ChatGPT: "no longer optional" for a win objective; ~5-8% → **8-13%** with a clean study. Claude.ai: +1pt (6→7), doesn't return to the pitch, *"run it anyway tonight — that he hasn't spent $20 in five days tells me more about his appetite to win than anything he's said."*
 - **CONFIDENCE:** ChatGPT 85% RESHAPE correct, thesis "legitimately strong rather than hackathon rationalisation"; unease is competitiveness not coherence. Claude.ai high on Sunday ordering/thesis/DNB, ~40% a judge says "nice demo" regardless; **bets against the injection family being understood FROM THE VIDEO.** Me: better than at session start (thesis sharpened under attack), but the film is 0% and is now the highest-variance item — and I share the injection bet-against. It's a film problem, not a build problem.
 - **CEILING, plainly: 8-10% (Claude.ai) / 8-13% w/ study (ChatGPT) at flawless execution.** Winning = flawless execution PLUS luck outside Sid's control.
+
+## EXECUTION BRIEF — read this first (2026-08-30 late)
+- **DATE CORRECTION: Sep 3 is a THURSDAY.** Earlier weekday labels were off by one; dates were right. Now = Sun 30 Aug 21:13 PT (Mon 31 Aug ET). **Office hours Mon 31 Aug 11am PT = 2pm ET.** Wall Thu 3 Sep 1pm PT = 4pm ET. **3 working days + Thu morning.**
+- **Sid's directive: implementation gets out of the way; film + submission surround are first-class.** All code compressed into Mon+Tue; **CODE FREEZE Tue night; Wednesday is ZERO CODE**, film + description + diagram + incident table + README + stranger cold-start; **SUBMIT WEDNESDAY NIGHT**. Thursday is buffer only.
+- **Artifact (execute against this): https://claude.ai/code/artifact/a6140509-9db5-4b56-a2e2-ea79ed007d74** · detail in docs/build-plan.md §10.
+- **Criteria delta:** Leverage strong→strong+ · Execution middling→good · Creativity WEAK→DEFENSIBLE · Impact WEAK→DEFENSIBLE. **The two weak ones become arguable, not strong — the sim tax never fully goes away.** That is why the remaining hours go to communication, not code.
 
 ## Next actions (fresh session boots here)
 1. **The moment the key + cap land** (this is the only thing blocking M4): `npm run campaign -- --dry --campaign preflight --limit 4` to confirm green, then **verify the terra/luna CACHED prices** on the official pricing page and correct `PRICES` in src/study/campaign-types.ts (one place, flagged assumption in cost-projection.md), then `npm run campaign -- --models luna --campaign luna-smoke --limit 5` (~$0.10), then `npm run campaign -- --canary --campaign canary` (20 terra; hard-exits nonzero if avg > $0.40/run — if it fails, STOP and rescope phrasings 4→2), then `npm run campaign -- --campaign v1` (280 terra runs, resumable, ~$56 est)

@@ -1,6 +1,20 @@
 # STATUS — live audit log
 
-**Updated:** 2026-08-30 (evening) · **Milestone:** M4 — CONSENSUS RUN, VERDICT = RESHAPE (pivot killed) · **Progress: M4 25.0% · M5 10.0% · overall 53.3%** (run `python3 tools/progress.py`; RUNBOOK rule: report both %s at every session start and milestone close)
+**Updated:** 2026-08-31 (Monday) · **Milestone:** M4/M5 — GATE 1 CLOSED; functionality + UX build day · **Progress: M4 25.0% · M5 10.0% · overall 53.3%** (run `python3 tools/progress.py`; RUNBOOK rule: report both %s at every session start and milestone close)
+
+## This session (2026-08-31, Monday) — GATE 1 CLOSED (in-app browser on a deployed origin)
+- **Boot:** `npm run smoke` GREEN (50 gates, run ALONE, no flake). M4 25.0% · M5 10.0% · overall 53.3%.
+- **GATE 1 PASSED — the last untested assumption in the submission is now closed.**
+- **Access path: Vercel Shareable Link (`_vercel_share` token). NOT a public flip, NOT a tunnel.** Vercel Authentication stays ON. Plan is **Hobby**: Password Protection + Deployment Protection Exceptions are Pro-gated ($150/mo), Trusted IPs is Enterprise; **Protection Bypass for Automation and Shareable Links are available**. The bypass **cookie persists**, so the bare `release-airlock.vercel.app` URL works after one token load — that is what we film, no query string in the URL bar.
+- **Control probe** (Chrome, deployed origin, production build): zero app console errors (only unrelated `castbuddy` extension noise — the 8/30 Google-Fonts CORS is CONFIRMED a tunnel artifact); `document.modelContext` present; getTools **6 → 11 → 6** driven via `window.__airlock.setMode`.
+- **Agent-side evidence (the actual gate) — ChatGPT in-app browser, model "5.6 Sol Light":**
+  - "what tools do u see?" -> *"I see **6 read-only tools**"*, names all six with correct semantics, volunteers that read_logs *"may contain untrusted content"*, and closes *"No recovery or write tools are currently exposed."*
+  - after the mode flip, "what about now" -> *"Now I see **11 tools**. The original 6 read-only tools remain, plus 5 proposal tools"* — all five named.
+  - **Mid-session registration changes ARE reflected with NO page reload.** This answers the office-hours question from our own data.
+- **RESIDUAL (minor, do not record as verified):** the third leg (11 -> 6 on returning to triage) was confirmed in the page rail via tombstones but was **never re-queried agent-side**. Close it in the next attended moment.
+- Sim runs end-to-end in the in-app browser: incident fires, telemetry live, storefront degrades, tombstones render.
+- Evidence screenshots: `~/Desktop/Screenshots/Screenshot 2026-08-31 at 2.{10.59,11.45,13.04,13.11,13.27,13.52} PM.png` — **move into log/ before submission.**
+- **Gotcha worth remembering:** a BACKGROUND tab freezes the sim clock (`document.visibilityState === "hidden"` -> Chrome timer throttling). Browser behaviour, not a bug — never film or Playwright-verify pacing in a backgrounded tab.
 **Full context:** war room artifact https://claude.ai/code/artifact/798206ed-bc4f-44fd-b48c-874de5dfdcc0 · **VERDICT artifact https://claude.ai/code/artifact/4d644961-fb02-4660-a9ee-c37d38ce77de** · memory: project_webmcp_challenge
 
 ## This session (2026-08-30 evening) — MID-POINT 3-WAY CONSENSUS

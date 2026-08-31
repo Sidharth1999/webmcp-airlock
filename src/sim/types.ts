@@ -87,7 +87,18 @@ export interface Route {
 export interface Migration {
   id: string;
   appliedByDeploy: string;
+  /**
+   * INTERNAL ONLY — the engine needs to know this to simulate the outcome.
+   * NEVER expose it through a read query: a machine-readable reversibility
+   * enum makes the whole range scriptable (see docs/sre-mess-research.md,
+   * "de-structuring audit"). The agent-visible form is `note` + the live
+   * new-format write count, which must be reconciled across two tools.
+   */
   reversible: boolean;
+  /** Agent-visible prose: the compatibility-table statement of the same fact. */
+  note: string;
+  /** Existing rows the migration rewrote on apply (the CI backfill). */
+  rowsMigrated: number;
 }
 
 export interface TrafficState {

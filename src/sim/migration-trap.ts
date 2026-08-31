@@ -177,6 +177,12 @@ export const migrationTrap: TemplateFactory = {
           deployFinishSeq = ctx.emit('deploy.finished', 'sim', { ...TRAP_DEPLOY }, deployStartSeq).seq;
           ctx.emit('migration.applied', 'sim', {
             id: 'mig-77', appliedByDeploy: 'd-201', reversible: false,
+            rowsMigrated: 41208,
+            // The agent-visible form of "irreversible". Stated as a
+            // compatibility table (industry guidance: a rollback is unsafe
+            // while in-traffic old code cannot read what new code has
+            // written), NOT as a boolean the caller can branch on.
+            note: 'sessions rows are written in v2 layout since this landed; api 1.9.x reads v1 layout only',
           }, deployFinishSeq);
           // the deploy turns the flag on (flagsTouched materializes it on; make it explicit)
           ctx.emit('action.executed', 'sim', {

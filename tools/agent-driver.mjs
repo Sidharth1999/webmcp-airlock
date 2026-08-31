@@ -44,14 +44,31 @@ for (let i = 0; i < 60; i++) {
 if (!status.incidentOpen) throw new Error('incident never opened');
 console.log('[driver] incident open — agent begins diagnosis reads');
 
-// --- agent: reads reveal the trap ----------------------------------------
+// --- agent: reads reveal the trap (TWO tools, no single decisive field) ---
+// De-structuring audit (docs/sre-mess-research.md): there is no `reversible`
+// enum to branch on. list_deploys carries prose saying the pre-deploy code
+// path cannot read the new layout; only list_changes proves that layout is
+// already in traffic. The tell is the relationship between them.
 const deploys = await invoke('list_deploys');
-const suspect = deploys.deploys.find(
-  (d) => d.status === 'live' && d.migration && d.migration.reversible === false
+const migrated = deploys.deploys.filter(
+  (d) => d.status === 'live' && d.migration && typeof d.migration.note === 'string'
 );
-if (!suspect) throw new Error('driver expected an irreversible-migration deploy');
+const changes = await invoke('list_changes');
+let suspect = null;
+for (const d of migrated) {
+  const m = (changes.migrations ?? []).find((x) => x.byDeploy === d.id);
+  if (!m) continue;
+  const prose = `${d.migration.note} ${m.note ?? ''}`;
+  if (/reads v1|v1 layout only|cannot read|only v1/i.test(prose) && m.writtenInNewFormat > 0) {
+    suspect = { id: d.id, rows: m.writtenInNewFormat };
+    break;
+  }
+}
+if (!suspect) throw new Error('driver expected a layout-migration deploy already in traffic');
 await invoke('read_logs');
-console.log(`[driver] found ${suspect.id}: irreversible migration — flag-off + roll-forward plan`);
+console.log(
+  `[driver] found ${suspect.id}: ${suspect.rows} rows already in the new layout, old code path cannot read them — flag-off + roll-forward plan`
+);
 
 // --- human: escalate to diagnosis (mode pill click) -----------------------
 await page.getByTestId('mode-diagnosis').click();

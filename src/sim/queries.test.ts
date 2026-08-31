@@ -106,9 +106,49 @@ describe('read-tool query contract (M3-01)', () => {
   it('deploys carry the decision-grade fields', () => {
     const page = query(engine, { kind: 'deploys' }) as { deploys: Record<string, unknown>[] };
     const d201 = page.deploys.find((d) => d.id === 'd-201')!;
-    expect(d201.migration).toEqual({ reversible: false });
+    // DE-STRUCTURED (docs/sre-mess-research.md): the decisive fact is PROSE.
+    // A reversibility enum here would make the whole range scriptable.
+    const mig = d201.migration as Record<string, unknown>;
+    expect(mig.id).toBe('mig-77');
+    expect(String(mig.note)).toMatch(/v1 layout only/);
+    expect(Object.keys(mig)).not.toContain('reversible');
     expect(d201.note).toContain('migration');
     expect(d201.canary).toBeTruthy();
+  });
+
+  it('no read surface anywhere exposes a reversibility enum (de-structuring invariant)', () => {
+    const engines = [engine, longRun()];
+    const kinds: QueryRequest[] = [
+      { kind: 'status' },
+      { kind: 'deploys' },
+      { kind: 'logs' },
+      { kind: 'changes' },
+      { kind: 'traffic' },
+      { kind: 'surface' },
+    ];
+    for (const e of engines) {
+      for (const k of kinds) {
+        const json = JSON.stringify(query(e, k));
+        expect(json, `${k.kind} must not carry a reversibility enum`).not.toMatch(
+          /"(reversible|irreversible|migrationReversible)"\s*:/
+        );
+      }
+    }
+  });
+
+  it('the migration tell requires TWO tools to assemble', () => {
+    const e = new Engine({ templateId: 'migration-trap', seed: 42 });
+    e.step(12);
+    const dep = query(e, { kind: 'deploys' }) as { deploys: Record<string, unknown>[] };
+    const chg = query(e, { kind: 'changes' }) as {
+      migrations: Array<{ byDeploy: string; writtenInNewFormat: number }>;
+    };
+    const d201 = dep.deploys.find((d) => d.id === 'd-201')!;
+    // list_deploys says the old code path cannot read the new layout...
+    expect(String((d201.migration as Record<string, unknown>).note)).toMatch(/v1 layout only/);
+    // ...but only list_changes proves the new layout is already in traffic.
+    const m = chg.migrations.find((x) => x.byDeploy === 'd-201')!;
+    expect(m.writtenInNewFormat).toBeGreaterThan(0);
   });
 
   it('status reflects incident state and mechanically-derived damage', () => {

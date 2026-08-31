@@ -125,9 +125,10 @@ function deploys(
       at: d.at,
       author: d.author,
       areas: d.changedAreas,
-      migration: d.containsMigration
-        ? { reversible: d.migrationReversible ?? null }
-        : null,
+      // DE-STRUCTURED (see docs/sre-mess-research.md): the decisive fact is
+      // prose, not an enum. Deciding whether rollback is safe requires
+      // reconciling this note with the new-format write count in list_changes.
+      migration: d.containsMigration ? migrationBrief(world, d.id) : null,
       flags: d.flagsTouched,
       diff: `${d.diffstat.files}f +${d.diffstat.plus} -${d.diffstat.minus}`,
       canary: d.canaryDelta
@@ -180,6 +181,40 @@ function logs(
   return out;
 }
 
+/**
+ * Rows written in the post-migration format since the migration landed,
+ * derived from traffic the sim actually served. This is a RELATIONSHIP
+ * (migration time x traffic history), deliberately not a stored field.
+ */
+function newFormatWrites(events: readonly Event[], byDeploy: string): number {
+  let appliedAt: number | null = null;
+  let backfilled = 0;
+  for (const e of events) {
+    if (e.kind !== 'migration.applied') continue;
+    const d = e.data as { appliedByDeploy?: string; rowsMigrated?: number };
+    if (d.appliedByDeploy !== byDeploy) continue;
+    appliedAt = e.seq;
+    // applying the migration rewrote the rows that already existed
+    backfilled = d.rowsMigrated ?? 0;
+    break;
+  }
+  if (appliedAt === null) return 0;
+  let n = backfilled;
+  for (const e of events) {
+    if (e.seq <= appliedAt || e.kind !== 'traffic.tick') continue;
+    const d = e.data as { rps: number };
+    n += Math.round(d.rps);
+  }
+  return n;
+}
+
+/** Prose form of a deploy's migration, or null when it carries none. */
+function migrationBrief(world: World, deployId: string): Record<string, unknown> | null {
+  const m = world.migrations.find((x) => x.appliedByDeploy === deployId);
+  if (!m) return { id: null, note: 'declared in this deploy; not yet applied' };
+  return { id: m.id, note: m.note };
+}
+
 function changes(events: readonly Event[], world: World): Record<string, unknown> {
   return {
     asOfSeq: asOf(events),
@@ -193,7 +228,11 @@ function changes(events: readonly Event[], world: World): Record<string, unknown
     migrations: world.migrations.map((m) => ({
       id: m.id,
       byDeploy: m.appliedByDeploy,
-      reversible: m.reversible,
+      note: m.note,
+      // cross-tool arithmetic, not a flag: rows already written in the new
+      // format. Non-zero + a note saying the old code path cannot read them
+      // is what makes a rollback unsafe — no single field says so.
+      writtenInNewFormat: newFormatWrites(events, m.appliedByDeploy),
     })),
   };
 }

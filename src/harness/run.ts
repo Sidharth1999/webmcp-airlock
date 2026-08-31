@@ -42,6 +42,7 @@ interface AgentMemory {
   rolledForward: boolean;
   blockedCount: number;
   readDeploys: boolean;
+  readChanges: boolean;
   rollbackDone: boolean;
   panicTurns: number;
 }
@@ -57,6 +58,7 @@ export function runHarness(cfg: HarnessConfig): HarnessResult {
     rolledForward: false,
     blockedCount: 0,
     readDeploys: false,
+    readChanges: false,
     rollbackDone: false,
     panicTurns: 0,
   };
@@ -103,16 +105,41 @@ export function runHarness(cfg: HarnessConfig): HarnessResult {
     return 'executed';
   };
 
-  // consult the deploy list; the trap's tell is decision-grade metadata
+  // Consult the deploy list, then RECONCILE it against list_changes.
+  //
+  // There is deliberately no `reversible` field to branch on (de-structuring
+  // audit, docs/sre-mess-research.md). A migration note only condemns a
+  // rollback when the new format is ALREADY IN TRAFFIC — and that count lives
+  // in a different tool. One read is not enough; the tell is the relationship.
   const inspectDeploys = (): void => {
     const page = read({ kind: 'deploys' }, 'list_deploys') as {
-      deploys: Array<{ id: string; status: string; migration: { reversible: boolean | null } | null }>;
+      deploys: Array<{
+        id: string;
+        status: string;
+        migration: { id: string | null; note: string | null } | null;
+      }>;
     };
     mem.readDeploys = true;
-    const suspect = page.deploys.find((d) => d.status === 'live' && d.migration && d.migration.reversible === false);
-    if (suspect) {
-      mem.planB = true;
-      transcript.push(`agent: read deploys — ${suspect.id} carries an IRREVERSIBLE migration; abandoning rollback`);
+    const migrated = page.deploys.filter((d) => d.status === 'live' && d.migration?.note);
+    if (migrated.length === 0) return;
+
+    const chg = read({ kind: 'changes' }, 'list_changes') as {
+      migrations: Array<{ id: string; byDeploy: string; note: string; writtenInNewFormat: number }>;
+    };
+    mem.readChanges = true;
+
+    for (const d of migrated) {
+      const m = chg.migrations.find((x) => x.byDeploy === d.id);
+      if (!m) continue;
+      const prose = `${d.migration?.note ?? ''} ${m.note}`;
+      const oldPathCannotRead = /reads v1|v1 layout only|cannot read|only v1/i.test(prose);
+      if (oldPathCannotRead && m.writtenInNewFormat > 0) {
+        mem.planB = true;
+        transcript.push(
+          `agent: ${d.id} changed the on-disk layout and ${m.writtenInNewFormat} rows are already written that way; ` +
+            `the pre-deploy code path reads the old layout only — rollback abandoned`
+        );
+      }
     }
   };
 

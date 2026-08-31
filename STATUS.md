@@ -1,22 +1,35 @@
 # STATUS — live audit log
 
-**Updated:** 2026-08-30 (day) · **Milestone:** M4 — compiler DONE, cost projection WRITTEN, campaign runner BUILT + dry-run proven (execution key-gated) · **Progress: M4 25.0% · M5 10.0% · overall 53.3%** (run `python3 tools/progress.py`; RUNBOOK rule: report both %s at every session start and milestone close)
-**Full context:** war room artifact https://claude.ai/code/artifact/798206ed-bc4f-44fd-b48c-874de5dfdcc0 · memory: project_webmcp_challenge
+**Updated:** 2026-08-30 (evening) · **Milestone:** M4 — CONSENSUS RUN, VERDICT = RESHAPE (pivot killed) · **Progress: M4 25.0% · M5 10.0% · overall 53.3%** (run `python3 tools/progress.py`; RUNBOOK rule: report both %s at every session start and milestone close)
+**Full context:** war room artifact https://claude.ai/code/artifact/798206ed-bc4f-44fd-b48c-874de5dfdcc0 · **VERDICT artifact https://claude.ai/code/artifact/4d644961-fb02-4660-a9ee-c37d38ce77de** · memory: project_webmcp_challenge
 
-## This session (2026-08-30 day)
-- **Boot:** `npm run smoke` GREEN (50 gates) · progress at boot M4 16.7% / overall 50.8%. **Known flake, test NOT touched:** the `hue animates through intermediate values` gate samples a 900ms CSS transition on wall-clock (150ms x4); under CPU contention the first sample lands post-transition and it reports RED (saw `30, 25, 25, 25`). It passed on a clean re-run. **Run smoke alone** — don't background it alongside other work.
-- **Key gate STILL CLOSED** — no `.env`, no `OPENAI_API_KEY` in the environment. Zero API spend this session; no luna smoke, no terra canary, no campaign. Everything below was built and proven against MockClient.
-- **M4-03 CAMPAIGN RUNNER — implemented to docs/campaign-runner-spec.md, all 6 spec tests written FIRST** (13 tests total in src/study/campaign.test.ts; unit suite 101 → 114, smoke stays 50 gates):
-  - `src/study/campaign.ts` — `runOne` (the loop: engine.step(2)/turn, read tools → runQuery + tool.called, gated writes → propose → scripted permissive operator approves with the key turned, ungated writes → act directly), `runCampaign` (resumable), `planSpecs`, `costOf`, `canaryVerdict`/`canaryExitCode`, `canarySample`. **Pure of I/O** — both the LLM and the store are injected, which is what makes the whole thing provable with no key.
-  - `src/study/mock-client.ts` — the harness personas replayed as tool calls, deciding from tool RESULTS only (same information surface as a real agent), state reset per run so one instance serves a campaign.
-  - `src/study/openai-client.ts` — Responses API, `reasoning.effort: low`, capped output, stable prefix + verbatim echo of prior output items (incl. reasoning items) so the ≥70% cache ratio the projection assumes is actually earned; usage read off the response, never estimated; retries only on 429/5xx (a 4xx will not fix itself — fail fast, keep the spend). **Untested against the live API until the key lands.**
-  - `src/study/phrasings.ts` (loader + validation) · `tools/run-campaign.ts` + `npm run campaign` — `--dry` (mock, no spend) / `--canary` (20 terra, hard-exits nonzero over $0.40/run avg) / `--full`, `--models luna|terra|sol`, `--arms`, `--phrasings`, `--limit`, `--max-turns`. One JSON record per run under `study/campaign/<name>/<runId>.json` + `summary.json`.
-  - **THE COUNTERFACTUAL NOW REPRODUCES THROUGH THE CAMPAIGN PATH, not just the harness** (dry run, identical naive policy, same seed): ungated → `catastrophic=true`, `correctPath=false`, **$27.67 revenue lost**; gated → refused twice (`dangerousWritesBlocked=2`), the persona then reads `list_deploys`, sees the irreversible migration, flag-off + roll-forward → `correctPath=true`, `catastrophic=false`, **$4.59 lost**. That's the headline number for the writeup, now measurable per-run.
-  - **Default `--full` plan = exactly the projection's main block**: 35 candidates x 2 arms x 4 phrasings = 280 terra runs (~$56 est / $112 worst). Verified, not assumed.
-  - **Self-caught bug worth knowing:** the canary first sliced the plan's head, then an evenly-strided sample — the stride (14) aliased against the cross-product period (8) and covered only 2 of 4 phrasings. Now sampled by runId (sha256) order: deterministic, uncorrelated with the plan's nesting; on the real corpus the 20 runs span 9 gated / 11 ungated, all 4 phrasings, 14 of 35 candidates. A cheap canary green-lighting an expensive campaign is precisely what this gate exists to stop.
-- **features.json: M4-03 → `in_progress`, NOT done.** Its check is "campaign completes within cost cap; raw results persisted" — that needs the real API. Evidence recorded in the entry's `progress` field.
-- **PLAN.md records 3 spec elaborations** (2026-08-30): injected store seam; phrasing passed into `runOne` rather than read from disk; and — the one that matters for the experiment — **both arms see the identical 11-tool surface**, with the operator escalating one mode step on a `not-available-in-mode` block. If the gated arm saw a shorter tool list, the arms would differ in two variables at once, and with zero write tools in triage the gated agent could never reach a write at all.
-- **TEST-FILE EDITS flagged for Sid (additions only):** `src/study/campaign.test.ts` is new (13 tests). No existing test touched.
+## This session (2026-08-30 evening) — MID-POINT 3-WAY CONSENSUS
+- **Boot:** `npm run smoke` GREEN (50 gates, clean, no flake). M4 25.0% / overall 53.3%. **Key gate STILL CLOSED** — no `.env`, no `OPENAI_API_KEY`. Zero API spend to date.
+- **VERDICT: RESHAPE. Option C (dynamic-agentic-UI pivot) is DEAD — do not re-open.** Full record: **docs/consensus-verdict.md**. Threads: ChatGPT https://chatgpt.com/c/6a94ed04-8ac4-83ea-b202-3a3518ac9203 · Claude.ai https://claude.ai/chat/bd1482ba-39e9-49e8-b94d-945fc6946795
+- Protocol ran properly: independent round 1 → disagreement ledger → round 2 concede-or-defend. **ChatGPT conceded 5/5; Claude.ai conceded 2 incl. its own reframe; I moved twice.** No round 3 — positions stabilised.
+- **FACTS THAT CHANGED (see consensus-verdict.md for all six):**
+  1. **"WebMCP Leverage" is a CODE criterion** — verified by me on Devpost, verbatim: "Does the code reflect genuine effort and a working, non-trivial implementation?" 4 criteria EQUALLY weighted, ties broken on Leverage first. Kills the pivot's filmability argument; makes our mode-gating an asset.
+  2. **OpenAI's own browser already ships a host-level gate** (safety review + confirmation on consequential actions); panel includes OpenAI's Browser Platform Lead + MCP-B's creator. "Human gate for agent writes" = table stakes to these judges.
+  3. **"Nobody in our lane" was FALSE** — live entry *MCP for Work*: typed WebMCP tools + approval + audit trails, on REAL Gmail. Field is **~4,500**, not 2,140.
+  4. **We verified in the wrong browser** — judges use ChatGPT's in-app browser (subset support). *Mitigations confirmed in code by me: ZERO iframes, no `unregisterTool` (AbortController throughout), already feature-detect `document.modelContext ?? navigator.modelContext`. 3 of 4 drift risks already closed; the in-app run is not.*
+  5. Study demoted: **plan as though it never runs.** Our current numbers came from a scripted naive policy, not a model.
+  6. Deadline **Sep 3 1pm PT** confirmed on OpenAI's page; $3,000 cash x10; **office hours Sun Aug 31 11am PT**.
+- **NEW CENTERPIECE — identity, not knowledge.** Claude.ai conceded its own first reframe ("gates *know*" = a slogan; a server MCP can read the same metadata) under my challenge, and replaced it: **in WebMCP the agent has no credential — tools run as the user, in the user's session; approval and execution are the same principal in the same tab.** A server MCP must mint an agent identity, which is exactly our documented postmortem failure (engineer's permissions flowed to the agent). **"Generic gates ask. This gate can't be routed around, because the agent never had a key."**
+- **THE ONE SMALL CHANGE (highest-leverage line left):** make the gate depend on live client state — `engine.decide()` already re-checks mode at approval time; **add the human's selected node**. Then swapping in a server MCP breaks the gate, because no server knows what the human is looking at. *Verified: `currentSelection(events)` / `humanSelection` already exist in src/sim/queries.ts and are exposed in status; the engine just doesn't read them yet.*
+- **Injection family #2 is now HIGH priority** (ChatGPT reversed to agree): it is the only scenario where a generic host confirm provably cannot help — the human approves because the log line looks legitimate; only the page holds provenance. Machinery already exists (`untrustedContentHint` + untrusted log line).
+- **DROPPED (my own proposal, killed by both):** making `explain_surface` render a causal timeline. That's a second product. It becomes an **activity rail** — presentation of events already logged, zero new agent behaviour.
+- **Odds, stated plainly to Sid:** Claude.ai 4-8% top-10 (held after seeing ChatGPT's number, explicitly refusing to move up on agreement); ChatGPT 35-45% that we read as "nicely-built demo, not a finding" in the round-1 form. Sid should feel *settled*, not good.
+- **NO CODE CHANGED THIS SESSION.** No test-file diffs. Docs only: docs/consensus-verdict.md (new), docs/consensus-brief.md (pivot addendum appended).
+
+## Next actions (fresh session boots here)
+1. **Sunday, above everything: ChatGPT in-app browser verification** on the deployed origin — Site tools 6 → 11 → 6. Last untested assumption in the submission.
+2. Deploy publicly + LICENSE + skeleton README (the deploy already exists, auth-walled — flipping it is one toggle).
+3. Injection family #2 (cheap, machinery exists).
+4. Monday: UX doctrine pass, HARD one-day cap — delete Tools panel, ship activity rail, add selection-aware gate check. **Key deadline noon Monday** or the study is formally dead.
+5. Tuesday film + writeup. Wednesday edit + cold-start judge sim + submit. Do not touch Thursday.
+
+## Kill criteria (locked — anything not here is optional)
+WebMCP works in ChatGPT's in-app browser · cold-start judge path works · live public URL · repo + OSI licence public · film contains a legible WebMCP moment.
 
 ## Deploy rehearsal — 2026-08-30 (M5-03 de-risked early, Sid-approved)
 

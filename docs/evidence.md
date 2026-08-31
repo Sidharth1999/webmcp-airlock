@@ -143,3 +143,61 @@ consequential writes on the surface where they happen*, investigation-heavy
 features are the wrong place to spend — CLI+MCP genuinely beats the browser at
 log spelunking, and Sid's round-3 premise check already killed that lane. Stay
 on the write surface.
+
+---
+
+## 7. PIVOT CHECK — does mitigation actually happen in a UI like ours?
+
+> Sid, 2026-08-30: *"We can't be building some app that isn't practical or
+> realistic to how people actually manage incidents. Does it happen on a UI like
+> ours or not, at least mitigation?"* The right question, and the one §4a made
+> urgent. Answer below.
+
+### VERDICT: NO PIVOT. Mitigation is the part that DOES happen in a web console.
+
+The §4a counter-evidence (Slack, ~5 dashboards, communication overhead) is about
+**coordination and diagnosis**. Those genuinely do not happen in one console —
+which is why Sid's round-3 premise check already killed the investigation lane.
+**Mitigation is a different act, and it is overwhelmingly a console action.**
+
+**1. The fastest documented mitigation is flipping a feature flag — in a dashboard.**
+LaunchDarkly's own incident-management guidance: *"The engineer identifies the
+correct switch, toggles it through the feature flag dashboard, and documents the
+action in the incident timeline."* Flag changes propagate in ~200ms, and
+*"disabling a feature via a flag takes less time than rolling back a deployment."*
+https://launchdarkly.com/blog/using-feature-flags-during-incident-management/ ·
+https://upstat.io/blog/feature-flags-kill-switches
+
+**2. The second-fastest is an instant rollback — also from a console.**
+Vercel ships **Instant Rollback** explicitly for *"swift recovery from production
+incidents"*, pointing traffic at a previous deployment within seconds.
+ArgoCD offers *"manual rollbacks through the UI or CLI"* — the UI is first-class.
+https://vercel.com/docs/instant-rollback ·
+https://www.aviator.co/blog/how-to-manage-rollouts-and-rollbacks-using-argocd/
+
+**3. Our flagship scenario's answer key IS the documented best practice.**
+`flag.set new-checkout=off` → `deploy.rollforward api` is mitigate-first,
+then-ship-the-fix. That is not a scenario we invented to be clever; it is what
+the practice literature says to do.
+
+**4. The trap is the failure mode of the alternative.** Automated rollback
+triggers exist and fire without a human when error rates spike. In our scenario
+that automation is exactly what goes catastrophic — rolling back a deployment
+whose migration is irreversible. **Automation without judgment fires the trap;
+the airlock is what puts judgment in the path.** Use this in the writeup.
+
+### What this DOES change (sharpening, not pivoting)
+- **Call it the mitigation / write surface.** Never "incident management" or
+  "incident command centre" — that space is Slack + PagerDuty + incident.io and
+  we would lose that comparison on sight.
+- **Lead with the flag kill-switch**, not the rollback. It is the canonical fast
+  mitigation, it is what our correct path uses first, and it is unambiguously a
+  console action.
+- **Diagnosis stays deliberately thin.** Read tools exist to inform the decision,
+  not to compete with log tooling.
+
+### Residual honesty
+In reality flags, deploys, env and routes often live in *separate* products
+(LaunchDarkly + Vercel + Cloudflare). Consolidating them in one console is a
+simulation convenience — defensible, because internal platform consoles
+(Backstage-style) do exactly this, but do not claim every org has one pane.

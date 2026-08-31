@@ -96,3 +96,50 @@ that the CLI world learned it needed, built for the surface that is arriving.
 - No invented dollar figures. $ only ever as mechanically derived sim output
   with the formula visible (ratified 08-28).
 - Do not claim browser-agent production incidents exist. See 4(b).
+
+---
+
+## 6. Why WebMCP specifically — and why this is NOT a CLI or a Playwright demo
+
+> Sid, 2026-08-30: it must not be reducible to "plug MCPs into Claude Code and
+> let it investigate" or "let an agent click around your frontend". This is the
+> **WebMCP Leverage** criterion, which is the judges' FIRST tiebreak. Carry it
+> through the writeup, the film narration, and every design decision.
+
+The test to apply to any feature: **could this be done as well with CLI+MCP, or
+by an agent driving the UI?** If yes, it is not leverage.
+
+| | CLI agent + MCP servers | Playwright / computer-use | **WebMCP (ours)** |
+|---|---|---|---|
+| Who decides what the agent may do | the **user**, in client config, statically per session | nobody — anything a human can click | **the APP, live, from its own state** |
+| Capability changes with situation | no — the server list is fixed at launch | no — the whole UI is always clickable | **yes — mode-gated registration; tools appear/disappear as the incident escalates, and `toolchange` fires** |
+| What an action *means* | server-defined, opaque to the host app | a click; no semantics at all | **declared: tier, reversibility, diff, `readOnlyHint`, `untrustedContentHint`** |
+| Where approval happens | a y/n prompt in the terminal, to the same person who launched the agent | there is no gate; the agent just clicks the destructive button | **a diff card anchored to the node being mutated, in the surface the operator is already using** |
+| Can the gate be measured | not really — no typed action vocabulary | no — clicks aren't tiered | **yes — every attempt is a typed, logged event; that's what makes M4 possible** |
+
+**The four load-bearing claims:**
+
+1. **The application is the policy authority.** Only WebMCP lets the *page*
+   decide, at runtime, which tools exist at all. Our modes (triage → diagnosis →
+   recovery) mean the agent's capability is a function of application state, not
+   of what a user wired up. A CLI MCP server's tool list is static config; in
+   Playwright every button is always reachable. **Verified against real Chrome
+   151: `getTools()` returns 6 → 11 → 6 as the incident escalates and de-escalates.**
+2. **Human and agent share one surface.** Approval is not a terminal prompt — it
+   is a diff card anchored to the deploy being rolled back, in the operator's own
+   view. Co-presence (human selects a node → the agent's reads scope to it) is
+   only possible when both parties are in the same live document.
+3. **Actions carry semantics the gate can reason about.** A rollback is tier 1, a
+   route change is tier 4 and needs the dual key, a migration is flagged
+   irreversible. Pixels cannot be tiered; a click cannot declare its blast radius.
+   This is also what makes the trap legible: the agent can *know* the rollback is
+   irreversible before proposing it.
+4. **It degrades to a normal web app.** With no agent present the page is fully
+   usable by a human — which is the honest test that we built a product, not a
+   harness.
+
+**Corollary for scope (see §4a):** because the leverage is in *gating
+consequential writes on the surface where they happen*, investigation-heavy
+features are the wrong place to spend — CLI+MCP genuinely beats the browser at
+log spelunking, and Sid's round-3 premise check already killed that lane. Stay
+on the write surface.

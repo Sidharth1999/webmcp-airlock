@@ -21,6 +21,23 @@ import type { Candidate } from '../src/study/compiler';
 import type { VerifyReport } from '../src/study/compiler';
 
 /**
+ * Load .env into process.env. vite-node does NOT do this for a CLI script —
+ * `process.env.OPENAI_API_KEY` is undefined even with the file sitting right
+ * there, which made the documented "drop the key in .env" instruction a
+ * silent no-op. Node >=20.12 can parse it natively.
+ */
+function loadDotEnv(): void {
+  try {
+    if (existsSync('.env')) process.loadEnvFile('.env');
+  } catch {
+    // a malformed .env should not take the CLI down; the key check below
+    // gives the actionable error
+  }
+}
+loadDotEnv();
+
+
+/**
  * M4-03 CLI. The only file in the campaign path that touches the filesystem
  * or the network — campaign.ts stays injectable and therefore testable.
  *

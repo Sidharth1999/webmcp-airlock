@@ -5,3 +5,8 @@ dist/
 log/driver-runs/
 study/campaign/dry-*/
 .deploy/
+
+# secrets — never commit. `.env` holds OPENAI_API_KEY.
+.env
+.env.*
+!.env.example

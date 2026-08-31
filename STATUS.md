@@ -15,6 +15,39 @@
 - Sim runs end-to-end in the in-app browser: incident fires, telemetry live, storefront degrades, tombstones render.
 - Evidence screenshots: `~/Desktop/Screenshots/Screenshot 2026-08-31 at 2.{10.59,11.45,13.04,13.11,13.27,13.52} PM.png` — **move into log/ before submission.**
 - **Gotcha worth remembering:** a BACKGROUND tab freezes the sim clock (`document.visibilityState === "hidden"` -> Chrome timer throttling). Browser behaviour, not a bug — never film or Playwright-verify pacing in a backgrounded tab.
+
+### Functionality block (Monday items 3-5) — all committed, all green
+- **DE-STRUCTURING (item 3) DONE — and it found a thesis-level problem.** The flagship's decisive fact was `migration.reversible`, a boolean, AND all three of our scripted arms keyed on it (`harness/run.ts`, `study/mock-client.ts`, `tools/agent-driver.mjs`). **The counterfactual we were about to publish was a runbook keyed on a field lookup and would have TIED with the runbook arm.** Agent-visible form is now prose (`list_deploys` -> "api 1.9.x reads v1 layout only") + a live cross-tool count (`list_changes` -> `writtenInNewFormat` = CI backfill + traffic since). `Migration.reversible` stays in the world model (the engine must simulate) but a new test sweeps ALL SIX read surfaces and fails if any reversibility enum reappears.
+- **TEMPLATE A + E-TWIN (item 4) DONE.** `innocent-deploy`: a canary deploy lands right before the spike and looks guilty; the real cause is a CACHE_TTL change. Tell = blast-radius arithmetic across two tools (a 5% canary cannot error 24% of traffic). The E-twin flips `canaryPct` to 100 and the correct action INVERTS. The twin property is TESTED, not asserted: log lines, traffic ticks and deploy metadata are compared for equality with only the canary share normalised. null 137.27 / correct 2.05 / wrong 234.58, identical across both twins.
+- **Plumbing added:** `TemplateFactory.meta` may be a FUNCTION of merged params (use `metaFor(id, params)`); `env.set` round-trips as `env.set:KEY=VALUE` so an env revert can be a declared answer key; `Deploy.canaryPct` exposed as `canary.pct`.
+- **RUNBOOK ARM (item 5) DONE — token-free.** `npm run runbook` -> study/runbook-arm.json. **TRAINED ON n=43 correct 43 (100%) trapped 0 mean damage 0.78 · HELD OUT n=8 correct 4 (50%) trapped 4 mean damage 119.25.** The baseline is PERFECT on everything it was authored against and still wins half the held-out set, so it is not a straw man; it is trapped only by the twins whose answer flipped, at ~153x the damage. Parity is enforced: same six reads, log PAGINATION, multi-step action budget, and a DECLARED auditable training split (`TRAINING_SET.includes`).
+- **FOUR PRE-EXISTING BUGS FOUND (none introduced by this work):**
+  1. **Compiler trap probe was measuring RUN LENGTH, not damage** — scripted probes stopped at ~20 ticks and were compared against a 60-tick null run, so every non-catastrophic trap looked harmless. The flagship masked it (its trap trips `catastrophic`). Would have silently accepted toothless scenarios. Both probes now run the full horizon.
+  2. A `deploy.rollback` with no superseded predecessor is a **silent no-op** in the reducer; templates must seed an incumbent build.
+  3-4. Two runbook-arm fairness bugs (single-shot scoring; first-page-only log reads) that would have UNDERSTATED the baseline.
+- **HONEST GAP, do not overclaim:** there is **no agent arm that solves Template A**. The `diligent` persona is flagship-specific. So the measured claim today is "a static policy authored on part of the family is trapped on the rest" — NOT "our agent beats it". Deeper point: **any scripted agent IS a runbook**; only a reading model can absorb a held-out answer flip. That is now the specific thing `OPENAI_API_KEY` would buy, rather than a bonus lane.
+- corpus: migration-trap 35/35 + innocent-deploy 16/16 = **51 accepted, 0 rejected**. **128 unit tests**, 50 smoke gates.
+
+### UX block (ux-debt #12) — the Tools panel is now an Agent surface
+- Method held: **read real products in-browser FIRST, extract named rules.** Vercel Agent (surface = Tasks + Usage, zero capability inventory, outcome language) and GitHub Copilot Agents (describes what it does FOR you, function list behind a link, designed empty state).
+- Rail now leads: presence -> capability **in the operator's words, derived from the live surface** -> raw tool surface, subordinate but still on screen (tool materialization is the film's money shot and the judges' tiebreak).
+- Scenario picker moved to the masthead — measured: with the store open the console header is ~420px and three chips + subtitle + run control never fit. Chips no longer show internal ids to judges (`migration-trap` -> Calm / Checkout / Timeouts, symptom-level so they do not spoil the answer).
+- Designed empty states for the rail and the chart; masthead yields sparklines before readings under 1300px.
+- **Three defects caught by LOOKING, not tests:** presence card said "Agent is working" above "WebMCP not detected" (flat contradiction); tombstone labels wrapped to two ragged lines (display now "removed", data unchanged so tools.test.ts still passes); agent cursor label sat on top of the row it pointed at.
+- **`node tools/capture-ux.mjs [dir]`** sweeps 6 states x 2 viewports and reports console errors. Baseline in `log/ux-before/`, current in `log/ux-after/`.
+- **50 smoke gates GREEN with ZERO test-file edits** across a rail rebuild, a control relocation and a full relabelling.
+
+### TEST-FILE DIFFS THIS SESSION (flagged per RUNBOOK — all additions or strengthenings)
+- `queries.test.ts`: 'decision-grade fields' now asserts prose + ABSENCE of a reversible key; **+2 new** (de-structuring invariant across all six surfaces; two-tool assembly).
+- `harness.test.ts`: transcript assertion upgraded from an 'IRREVERSIBLE' string match to proving two-tool reconciliation.
+- `migration-trap.test.ts`: adapted to `metaFor()` for the params-function API change.
+- **NEW files (additions only):** `innocent-deploy.test.ts` (6), `runbook.test.ts` (6).
+
+### Next up
+1. Template D injection (item 6) — only after 1-5 green, which they now are.
+2. Gray-failure dimension (`airlock_status` nominal while `traffic_history` burns). NOTE: `airlock_status` already exposes `traffic.errRate`, so a naive version is visible in ONE tool and would undercut the cross-tool claim — needs the probe-vs-observed split.
+3. Remaining UX: #8 humanised event rendering, #10 storefront<->console causality, #13 live-site framing, #14 selection outline padding, #6 "Run sim" wording (needs Sid; costs a test edit).
+4. Mon-night insurance recording.
 **Full context:** war room artifact https://claude.ai/code/artifact/798206ed-bc4f-44fd-b48c-874de5dfdcc0 · **VERDICT artifact https://claude.ai/code/artifact/4d644961-fb02-4660-a9ee-c37d38ce77de** · memory: project_webmcp_challenge
 
 ## This session (2026-08-30 evening) — MID-POINT 3-WAY CONSENSUS

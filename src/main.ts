@@ -65,11 +65,14 @@ app.innerHTML = `
       <header>
         Console
         <span class="pane-sub">what is true right now</span>
-        <select id="template-pick" data-testid="template-pick" title="scenario template">
+        <div class="seg" id="template-pick" data-testid="template-pick" role="radiogroup" aria-label="Scenario">
           ${templateIds()
-            .map((id) => `<option value="${id}">${id}</option>`)
+            .map(
+              (id) =>
+                `<button type="button" role="radio" data-template="${id}" data-testid="template-${id}" aria-checked="${id === TEMPLATE_ID}">${id}</button>`
+            )
             .join('')}
-        </select>
+        </div>
         <button type="button" id="sim-run" data-testid="sim-run" aria-pressed="false">Run sim</button>
       </header>
       <div class="body">
@@ -78,8 +81,12 @@ app.innerHTML = `
           <!-- ZONE 1 — the situation, in a sentence. Everything below is
                evidence for it. Computed from the log, never hardcoded. -->
           <section id="situation" data-testid="situation" data-phase="calm">
-            <p class="sit-head" id="sit-head">Waiting for the shift to start.</p>
-            <p class="sit-detail" id="sit-detail">Press Run sim to bring the store online.</p>
+            <div class="sit-bar">
+              <span class="sit-state" id="sit-state">STANDBY</span>
+              <span class="sit-clock" id="sit-clock">T+00:00</span>
+            </div>
+            <p class="sit-head" id="sit-head">NO SCENARIO RUNNING</p>
+            <dl class="sit-fields" id="sit-fields"></dl>
           </section>
 
           <!-- ZONE 2 — what changed. Open while it matters. -->
@@ -235,14 +242,19 @@ function proposeToWorker(tool: string, input: Record<string, unknown>): Promise<
 const streamEl = document.querySelector<HTMLOListElement>('#event-stream')!;
 const statusEl = document.querySelector('#sim-status')!;
 const runBtn = document.querySelector<HTMLButtonElement>('#sim-run')!;
-const templatePick = document.querySelector<HTMLSelectElement>('#template-pick')!;
+const templatePick = document.querySelector<HTMLElement>('#template-pick')!;
 let running = false;
 let pacer: number | undefined;
 let eventCount = 0;
 let tickCount = 0;
 let world: World | null = null;
 
-templatePick.value = TEMPLATE_ID;
+function markTemplate(id: string): void {
+  templatePick.querySelectorAll<HTMLButtonElement>('[data-template]').forEach((b) => {
+    b.setAttribute('aria-checked', String(b.dataset.template === id));
+  });
+}
+markTemplate(TEMPLATE_ID);
 
 // One source of truth for pacing: tick while running and the tab is visible.
 // A hidden tab pauses (the event log is append-only and unbounded — a
@@ -292,7 +304,12 @@ function seed(templateId: string): void {
   send({ type: 'snapshot' });
 }
 
-templatePick.addEventListener('change', () => seed(templatePick.value));
+templatePick.addEventListener('click', (e) => {
+  const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-template]');
+  if (!btn) return;
+  markTemplate(btn.dataset.template!);
+  seed(btn.dataset.template!);
+});
 
 const SEVERITY: Record<Health, number> = { ok: 0, degraded: 1, down: 2 };
 
@@ -901,64 +918,102 @@ function applyHealth(w: World): void {
 }
 
 /**
- * ZONE 1 — the console's answer to "what is going on", in a sentence.
+ * ZONE 1 — the console's status readout.
  *
- * Written as PROSE, not a metric grid: an operator arriving cold should be
- * able to read one line and know the state of the world. Everything below
- * this is evidence FOR the sentence. Every value here is derived from the
- * same event log the metrics come from — nothing is authored for the demo.
+ * Deliberately NOT prose. An earlier pass wrote this as sentences (borrowed
+ * from incident.io's post-hoc incident summaries) and it read as a slide
+ * rather than as instrumentation. A control system states the world in
+ * LABELLED FIELDS — state, elapsed, magnitude, cause, impact — terse, tabular,
+ * machine-tight. Every value is still derived from the event log.
  */
+let simNowMs = 0;
+
+function clock(ms: number): string {
+  const total = Math.max(0, Math.round(ms / 1000));
+  return `T+${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`;
+}
+
 function renderSituation(w: World, worst: Health): void {
   const zone = document.querySelector<HTMLElement>('#situation')!;
+  const state = document.querySelector<HTMLElement>('#sit-state')!;
   const head = document.querySelector<HTMLElement>('#sit-head')!;
-  const detail = document.querySelector<HTMLElement>('#sit-detail')!;
+  const fields = document.querySelector<HTMLElement>('#sit-fields')!;
+  document.querySelector<HTMLElement>('#sit-clock')!.textContent = clock(simNowMs);
 
+  const pct = (x: number): string => `${(x * 100).toFixed(1)}%`;
   const checkoutErr = w.traffic.byRoute['/checkout']?.errRate ?? w.traffic.errRate;
-  const pct = (n: number): string => `${(n * 100).toFixed(0)}%`;
-  const culprit = [...w.deploys].reverse().find((d) => d.status === 'live' && d.note);
-  const since = culprit ? ` It started after ${culprit.note!.split(/[;(]/)[0]!.trim()} shipped.` : '';
-  const hurt = w.damage.usersErrored;
+  const live = [...w.deploys].reverse().find((d) => d.status === 'live');
+  const bad = w.services.filter((s) => s.health !== 'ok');
 
-  // a decision the human owes the agent outranks everything else on screen
-  if (pendingCards.size > 0) {
+  const put = (rows: Array<[string, string, string?]>): void => {
+    fields.innerHTML = rows
+      .map(
+        ([k, v, tone]) =>
+          `<div class="sit-f"><dt>${k}</dt><dd${tone ? ` data-tone="${tone}"` : ''}>${v}</dd></div>`
+      )
+      .join('');
+  };
+
+  // an unanswered proposal outranks the world: it is what the console is for
+  const pending = [...pendingCards.values()][0];
+  if (pending) {
+    const diff = pending.card.querySelector('.ap-diff')?.textContent ?? 'pending change';
+    const tier = pending.card.querySelector('.ap-tier')?.textContent ?? '';
     zone.dataset.phase = 'decide';
-    head.textContent = 'The agent is waiting on you.';
-    detail.textContent =
-      `It has proposed a change it cannot make on its own. Approve or reject it below — ` +
-      `nothing has been applied yet.`;
+    state.textContent = 'PROPOSAL PENDING';
+    head.textContent = 'OPERATOR DECISION REQUIRED';
+    put([
+      ['ACTION', diff],
+      ['TIER', tier.replace(/\s+/g, ' ').trim() || '—'],
+      ['APPLIED', 'nothing — airlock holding', 'hold'],
+    ]);
     return;
   }
 
   if (worst === 'down') {
     zone.dataset.phase = 'down';
-    const dead = w.services.filter((s) => s.health === 'down').map((s) => s.name).join(', ');
-    head.textContent = `${dead} is down.`;
-    detail.textContent =
-      `The storefront cannot complete any checkout. ${hurt} customers have hit an error so far, ` +
-      `and $${w.damage.revenueLost.toFixed(2)} of orders have been lost.`;
+    state.textContent = 'OUTAGE';
+    head.textContent = `${bad.map((s) => s.name.toUpperCase()).join(' / ')} DOWN`;
+    put([
+      ['ERR', `${pct(checkoutErr)} /checkout`, 'bad'],
+      ['SVC', bad.map((s) => `${s.id} ${s.health}`).join(' · '), 'bad'],
+      ['CAUSE', live ? `${live.id} ${live.note ?? live.version}` : 'unknown'],
+      ['IMPACT', `${w.damage.usersErrored} users · $${w.damage.revenueLost.toFixed(2)}`, 'bad'],
+    ]);
     return;
   }
 
   if (worst === 'degraded') {
     zone.dataset.phase = 'incident';
-    head.textContent = 'Checkout is failing.';
-    detail.textContent =
-      `${pct(checkoutErr)} of payment attempts are erroring.${since} ` +
-      `${hurt} customers affected, $${w.damage.revenueLost.toFixed(2)} lost.`;
+    state.textContent = 'INCIDENT ACTIVE';
+    head.textContent = 'CHECKOUT FAILING';
+    put([
+      ['ERR', `${pct(checkoutErr)} /checkout`, 'warn'],
+      ['SVC', bad.map((s) => `${s.id} ${s.health}`).join(' · ') || '—', 'warn'],
+      ['CAUSE', live ? `${live.id} ${live.note ?? live.version}` : 'unknown'],
+      ['IMPACT', `${w.damage.usersErrored} users · $${w.damage.revenueLost.toFixed(2)}`, 'warn'],
+    ]);
     return;
   }
 
   zone.dataset.phase = 'calm';
-  if (w.damage.revenueLost > 0) {
-    head.textContent = 'Checkout is healthy again.';
-    detail.textContent =
-      `All ${w.services.length} services are responding. The incident cost ` +
-      `$${w.damage.revenueLost.toFixed(2)} and affected ${hurt} customers.`;
-  } else {
-    head.textContent = 'All services nominal.';
-    detail.textContent =
-      `${w.services.length} services responding · checkout at ${pct(checkoutErr)} error rate.`;
+  if (w.services.length === 0) {
+    state.textContent = 'STANDBY';
+    head.textContent = 'NO SCENARIO RUNNING';
+    fields.innerHTML = '';
+    return;
   }
+  const recovered = w.damage.revenueLost > 0;
+  state.textContent = recovered ? 'RECOVERED' : 'NOMINAL';
+  head.textContent = recovered ? 'CHECKOUT RESTORED' : 'ALL SYSTEMS RESPONDING';
+  put([
+    ['ERR', `${pct(checkoutErr)} /checkout`, 'ok'],
+    ['SVC', `${w.services.length}/${w.services.length} ok`, 'ok'],
+    ['LIVE', live ? `${live.id} ${live.service} ${live.version}` : '—'],
+    ...(recovered
+      ? ([['COST', `${w.damage.usersErrored} users · $${w.damage.revenueLost.toFixed(2)}`]] as Array<[string, string]>)
+      : []),
+  ]);
 }
 
 /**
@@ -980,6 +1035,7 @@ function discloseFor(phase: string): void {
 
 function renderEvents(events: Event[], w: World): void {
   world = w;
+  if (events.length) simNowMs = events[events.length - 1]!.t;
   for (const e of events) {
     const li = document.createElement('li');
     li.dataset.kind = e.kind;

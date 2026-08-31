@@ -17,6 +17,23 @@ const DEFAULT_TEMPLATE = 'migration-trap';
 // fast), ?dev=1 shows the manual health buttons (token demo, M1 leftover).
 const params = new URLSearchParams(location.search);
 const requestedTemplate = params.get('template') ?? DEFAULT_TEMPLATE;
+/**
+ * Scenario names as an operator would see them. Deliberately symptom-level:
+ * "migration-trap" is internal jargon AND naming the cause would hand over
+ * the answer the range exists to test.
+ */
+const TEMPLATE_LABELS: Record<string, string> = {
+  baseline: 'Calm',
+  'migration-trap': 'Checkout',
+  'innocent-deploy': 'Timeouts',
+};
+/** the fuller phrasing, on hover — the chip itself must stay one word */
+const TEMPLATE_TITLES: Record<string, string> = {
+  baseline: 'Calm day — nothing is wrong',
+  'migration-trap': 'Checkout is failing',
+  'innocent-deploy': 'Timeouts spreading across routes',
+};
+
 const TEMPLATE_ID = templateIds().includes(requestedTemplate)
   ? requestedTemplate
   : DEFAULT_TEMPLATE;
@@ -33,6 +50,14 @@ app.innerHTML = `
       <span class="health-word" id="health-word">Nominal</span>
       <button type="button" id="site-toggle" data-testid="site-toggle" aria-pressed="false"
               title="show what customers are seeing right now">Live site</button>
+      <div class="seg" id="template-pick" data-testid="template-pick" role="radiogroup" aria-label="Scenario">
+        ${templateIds()
+          .map(
+            (id) =>
+              `<button type="button" role="radio" data-template="${id}" data-testid="template-${id}" aria-checked="${id === TEMPLATE_ID}" title="${TEMPLATE_TITLES[id] ?? id}">${TEMPLATE_LABELS[id] ?? id}</button>`
+          )
+          .join('')}
+      </div>
       <span class="spacer"></span>
       <div class="tele" id="tele" data-testid="tele">
         ${(['rps', 'err', 'p95'] as const)
@@ -64,15 +89,6 @@ app.innerHTML = `
     <section class="pane" id="console" aria-label="Console">
       <header>
         Console
-        <span class="pane-sub">what is true right now</span>
-        <div class="seg" id="template-pick" data-testid="template-pick" role="radiogroup" aria-label="Scenario">
-          ${templateIds()
-            .map(
-              (id) =>
-                `<button type="button" role="radio" data-template="${id}" data-testid="template-${id}" aria-checked="${id === TEMPLATE_ID}">${id}</button>`
-            )
-            .join('')}
-        </div>
         <button type="button" id="sim-run" data-testid="sim-run" aria-pressed="false">Run sim</button>
       </header>
       <div class="body">
@@ -107,6 +123,7 @@ app.innerHTML = `
                 <path class="chart-line" d="" vector-effect="non-scaling-stroke" />
               </svg>
               <span class="chart-slo" id="chart-slo" title="1% error budget"></span>
+              <p class="chart-empty">Nothing plotted yet — start the scenario and the error rate builds here, so you can see when it began and whether it is recovering.</p>
             </div>
             <div class="chart-axis"><span>60 ticks ago</span><span>now</span></div>
           </section>
@@ -184,10 +201,10 @@ app.innerHTML = `
       <span class="ac-dot"></span><span class="ac-label">agent</span>
     </div>
 
-    <section class="pane" id="tool-rail" aria-label="Tool rail">
+    <section class="pane" id="tool-rail" aria-label="Agent">
       <header>
-        Tools
-        <span class="pane-sub">what the agent can reach</span>
+        Agent
+        <span class="pane-sub" id="rail-sub">standing by</span>
       </header>
       <div class="rail-modes">
         <div class="mode-switch" id="mode-switch" data-testid="mode-switch">
@@ -198,12 +215,33 @@ app.innerHTML = `
         </div>
       </div>
       <div class="body">
-        <div class="rail-status">
-          <span id="agent-conn" data-testid="agent-conn" data-state="off">agent: none seen</span><br/>
-          WebMCP on this page: <span id="webmcp-status">…</span>
+        <div class="agent-presence" id="agent-presence" data-state="off">
+          <span class="ap-dot" aria-hidden="true"></span>
+          <span class="ap-text">
+            <span id="agent-conn" data-testid="agent-conn" data-state="off">No agent connected</span>
+            <span class="ap-sub ap-sub-off">WebMCP on this page: <span id="webmcp-status">…</span></span>
+            <span class="ap-sub ap-sub-on">Working through this page's tools — every write still needs your approval.</span>
+          </span>
         </div>
-        <ul id="tool-list" data-testid="tool-list"></ul>
-        <div class="placeholder rail-note">The agent only ever sees the tools listed above. Write tools appear as the incident escalates, and every one of them is a proposal — the agent cannot apply a change on its own.</div>
+
+        <div class="agent-can" id="agent-can">
+          <p class="can-line" id="can-read"></p>
+          <p class="can-line" id="can-write"></p>
+        </div>
+
+        <details class="tool-surface" id="tool-surface" open>
+          <summary><span class="ts-label">Tool surface</span><span class="ts-count" id="tool-count"></span></summary>
+          <ul id="tool-list" data-testid="tool-list"></ul>
+        </details>
+
+        <p class="rail-foot">Nothing here changes the world on its own. The agent proposes; you decide.</p>
+
+        <div class="agent-empty" id="agent-empty">
+          <p class="ae-head">No agent has joined yet</p>
+          <p class="ae-body">Open this page in a browser that speaks WebMCP and an assistant will
+          discover the checks above on its own — no setup, no keys, no copying context across.</p>
+          <p class="ae-body">You stay in the console either way. The page works exactly the same without one.</p>
+        </div>
       </div>
     </section>
   </div>
@@ -597,6 +635,13 @@ function resolveApprovalCard(proposalSeq: number): void {
 
 const agentCursor = document.querySelector<HTMLDivElement>('#agent-cursor')!;
 const agentConn = document.querySelector<HTMLElement>('#agent-conn')!;
+const agentPresence = document.querySelector<HTMLElement>('#agent-presence')!;
+/** keep the presence card and the chip telling the same story */
+const setPresence = (state: 'off' | 'idle' | 'live', label: string): void => {
+  agentConn.dataset.state = state;
+  agentConn.textContent = label;
+  agentPresence.dataset.state = state;
+};
 let agentIdleTimer: number | undefined;
 
 function moveAgentCursor(target: Element | null): void {
@@ -605,15 +650,18 @@ function moveAgentCursor(target: Element | null): void {
   if (r.width === 0) return;
   // ride the TOP-LEFT shoulder of the target: landing on the middle put the
   // label straight over the Approve button the human needs to click
-  agentCursor.style.transform = `translate(${Math.round(r.left - 6)}px, ${Math.round(r.top - 9)}px)`;
+  // Sit FULLY above the target, never on top of it. `top - 9` still covered
+  // the first ~9px of a full-width row (it was landing on the db service
+  // line); clamp so a target near the top of the viewport keeps the label
+  // on screen. Caught by screenshot, like the Approve-button overlap before.
+  const labelY = Math.max(4, Math.round(r.top - 22));
+  agentCursor.style.transform = `translate(${Math.round(r.left - 6)}px, ${labelY}px)`;
   agentCursor.dataset.state = 'active';
-  agentConn.dataset.state = 'live';
-  agentConn.textContent = 'agent: working';
+  setPresence('live', 'Agent is working');
   window.clearTimeout(agentIdleTimer);
   agentIdleTimer = window.setTimeout(() => {
     agentCursor.dataset.state = 'idle';
-    agentConn.dataset.state = 'idle';
-    agentConn.textContent = 'agent: idle';
+    setPresence('idle', 'Agent connected, waiting');
   }, 4000);
 }
 
@@ -1225,6 +1273,43 @@ runBtn.addEventListener('click', () => {
 
 // ---- WebMCP tool surface (M3-01: reads) ----------------------------------
 
+/**
+ * What the agent can do RIGHT NOW, said the way an operator would say it.
+ * Derived from the live surface, so it can never drift from the real tools —
+ * the raw names stay available underneath for anyone who wants them.
+ */
+const HUMAN_WRITE: Record<string, string> = {
+  propose_flag_change: 'turn a feature flag on or off',
+  propose_rollback: 'roll a deploy back',
+  propose_rollforward: 'ship a fixed build forward',
+  propose_env_change: 'change an environment value',
+  propose_route_change: 'move traffic to another target',
+};
+
+function renderCapability(tools: AirlockTools): void {
+  const active = tools.list().filter((t) => t.status === 'active');
+  const writes = active.filter((t) => !t.readOnly);
+  const readEl = document.querySelector<HTMLElement>('#can-read')!;
+  const writeEl = document.querySelector<HTMLElement>('#can-write')!;
+  const countEl = document.querySelector<HTMLElement>('#tool-count')!;
+
+  readEl.textContent = `Can look at deploys, logs, traffic and what changed — ${active.length - writes.length} read-only checks.`;
+
+  if (writes.length === 0) {
+    writeEl.textContent = 'Cannot change anything in this mode.';
+    writeEl.dataset.tone = 'none';
+  } else {
+    const phrases = writes.map((w) => HUMAN_WRITE[w.name] ?? w.name);
+    const last = phrases.pop();
+    writeEl.textContent = `Can ask you to ${phrases.length ? `${phrases.join(', ')} or ${last}` : last}. You approve before anything happens.`;
+    writeEl.dataset.tone = 'write';
+  }
+  countEl.textContent = String(active.length);
+
+  const sub = document.querySelector<HTMLElement>('#rail-sub');
+  if (sub) sub.textContent = writes.length === 0 ? 'read-only' : `${writes.length} actions need you`;
+}
+
 function renderToolRail(tools: AirlockTools): void {
   const list = document.querySelector<HTMLUListElement>('#tool-list')!;
   list.innerHTML = '';
@@ -1242,13 +1327,21 @@ function renderToolRail(tools: AirlockTools): void {
     `;
     li.querySelector('.tool-name')!.textContent = t.name;
     if (t.status === 'tombstoned') {
-      li.querySelector('.tool-badge-tombstone')!.textContent = t.tombstone ?? 'removed';
+      // The vanishing is the point, and it has to read in one glance — the
+      // full reason ("left with recovery mode") wrapped to two ragged lines.
+      // Short label on screen, exact reason on hover; explain_surface carries
+      // the long form for anyone who asks the agent.
+      const badge = li.querySelector<HTMLElement>('.tool-badge-tombstone')!;
+      badge.textContent = 'removed';
+      if (t.tombstone) badge.title = t.tombstone;
+      li.title = t.tombstone ?? '';
     }
     list.append(li);
   }
   document.querySelectorAll<HTMLButtonElement>('#mode-switch [data-mode]').forEach((b) => {
     b.setAttribute('aria-pressed', String(b.dataset.mode === tools.mode()));
   });
+  renderCapability(tools);
 }
 
 const airlockTools = createAirlockTools(runWorkerQuery, proposeToWorker);

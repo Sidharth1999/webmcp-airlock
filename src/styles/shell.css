@@ -845,17 +845,91 @@ body {
 .ap-key input { accent-color: var(--warn); }
 .approval-card[data-tier='4'] { border-color: var(--warn-dim); border-left-color: var(--warn); }
 
-/* --- tool rail (M3): the agent's surface, human-legible ---- */
-.rail-status {
-  font-family: var(--font-instrument);
-  font-size: var(--text-2xs);
-  color: var(--ink-ghost);
+/* --- agent rail: presence and capability first, raw names underneath ------
+   Rules taken from real agent surfaces read in-browser (Vercel Agent,
+   GitHub Copilot Agents): an agent surface shows WORK and CAPABILITY in
+   outcome language; the function inventory lives behind a disclosure. */
+.agent-presence {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
   margin-bottom: var(--sp-3);
+}
+.agent-presence .ap-dot {
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  margin-top: 5px;
+  flex: none;
+  background: var(--ink-ghost);
+}
+.agent-presence[data-state='live'] .ap-dot { background: var(--actor-agent); }
+.agent-presence[data-state='idle'] .ap-dot { background: var(--actor-agent); opacity: 0.55; }
+.agent-presence[data-state='live'] { border-color: color-mix(in oklch, var(--actor-agent) 40%, var(--line)); }
+.agent-presence .ap-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
+.agent-presence #agent-conn { color: var(--ink); font-size: var(--text-sm); font-weight: 500; }
+.agent-presence[data-state='live'] #agent-conn { color: var(--actor-agent); }
+.agent-presence .ap-sub {
+  color: var(--ink-ghost);
+  font-size: var(--text-2xs);
+  font-family: var(--font-instrument);
+}
+
+/* capability, in the operator's words — the thing that changes on mode flip */
+.agent-can { display: flex; flex-direction: column; gap: var(--sp-2); margin-bottom: var(--sp-4); }
+.can-line {
+  margin: 0;
+  font-size: var(--text-sm);
+  line-height: 1.5;
+  color: var(--ink-dim);
+  padding-left: var(--sp-3);
+  border-left: 2px solid var(--line);
+}
+.can-line[data-tone='write'] {
+  color: var(--ink);
+  border-left-color: var(--actor-agent);
+}
+.can-line[data-tone='none'] { color: var(--ink-ghost); }
+
+/* the raw surface: present and watchable (it is the mode-flip proof), but
+   subordinate to the sentence above it */
+.tool-surface { margin-bottom: var(--sp-3); }
+.tool-surface > summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) 0;
+  color: var(--ink-ghost);
+  font-size: var(--text-2xs);
+  font-family: var(--font-instrument);
+  border-bottom: 1px solid var(--line);
+}
+.tool-surface > summary::-webkit-details-marker { display: none; }
+.tool-surface > summary::before {
+  content: '';
+  width: 0; height: 0;
+  border-left: 4px solid currentColor;
+  border-top: 3.5px solid transparent;
+  border-bottom: 3.5px solid transparent;
+  transition: transform 120ms ease;
+}
+.tool-surface[open] > summary::before { transform: rotate(90deg); }
+.tool-surface > summary:hover { color: var(--ink-dim); }
+.tool-surface .ts-count { margin-left: auto; font-variant-numeric: tabular-nums; }
+.rail-foot {
+  margin: 0;
+  color: var(--ink-ghost);
+  font-size: var(--text-2xs);
   line-height: 1.6;
 }
 #tool-list {
   list-style: none;
-  margin: 0 0 var(--sp-4);
+  margin: var(--sp-2) 0 0;
   padding: 0;
   font-family: var(--font-instrument);
   font-size: var(--text-xs);
@@ -1098,3 +1172,79 @@ body {
   letter-spacing: 0.05em;
 }
 .sf-outage-msg { font-size: var(--text-sm); color: oklch(68% 0.02 250); }
+
+/* --- console header: the run control must never be clipped ---------------
+   With the store pane open the console header is ~420px. The scenario chips
+   are a setup control, so they yield space first; the run control never
+   shrinks and never wraps. Verified by screenshot at 1440 and 1120. */
+#console > header { min-width: 0; }
+.masthead #template-pick { flex: none; margin-left: var(--sp-3); }
+#console > header #sim-run { flex: none; white-space: nowrap; margin-left: auto; }
+
+/* --- masthead: the numbers matter more than their sparklines -------------
+   Below ~1300px the scenario chips and the telemetry compete. The readings
+   are the instrument; the sparkline is decoration, so it yields first and
+   IMPACT never falls off the edge. Verified by screenshot at 1120. */
+.masthead { min-width: 0; }
+.masthead .tele { min-width: 0; }
+@media (max-width: 1300px) {
+  .masthead .tele-spark { display: none; }
+  .masthead #template-pick { margin-left: var(--sp-2); }
+}
+@media (max-width: 1120px) {
+  .masthead .health-word { display: none; }
+}
+
+/* designed empty state for the rail — a void is a bug (rule taken from
+   Vercel + GitHub agent surfaces, both of which design every empty region) */
+.agent-empty {
+  margin-top: var(--sp-5);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--line);
+}
+.agent-empty .ae-head {
+  margin: 0 0 var(--sp-2);
+  color: var(--ink-dim);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+.agent-empty .ae-body {
+  margin: 0 0 var(--sp-2);
+  color: var(--ink-ghost);
+  font-size: var(--text-2xs);
+  line-height: 1.65;
+}
+/* it is an EMPTY state: once an agent is present it has no business here */
+.agent-presence[data-state='live'] ~ .agent-empty,
+.agent-presence[data-state='idle'] ~ .agent-empty { display: none; }
+
+/* the chart at rest is a designed empty state, not a gridded void */
+.chart-empty {
+  display: none;
+  position: absolute;
+  inset: 0;
+  margin: 0;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+  padding: 0 var(--sp-6);
+  color: var(--ink-ghost);
+  font-size: var(--text-2xs);
+  line-height: 1.6;
+}
+.chart[data-empty='true'] .chart-empty { display: flex; }
+.chart[data-empty='true'] .chart-slo { display: none; }
+.chart[data-empty='true'] .chart-axis { opacity: 0.35; }
+.chart[data-empty='true'] .chart-plot svg { opacity: 0.25; }
+
+/* the presence card must never contradict itself: "Agent is working" and
+   "WebMCP not detected" were being shown together (caught by screenshot) */
+.agent-presence .ap-sub-on { display: none; }
+.agent-presence[data-state='live'] .ap-sub-off,
+.agent-presence[data-state='idle'] .ap-sub-off { display: none; }
+.agent-presence[data-state='live'] .ap-sub-on,
+.agent-presence[data-state='idle'] .ap-sub-on { display: inline; }
+
+/* tool rows are a scannable column: one line each, never ragged wraps */
+#tool-list li { white-space: nowrap; }
+#tool-list .tool-name { overflow: hidden; text-overflow: ellipsis; }

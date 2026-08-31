@@ -124,6 +124,12 @@ that the CLI world learned it needed, built for the surface that is arriving.
 - ~~"70% of outages are change-induced"~~ — **unsourced.** It has been floating
   in our doctrine since 08-28 with no citation. **CUT IT** unless a real source
   is found. An unsourced statistic in a judged submission is a live risk.
+- ~~"a corpus of 35 verified scenarios"~~ without the caveat. **All 35 accepted
+  candidates are `migration-trap`** — parameter sweeps over deployAtTick, baseRps
+  and valuePerReq × 5 seeds. That is a legitimate experimental design for the
+  STUDY (it varies conditions and holds the causal structure fixed), but it is
+  **one puzzle, not 35**. Say "35 verified conditions across one failure family"
+  or add a second family. A judge who opens study/corpus.json will see this.
 - No invented dollar figures. $ only ever as mechanically derived sim output
   with the formula visible (ratified 08-28).
 - Do not claim browser-agent production incidents exist. See 4(b).

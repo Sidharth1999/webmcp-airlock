@@ -43,6 +43,9 @@
 - `migration-trap.test.ts`: adapted to `metaFor()` for the params-function API change.
 - **NEW files (additions only):** `innocent-deploy.test.ts` (6), `runbook.test.ts` (6).
 
+### Why progress % did not move (read this before reading the number)
+**Still M4 25.0% / M5 10.0% / overall 53.3%.** Today's work is plan-amendment-0831 scope — de-structuring, Template A + E-twin, the runbook arm, the agent rail — and **features.json does not track any of it**; it is the M0-M7 plan of record. I did NOT append entries for it, because inventing entries mid-session inflates the denominator and the number stops meaning anything. M5-03 stays `in_progress` on purpose: its check is "BOTH URLs load in ChatGPT desktop browser" and there is no mirror deploy yet, only the primary (which gate 1 did verify). **So the number understates today; treat the milestone sections above as the real state.**
+
 ### Next up
 1. Template D injection (item 6) — only after 1-5 green, which they now are.
 2. Gray-failure dimension (`airlock_status` nominal while `traffic_history` burns). NOTE: `airlock_status` already exposes `traffic.errRate`, so a naive version is visible in ONE tool and would undercut the cross-tool claim — needs the probe-vs-observed split.

@@ -228,6 +228,30 @@ try {
       /⌘J/.test(await page.locator('#tool-rail .dock-head').textContent())
   );
 
+  // presence is one bit of information, so it is a marker on the heading, not
+  // a card in the body — and it must not repeat the heading it sits next to
+  check(
+    'agent presence is a marker on the dock heading, not a section in the body',
+    (await page.locator('#tool-rail .dock-head #agent-presence').count()) === 1 &&
+      (await page.locator('#tool-rail .dock-body #agent-presence').count()) === 0 &&
+      !/Agent\s+Agent/.test(
+        (await page.locator('#tool-rail .dock-head').textContent()).replace(/\s+/g, ' ')
+      )
+  );
+  // the deck carries `min-height: 100%` so a short console leaves no bare
+  // ground; stretched to that track it rendered its last card BELOW itself,
+  // over the status bar, because `.zone` cannot clip (cost popovers escape).
+  check(
+    'the control deck contains its own cards — nothing renders past its bottom edge',
+    await page.evaluate(() => {
+      const deck = document.querySelector('#control-deck');
+      const b = deck.getBoundingClientRect().bottom;
+      return [...deck.children]
+        .filter((c) => c.getBoundingClientRect().height > 0)
+        .every((c) => c.getBoundingClientRect().bottom <= b + 1);
+    })
+  );
+
   check(
     'record_finding is listed and is NOT read-only',
     await page.evaluate(() => {

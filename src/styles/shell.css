@@ -230,7 +230,20 @@ body {
   overflow-y: auto;
   overflow-x: hidden;
   padding: var(--sp-4);
+  /* `#control-deck` carries `min-height: 100%` so a short console does not
+     leave bare ground (ux-debt rule 1). That pinned its ROW to the pane
+     height, so when the deck's own rows needed MORE — 651px of content in a
+     624px track — the Status page card rendered 27px BELOW the deck, over
+     the status bar. `.zone` cannot clip it (cost popovers escape the card by
+     design), so the track has to be allowed to grow. */
+  align-content: start;
 }
+/* ...and the deck must size to its CONTENT, not be stretched to that track.
+   Stretched, its computed height was the pane's 624px while its own rows
+   needed 651, so the Status page card rendered below the deck, over the
+   status bar. `align-self: start` lets it grow; `min-height: 100%` still
+   makes it fill a short console, so ux-debt rule 1 is not traded away. */
+#control-deck { align-self: start; }
 
 /* --- bottom panel group: three views of one thing ---------------------- */
 .wb-panel {
@@ -1220,33 +1233,24 @@ body {
    GitHub Copilot Agents): an agent surface shows WORK and CAPABILITY in
    outcome language; the function inventory lives behind a disclosure. */
 .agent-presence {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--sp-2);
-  padding: var(--sp-3);
-  border: 1px solid var(--line);
-  border-radius: var(--r-sm);
-  margin-bottom: var(--sp-3);
+  /* an inline marker on the dock heading now, not a card in the body */
+  display: inline-flex; align-items: center; gap: 6px;
+  padding: 0; border: none; background: none; min-width: 0;
+}
+.agent-presence #agent-conn {
+  font-family: var(--font-prose); font-size: var(--text-2xs);
+  color: var(--ink-faint); white-space: nowrap;
 }
 .agent-presence .ap-dot {
-  width: 7px;
-  height: 7px;
+  width: 6px;
+  height: 6px;
   border-radius: 50%;
-  margin-top: 5px;
   flex: none;
   background: var(--ink-ghost);
 }
 .agent-presence[data-state='live'] .ap-dot { background: var(--actor-agent); }
 .agent-presence[data-state='idle'] .ap-dot { background: var(--actor-agent); opacity: 0.55; }
-.agent-presence[data-state='live'] { border-color: color-mix(in oklch, var(--actor-agent) 40%, var(--line)); }
-.agent-presence .ap-text { display: flex; flex-direction: column; gap: 2px; min-width: 0; }
-.agent-presence #agent-conn { color: var(--ink); font-size: var(--text-sm); font-weight: 500; }
 .agent-presence[data-state='live'] #agent-conn { color: var(--actor-agent); }
-.agent-presence .ap-sub {
-  color: var(--ink-ghost);
-  font-size: var(--text-2xs);
-  font-family: var(--font-instrument);
-}
 
 /* capability, in the operator's words — the thing that changes on mode flip */
 .agent-can { display: flex; flex-direction: column; gap: var(--sp-2); margin-bottom: var(--sp-4); }
@@ -1583,10 +1587,6 @@ body {
   font-size: var(--text-2xs);
   line-height: 1.65;
 }
-/* it is an EMPTY state: once an agent is present it has no business here */
-.agent-presence[data-state='live'] ~ .agent-empty,
-.agent-presence[data-state='idle'] ~ .agent-empty { display: none; }
-
 /* the chart at rest is a designed empty state, not a gridded void */
 .chart-empty {
   display: none;
@@ -1605,14 +1605,6 @@ body {
 .chart[data-empty='true'] .chart-slo { display: none; }
 .chart[data-empty='true'] .chart-axis { opacity: 0.35; }
 .chart[data-empty='true'] .chart-plot svg { opacity: 0.25; }
-
-/* the presence card must never contradict itself: "Agent is working" and
-   "WebMCP not detected" were being shown together (caught by screenshot) */
-.agent-presence .ap-sub-on { display: none; }
-.agent-presence[data-state='live'] .ap-sub-off,
-.agent-presence[data-state='idle'] .ap-sub-off { display: none; }
-.agent-presence[data-state='live'] .ap-sub-on,
-.agent-presence[data-state='idle'] .ap-sub-on { display: inline; }
 
 /* tool rows are a scannable column: one line each, never ragged wraps */
 #tool-list li { white-space: nowrap; }
@@ -2719,14 +2711,10 @@ h4.ctl-group-label { margin: 0 0 var(--sp-2); }
    headline — it is the half of the thesis a judge can actually watch — and
    it now has a designed empty state and its own share of the height. The
    raw surface stays on screen, bounded and scrolling, underneath. */
-#tool-rail .dock-body { grid-template-rows: auto auto minmax(0, 1fr) minmax(0, 1.15fr); }
-/* explicit placement, for the same reason the centre needed it: `agent-doing`
-   is hidden until the agent says something, and auto-placement then left the
-   last track empty at the bottom of the region */
-#tool-rail .agent-presence   { grid-row: 1; }
-#tool-rail .agent-doing      { grid-row: 2; }
-#tool-rail .findings-region  { grid-row: 3; }
-#tool-rail .ladder           { grid-row: 4; }
+/* The four-row grid that used to live here is GONE — it is what crushed
+   findings and the ladder to zero height (#18), and the region has been flex
+   since. The row declarations outlived it as dead code; a `grid-row` on a
+   flex child does nothing, which is a trap for whoever reads it next. */
 .findings-region {
   min-height: 0;
   display: grid;

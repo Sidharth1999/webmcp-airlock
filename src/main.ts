@@ -358,6 +358,15 @@ app.innerHTML = `
     <section class="wb-dock" id="tool-rail" aria-label="Agent">
       <header class="dock-head">
         <span class="dock-title">Agent</span>
+        <!-- The presence CARD used to be a section of its own in the dock —
+             a dot, a line, and a sentence, for one bit of information. It is
+             a status marker, so it lives on the heading (Sid, 2026-09-01:
+             "just be like a status marker next to the Agent heading ... will
+             save a lot of real estate"). -->
+        <span class="agent-presence" id="agent-presence" data-state="off">
+          <span class="ap-dot" aria-hidden="true"></span>
+          <span id="agent-conn" data-testid="agent-conn" data-state="off">not connected</span>
+        </span>
         <kbd class="dock-kbd">⌘J</kbd>
         <button type="button" class="dock-close" data-toggle="rail" data-min="rail" data-testid="min-rail"
                 aria-label="Hide the agent panel" title="Hide  ⌘J">&times;</button>
@@ -383,14 +392,6 @@ app.innerHTML = `
         <div class="airlock" id="airlock" data-pending="0">
           <div class="al-label" data-state="settled"><span class="al-dot" aria-hidden="true"></span><span class="al-text">Nothing waiting on you</span></div>
           <div class="al-cards" id="airlock-cards"></div>
-        </div>
-
-        <div class="agent-presence" id="agent-presence" data-state="off">
-          <span class="ap-dot" aria-hidden="true"></span>
-          <span class="ap-text">
-            <span id="agent-conn" data-testid="agent-conn" data-state="off">No agent connected</span>
-            <span class="ap-sub ap-sub-on">Working through this page's tools — every write still needs your approval.</span>
-          </span>
         </div>
 
         <p class="agent-doing" id="agent-doing" aria-live="polite" hidden></p>
@@ -1696,7 +1697,13 @@ function placeAgentCursor(target: Element): void {
   agentCursor.hidden = offscreen;
   if (offscreen) return;
   const labelY = Math.max(4, Math.round(r.top - 22));
-  agentCursor.style.transform = `translate(${Math.round(r.left - 6)}px, ${labelY}px)`;
+  // RIGHT-aligned to the target, not left. Left-aligned, the pill sat 22px
+  // above the row's left edge — which is exactly where the group heading
+  // above it starts, so "Agent" was printed on top of "TRAFFIC". Headings in
+  // this console are left-aligned, so the space above-right is the free one.
+  const w = agentCursor.getBoundingClientRect().width || 64;
+  const x = Math.round(Math.min(Math.max(4, r.right - w), window.innerWidth - w - 4));
+  agentCursor.style.transform = `translate(${x}px, ${labelY}px)`;
 }
 
 function repositionAgentCursor(): void {
@@ -1730,14 +1737,14 @@ function moveAgentCursor(target: Element | null): void {
   if (target !== lastAgentTarget) placeAgentCursor(target);
   lastAgentTarget = target;
   agentCursor.dataset.state = 'active';
-  setPresence('live', 'Agent is working');
+  setPresence('live', 'working');
   window.clearTimeout(agentIdleTimer);
   agentIdleTimer = window.setTimeout(() => {
     // it fades out rather than parking: a label left on a region the agent
     // stopped reading is a claim that is no longer true
     agentCursor.dataset.state = 'idle';
     lastAgentTarget = null;
-    setPresence('idle', 'Agent connected, waiting');
+    setPresence('idle', 'connected, waiting');
   }, 4000);
 }
 

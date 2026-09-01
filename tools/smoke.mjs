@@ -124,7 +124,9 @@ try {
   check(`worker stream flowing (ticks=${stats.ticks}, events=${stats.events})`, stats.events > 5);
   // The activity trail is REFERENCE, not glance: it now arrives on demand,
   // so open it once, exactly as an operator would when they want the detail.
-  await page.locator('#zone-activity > summary').click();
+  // 2026-09-02: the three evidence views are TABS in the workbench's bottom
+  // panel group, so the gesture that reveals the trail is selecting its tab.
+  await page.getByTestId('tab-activity').click();
   check('console renders the stream', (await page.locator('#event-stream li').count()) > 3);
   check(
     'sim status line live',
@@ -434,7 +436,9 @@ try {
   const play = await browser.newPage();
   play.on('pageerror', (e) => pageErrors.push(e.message));
   await play.goto(URL + '?tick=50', { waitUntil: 'networkidle' });
-  await play.locator('#zone-activity > summary').click(); // trail is on demand now
+  // (no tab switch here: this block asserts on deploy cards, which live on the
+  // 'What changed' tab, and reads the stream through the DOM rather than the
+  // screen — the trail does not need to be the visible view for that)
 
   const healthIs = (p, state) =>
     p.waitForFunction((s) => document.documentElement.dataset.health === s, state, { timeout: 15_000 });

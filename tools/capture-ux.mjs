@@ -73,6 +73,29 @@ for (const [vp, viewport] of Object.entries(VIEWPORTS)) {
   await page.waitForTimeout(500);
   await shot(page, `${vp}-06-triage-after`);
 
+  // 7. the agent objecting BEFORE the click — record a finding that advises
+  //    against rolling d-201 back, then reach for that very button.
+  await page.evaluate(async () => {
+    await window.__airlock.invoke('record_finding', {
+      summary:
+        'The failing checkout path is the new session schema, not the build. d-201 shipped an irreversible migration.',
+      ruledOut:
+        'Rolling d-201 back. api 1.9.3 reads the v1 session layout only, and 43,857 rows have already been written in v2 — the rollback takes the store down rather than healing it.',
+      advisesAgainst: 'deploy.rollback:d-201',
+    });
+  });
+  await page.waitForTimeout(300);
+  // at narrow widths the deploy card can sit off-screen; the counsel shot is
+  // best-effort there rather than failing the whole sweep
+  try {
+    await page.getByTestId('rollback-d-201').scrollIntoViewIfNeeded({ timeout: 4000 });
+    await page.getByTestId('rollback-d-201').hover({ timeout: 4000 });
+    await page.waitForTimeout(700);
+    await shot(page, `${vp}-07-agent-counsel`);
+  } catch {
+    console.log('  (counsel shot skipped: control not reachable at this width)');
+  }
+
   if (errors.length) {
     console.log(`  !! ${errors.length} console/page error(s):`);
     for (const e of errors.slice(0, 5)) console.log(`     ${e}`);

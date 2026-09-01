@@ -56,15 +56,19 @@ app.innerHTML = `
       <div class="palette-foot"><kbd>↑</kbd><kbd>↓</kbd> to move · <kbd>enter</kbd> to run · <kbd>esc</kbd> to close</div>
     </div>
   </div>
-  <div class="shell" data-site="off">
-    <div class="masthead">
+
+  <!-- WORKBENCH (2026-09-02). A fixed-viewport app shell, not a document:
+       title bar / activity bar / centre / bottom panel group / docks /
+       status bar, divided by hairlines and sashes. Nothing scrolls but the
+       inside of one region. Replaces a three-column scrolling layout in
+       which the controls — the product — sat below the fold. -->
+  <div class="shell wb" data-site="off" data-rail="on" data-panel="on">
+
+    <header class="wb-title">
       <span class="health-lamp" aria-hidden="true"></span>
       <span class="wordmark">Release Airlock</span>
       <span class="health-word" id="health-word">Nominal</span>
-      <button type="button" id="site-toggle" data-testid="site-toggle" aria-pressed="false"
-              title="show what customers are seeing right now">Storefront</button>
-      <button type="button" id="rail-toggle" data-testid="restore-rail" data-restore="rail" aria-pressed="true"
-              title="show or hide the agent panel">Agent</button>
+      <span class="title-div" aria-hidden="true"></span>
       <details class="scenario" id="scenario-pick">
         <summary aria-label="Choose scenario"><span class="sc-k">Scenario</span><span class="sc-v" id="scenario-current"></span></summary>
         <div class="sc-menu" id="template-pick" data-testid="template-pick" role="radiogroup" aria-label="Scenario">
@@ -79,6 +83,7 @@ app.innerHTML = `
             .join('')}
         </div>
       </details>
+      <button type="button" id="sim-run" data-testid="sim-run" aria-pressed="false">Run sim</button>
       <span class="spacer"></span>
       <div class="tele" id="tele" data-testid="tele">
         ${(['rps', 'err', 'p95'] as const)
@@ -105,86 +110,145 @@ app.innerHTML = `
             </div>`
           : ''
       }
-    </div>
+    </header>
 
-    <section class="pane" id="console" aria-label="Console">
-      <header>
-        Console
-        <button type="button" id="sim-run" data-testid="sim-run" aria-pressed="false">Run sim</button>
-      </header>
-      <div class="body">
+    <!-- ACTIVITY BAR. Every dock's visibility lives here and nowhere else, so
+         a closed dock always has one obvious, permanent way back — the defect
+         the masthead toggles never fixed. -->
+    <nav class="wb-act" aria-label="Regions">
+      <button type="button" class="act-btn" data-testid="act-palette" id="act-palette"
+              aria-label="Run a command" title="Run a command  ⌘K">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M6.5 7.5 4 10l2.5 2.5M13.5 7.5 16 10l-2.5 2.5M11.5 6l-3 8"/></svg>
+      </button>
+      <span class="act-div" aria-hidden="true"></span>
+      <button type="button" class="act-btn" data-toggle="panel" data-testid="restore-panel"
+              aria-pressed="true" aria-label="Evidence panel" title="Evidence — what changed, activity, error rate">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="3" y="3.5" width="14" height="13" rx="1.5"/><path d="M3 11.5h14"/></svg>
+      </button>
+      <button type="button" class="act-btn" data-toggle="rail" data-restore="rail" data-testid="restore-rail"
+              aria-pressed="true" aria-label="Agent panel" title="Agent">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="4" y="6" width="12" height="9" rx="2.5"/><path d="M10 3v3M7 10h.01M13 10h.01"/></svg>
+      </button>
+      <button type="button" class="act-btn" data-toggle="site" data-testid="site-toggle"
+              aria-pressed="false" aria-label="Storefront" title="Storefront — what customers see">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M3.5 7.5h13v9h-13z"/><path d="M3 7.5 5 3.5h10l2 4"/><path d="M8 16.5v-4h4v4"/></svg>
+      </button>
+    </nav>
+
+    <!-- CENTRE. Readout and airlock are pinned; only the control grid scrolls,
+         and at desk widths it does not need to. -->
+    <section class="wb-centre" id="console" aria-label="Console">
+      <div class="readout" id="situation" data-testid="situation" data-phase="calm">
+        <div class="ro-state">
+          <span class="sit-state" id="sit-state">STANDBY</span>
+          <span class="sit-clock" id="sit-clock">T+00:00</span>
+        </div>
+        <p class="sit-head" id="sit-head">NO SCENARIO RUNNING</p>
+        <dl class="sit-fields" id="sit-fields"></dl>
+        <section class="stats" id="stats" data-testid="stats"></section>
+      </div>
+
+      <!-- THE AIRLOCK. The product's namesake gets a permanent docked region:
+           a decision the agent is waiting on must never be something you
+           scroll to find. The row it would change still lights up in place. -->
+      <div class="airlock" id="airlock" data-pending="0">
+        <div class="al-label"><span class="al-dot" aria-hidden="true"></span>Waiting on you</div>
+        <div class="al-cards" id="airlock-cards"></div>
+      </div>
+
+      <div class="cmdbar" id="zone-command-bar">
+        <span class="cmdbar-label">Incident command</span>
+        <div class="cmd-row" id="cmd-row"></div>
+        <span class="cmdbar-meta" id="command-meta"></span>
+      </div>
+
+      <div class="wb-centre-body">
         <div id="control-deck" data-testid="control-deck">
-
-          <!-- ZONE 1 — the situation, in a sentence. Everything below is
-               evidence for it. Computed from the log, never hardcoded. -->
-          <div class="glance">
-<section id="situation" data-testid="situation" data-phase="calm">
-            <div class="sit-bar">
-              <span class="sit-state" id="sit-state">STANDBY</span>
-              <span class="sit-clock" id="sit-clock">T+00:00</span>
-            </div>
-            <p class="sit-head" id="sit-head">NO SCENARIO RUNNING</p>
-            <dl class="sit-fields" id="sit-fields"></dl>
-          </section>
-            <section class="stats" id="stats" data-testid="stats"></section>
-          </div>
-
-          <!-- ACT: the console's primary job, immediately reachable.
-               Previously these sat below a readout, four stat cards, a chart,
-               the deploy list and the activity feed — a dashboard's ordering
-               carrying a control centre's content. -->
-          <div class="act-region">
-          <details class="zone" id="zone-controls" data-testid="zone-controls" open>
-            <summary><span class="zone-title">Manual controls</span><span class="zone-meta">flags · services · topology</span></summary>
-            <div class="zone-body">
+          <section class="zone" id="zone-controls" data-testid="zone-controls">
+            <div class="zone-head">
+              <h2 class="zone-title">Manual controls</h2>
               <div id="topology" data-testid="topology"></div>
-              <div class="ctl-groups">
-                <section class="ctl-group">
-                  <h4 class="ctl-group-label">Release</h4>
-                  <div id="flag-controls"></div>
-                  <div id="service-controls"></div>
-                </section>
-                <section class="ctl-group">
-                  <h4 class="ctl-group-label">Traffic</h4>
-                  <div id="route-controls"></div>
-                </section>
-                <section class="ctl-group">
-                  <h4 class="ctl-group-label">Data &amp; DNS</h4>
-                  <div id="ops-controls"></div>
-                </section>
-              </div>
             </div>
-          </details>
+            <div class="ctl-groups">
+              <section class="ctl-group">
+                <h3 class="ctl-group-label">Release</h3>
+                <div id="flag-controls"></div>
+                <div id="service-controls"></div>
+              </section>
+              <section class="ctl-group">
+                <h3 class="ctl-group-label">Data &amp; DNS</h3>
+                <div id="ops-controls"></div>
+              </section>
+              <section class="ctl-group">
+                <h3 class="ctl-group-label">Traffic</h3>
+                <div id="route-controls"></div>
+              </section>
+            </div>
+          </section>
 
-          <details class="zone" id="zone-command" data-testid="zone-command" open>
-            <summary><span class="zone-title">Incident command</span><span class="zone-meta" id="command-meta"></span></summary>
-            <div class="zone-body">
-              <div class="cmd-row" id="cmd-row"></div>
-              <div class="statuspage" id="statuspage">
-                <div class="sp-head">
-                  <span class="sp-title">Status page</span>
-                  <span class="sp-note">customers can read this</span>
-                </div>
-                <div class="sp-posts" id="sp-posts"></div>
-                <p class="empty" id="sp-empty">Nothing published. Customers have not been told anything.</p>
-              </div>
+          <section class="zone" id="zone-command" data-testid="zone-command">
+            <div class="zone-head">
+              <h2 class="zone-title">Status page</h2>
+              <span class="zone-meta">customers can read this</span>
             </div>
-          </details>
+            <div class="statuspage" id="statuspage">
+              <div class="sp-posts" id="sp-posts"></div>
+              <p class="empty" id="sp-empty">Nothing published. Customers have not been told anything.</p>
+            </div>
+          </section>
 
-          <details class="zone" id="zone-holding" data-testid="zone-holding" open>
-            <summary><span class="zone-title">Holding the incident</span><span class="zone-meta" id="holding-meta"></span></summary>
-            <div class="zone-body">
-              <div id="holding-list"></div>
-              <p class="empty" id="holding-empty">Nothing is being held. No mitigations are in force.</p>
+          <section class="zone" id="zone-holding" data-testid="zone-holding">
+            <div class="zone-head">
+              <h2 class="zone-title">Holding the incident</h2>
+              <span class="zone-meta" id="holding-meta"></span>
             </div>
-          </details>
+            <div id="holding-list"></div>
+            <p class="empty" id="holding-empty">Nothing is being held. No mitigations are in force.</p>
+          </section>
+        </div>
+      </div>
+
+      <div class="wb-sash" data-sash="panel" role="separator" tabindex="0"
+           aria-orientation="horizontal" aria-label="Resize the evidence panel"
+           aria-controls="wb-panel" aria-valuemin="0" aria-valuemax="100" aria-valuenow="26"></div>
+
+      <!-- EVIDENCE. Three views of one thing, so they are TABS, not three
+           stacked panels that each lengthened the scroll. -->
+      <section class="wb-panel" id="wb-panel" aria-label="Evidence">
+        <div class="panel-tabs" role="tablist" aria-label="Evidence">
+          <button type="button" role="tab" class="ptab" data-tab="changed" data-testid="tab-changed"
+                  id="tab-changed" aria-controls="zone-changed" aria-selected="true" tabindex="0">
+            What changed<span class="ptab-count" id="tab-changed-count"></span>
+          </button>
+          <button type="button" role="tab" class="ptab" data-tab="activity" data-testid="tab-activity"
+                  id="tab-activity" aria-controls="zone-activity" aria-selected="false" tabindex="-1">
+            Activity<span class="ptab-count" id="tab-activity-count"></span>
+          </button>
+          <button type="button" role="tab" class="ptab" data-tab="chart" data-testid="tab-chart"
+                  id="tab-chart" aria-controls="err-chart" aria-selected="false" tabindex="-1">
+            Error rate
+          </button>
+          <span class="spacer"></span>
+          <button type="button" id="audit-toggle" data-testid="audit-toggle" aria-pressed="false"
+                  title="filter the stream to who did what">Audit trail</button>
+          <button type="button" class="panel-close" data-toggle="panel" aria-label="Close the evidence panel" title="Close">&times;</button>
+        </div>
+
+        <div class="panel-body">
+          <div class="tabpane" id="zone-changed" data-testid="zone-changed" role="tabpanel"
+               aria-labelledby="tab-changed" tabindex="0">
+            <div id="deploy-controls"></div>
+            <p class="empty" id="deploys-empty">No deploys in this scenario yet.</p>
           </div>
 
-          <!-- EVIDENCE: supporting detail, two columns so it uses the width
-               instead of extending the scroll. -->
-          <div class="evidence-region">
-            <div class="evidence-col">
-          <section class="chart" id="err-chart" data-testid="err-chart">
+          <div class="tabpane" id="zone-activity" data-testid="zone-activity" role="tabpanel"
+               aria-labelledby="tab-activity" tabindex="0" hidden>
+            <ol id="event-stream" data-testid="event-stream" aria-live="polite"></ol>
+            <p class="empty" id="stream-empty">Nothing has happened yet. Start the scenario to bring the store online.</p>
+          </div>
+
+          <section class="tabpane chart" id="err-chart" data-testid="err-chart" role="tabpanel"
+                   aria-labelledby="tab-chart" tabindex="0" hidden>
             <div class="chart-head">
               <span class="chart-k">Checkout error rate</span>
               <span class="chart-max" id="chart-max">—</span>
@@ -199,39 +263,22 @@ app.innerHTML = `
             </div>
             <div class="chart-axis"><span>60 ticks ago</span><span>now</span></div>
           </section>
-
-          <details class="zone" id="zone-changed" data-testid="zone-changed" open>
-            <summary><span class="zone-title">What changed</span><span class="zone-meta" id="zone-changed-meta"></span></summary>
-            <div class="zone-body">
-              <div id="deploy-controls"></div>
-              <p class="empty" id="deploys-empty">No deploys in this scenario yet.</p>
-            </div>
-          </details>
-            </div>
-            <div class="evidence-col">
-          <details class="zone" id="zone-activity" data-testid="zone-activity">
-            <summary>
-              <span class="zone-title">Activity</span>
-              <button type="button" id="audit-toggle" data-testid="audit-toggle" aria-pressed="false" title="filter the stream to who did what">Audit trail</button>
-              <span id="sim-status" data-testid="sim-status">seeded · paused</span>
-            </summary>
-            <div class="zone-body">
-              <ol id="event-stream" data-testid="event-stream" aria-live="polite"></ol>
-              <p class="empty" id="stream-empty">Nothing has happened yet. Start the scenario to bring the store online.</p>
-            </div>
-          </details>
-            </div>
-          </div>
-
         </div>
-      </div>
+      </section>
     </section>
 
-    <section class="pane" id="site-pane" aria-label="Site pane">
-      <header>Storefront<span class="pane-sub">aperture supply co.</span>
-        <button type="button" class="pane-min" data-min="site" data-testid="min-site" aria-label="Minimise the storefront" title="Minimise">&minus;</button>
+    <div class="wb-sash" data-sash="site" role="separator" tabindex="0"
+         aria-orientation="vertical" aria-label="Resize the storefront"
+         aria-controls="site-pane" aria-valuemin="0" aria-valuemax="100" aria-valuenow="40"></div>
+
+    <section class="wb-dock" id="site-pane" aria-label="Storefront">
+      <header class="dock-head">
+        <span class="dock-title">Storefront</span>
+        <span class="pane-sub">aperture supply co.</span>
+        <button type="button" class="dock-close" data-toggle="site" data-min="site" data-testid="min-site"
+                aria-label="Close the storefront" title="Close">&times;</button>
       </header>
-      <div class="body">
+      <div class="dock-body">
         <div id="storefront" data-testid="storefront" data-state="ok">
           <div class="sf-chrome">
             <span class="sf-brand">Aperture Supply Co.</span>
@@ -275,11 +322,16 @@ app.innerHTML = `
       <span class="ac-dot"></span><span class="ac-label">agent</span>
     </div>
 
-    <section class="pane" id="tool-rail" aria-label="Agent">
-      <header>
-        Agent
+    <div class="wb-sash" data-sash="rail" role="separator" tabindex="0"
+         aria-orientation="vertical" aria-label="Resize the agent panel"
+         aria-controls="tool-rail" aria-valuemin="0" aria-valuemax="100" aria-valuenow="18"></div>
+
+    <section class="wb-dock" id="tool-rail" aria-label="Agent">
+      <header class="dock-head">
+        <span class="dock-title">Agent</span>
         <span class="pane-sub" id="rail-sub">standing by</span>
-        <button type="button" class="pane-min" data-min="rail" data-testid="min-rail" aria-label="Minimise the agent panel" title="Minimise">&minus;</button>
+        <button type="button" class="dock-close" data-toggle="rail" data-min="rail" data-testid="min-rail"
+                aria-label="Close the agent panel" title="Close">&times;</button>
       </header>
       <div class="rail-modes">
         <span class="rail-modes-label">Response stage</span>
@@ -290,19 +342,30 @@ app.innerHTML = `
           ).join('')}
         </div>
       </div>
-      <div class="body">
+      <div class="dock-body">
         <div class="agent-presence" id="agent-presence" data-state="off">
           <span class="ap-dot" aria-hidden="true"></span>
           <span class="ap-text">
             <span id="agent-conn" data-testid="agent-conn" data-state="off">No agent connected</span>
-            <span class="ap-sub ap-sub-off">WebMCP on this page: <span id="webmcp-status">…</span></span>
+            <span class="ap-sub ap-sub-off">WebMCP on this page: <span id="webmcp-status">…</span>. Assistance is optional — every control in this console works without one.</span>
             <span class="ap-sub ap-sub-on">Working through this page's tools — every write still needs your approval.</span>
           </span>
         </div>
 
         <p class="agent-doing" id="agent-doing" aria-live="polite" hidden></p>
 
-        <div class="findings" id="agent-findings" aria-live="polite"></div>
+        <section class="findings-region" aria-label="What the agent has concluded">
+          <div class="ladder-head">
+            <span class="ladder-title">What the agent has worked out</span>
+            <span class="ts-count" id="finding-count"></span>
+          </div>
+          <div class="findings" id="agent-findings" aria-live="polite"></div>
+          <p class="findings-empty" id="findings-empty">
+            Nothing concluded yet. When an agent works this incident, what it
+            establishes — and what it rules out — is written here, in the
+            console, where you can check it.
+          </p>
+        </section>
 
         <section class="ladder" id="tool-surface" aria-label="What the agent can reach">
           <div class="ladder-head">
@@ -312,13 +375,18 @@ app.innerHTML = `
           <ul id="tool-list" data-testid="tool-list"></ul>
           <p class="ladder-foot" id="ladder-foot"></p>
         </section>
-
-        <div class="agent-empty" id="agent-empty">
-          <p class="ae-head">No agent connected</p>
-          <p class="ae-body">Assistance is optional. Every control in this console works without one.</p>
-        </div>
       </div>
     </section>
+
+    <!-- STATUS BAR. Machine state that used to be scattered through the
+         console's chrome: it is reference, and reference belongs at the edge. -->
+    <footer class="wb-status">
+      <span class="wbs-item wbs-mode" id="wbs-mode">triage</span>
+      <span class="wbs-item" id="sim-status" data-testid="sim-status">seeded · paused</span>
+      <span class="spacer"></span>
+      <span class="wbs-item wbs-hint"><kbd>⌘K</kbd> commands</span>
+      <span class="wbs-item" id="wbs-webmcp">WebMCP …</span>
+    </footer>
   </div>
 `;
 
@@ -344,6 +412,9 @@ document.querySelector('#health-demo')?.addEventListener('click', (e) => {
 document.querySelector('#webmcp-status')!.textContent = hasWebMCP()
   ? 'detected'
   : 'not detected (plain browser — page fully usable without an agent)';
+document.querySelector('#wbs-webmcp')!.textContent = hasWebMCP()
+  ? 'WebMCP ready'
+  : 'WebMCP not detected';
 
 // ---- sim worker wiring (M2-02) ------------------------------------------
 // Engine lives in the Worker; the main thread only paces it (real time is
@@ -898,16 +969,33 @@ function addApprovalCard(e: Event): void {
     const engaged = (ev.target as HTMLInputElement).checked;
     card.querySelector<HTMLButtonElement>('.ap-approve')!.disabled = !engaged;
   });
+  // The card lives in the AIRLOCK — a pinned region of the centre pane. It
+  // used to be inserted after the row it would mutate, which reads well until
+  // that row is below the fold or on an inactive evidence tab, and then the
+  // one decision the agent is waiting on is invisible. The row still lights
+  // up (`.proposal-anchor`), so the card says what, the row says where.
   const anchor = anchorFor(d.tool, d.input);
   if (anchor) {
-    anchor.insertAdjacentElement('afterend', card);
     anchor.classList.add('proposal-anchor');
-  } else {
-    document.querySelector('#situation')!.insertAdjacentElement('beforeend', card);
+    revealAnchor(anchor);
   }
+  airlockCards.appendChild(card);
   pendingCards.set(e.seq, { card, anchor });
-  // the human owes the agent an answer: put it where they're already looking
-  card.scrollIntoView({ block: 'center', behavior: 'smooth' });
+  syncAirlock();
+}
+
+/** If the highlighted row sits on an evidence tab that isn't showing, show it. */
+function revealAnchor(anchor: HTMLElement): void {
+  const pane = anchor.closest<HTMLElement>('.tabpane');
+  if (pane && pane.hidden) selectTab(pane.id.replace(/^zone-|^err-/, '') as string);
+  anchor.scrollIntoView({ block: 'nearest' });
+}
+
+const airlockEl = document.querySelector<HTMLElement>('#airlock')!;
+const airlockCards = document.querySelector<HTMLElement>('#airlock-cards')!;
+/** The region only exists while something is pending; it never leaves a void. */
+function syncAirlock(): void {
+  airlockEl.dataset.pending = String(pendingCards.size);
 }
 
 function resolveApprovalCard(proposalSeq: number): void {
@@ -916,6 +1004,7 @@ function resolveApprovalCard(proposalSeq: number): void {
   entry.card.remove();
   entry.anchor?.classList.remove('proposal-anchor');
   pendingCards.delete(proposalSeq);
+  syncAirlock();
 }
 
 // ---- agent presence layer (M3-06): the agent is SOMEWHERE ---------------
@@ -1128,6 +1217,83 @@ function cautionFor(btn: HTMLButtonElement, key: string): boolean {
   return true;
 }
 
+/**
+ * The agent speaks BEFORE the click, not after it.
+ *
+ * `cautionFor` intercepts a press, which is the safe backstop — but by then
+ * the operator has already decided. If the agent has ruled an action out, the
+ * moment worth telling them is when they REACH for it. Hovering a control the
+ * agent has advised against surfaces its objection, in the agent's own
+ * colour, attached to that control: counsel, not a block. The click path is
+ * untouched, so nothing here can prevent a human from acting.
+ */
+function actionKeyOfControl(btn: HTMLElement): string | null {
+  const w = world;
+  if (!w) return null;
+  switch (btn.dataset.act) {
+    case 'flag-toggle': {
+      const flag = w.flags.find((f) => f.id === btn.dataset.flag);
+      if (!flag) return null;
+      const on = flag.state === 'on' || (typeof flag.state === 'number' && flag.state > 0);
+      return humanActionKey('flag.set', { id: flag.id, state: on ? 'off' : 'on' });
+    }
+    case 'rollback':
+      return humanActionKey('deploy.rollback', { deployId: btn.dataset.deploy });
+    case 'lever':
+    case 'undo-holding':
+      return humanActionKey(
+        String(btn.dataset.tool),
+        JSON.parse(String(btn.dataset.input)) as Record<string, unknown>
+      );
+    default:
+      return null;
+  }
+}
+
+/** The hover objection: one at a time, removed the moment the pointer leaves. */
+function clearHoverCounsel(): void {
+  document.querySelectorAll('.agent-counsel').forEach((n) => n.remove());
+  document.querySelectorAll('[data-counselled]').forEach((n) => {
+    delete (n as HTMLElement).dataset.counselled;
+  });
+}
+
+function showHoverCounsel(btn: HTMLElement): void {
+  if (btn.dataset.counselled === 'true' || btn.dataset.caution === 'pending') return;
+  const key = actionKeyOfControl(btn);
+  if (!key) return;
+  const advice = advisories.get(key);
+  if (!advice) return;
+  clearHoverCounsel();
+  btn.dataset.counselled = 'true';
+
+  const box = document.createElement('div');
+  box.className = 'agent-counsel';
+  box.dataset.testid = 'agent-counsel';
+  const who = document.createElement('span');
+  who.className = 'counsel-who';
+  who.textContent = 'The agent advises against this';
+  const why = document.createElement('p');
+  why.className = 'counsel-why';
+  why.textContent = advice.ruledOut ?? advice.summary;
+  box.append(who, why);
+  btn.parentElement?.insertBefore(box, btn.nextSibling);
+  moveAgentCursor(btn);
+}
+
+document.querySelector('#console')!.addEventListener('pointerover', (e) => {
+  const btn = (e.target as HTMLElement).closest<HTMLElement>('[data-act]');
+  if (btn) showHoverCounsel(btn);
+  else clearHoverCounsel();
+});
+document.querySelector('#console')!.addEventListener('pointerleave', clearHoverCounsel);
+// keyboard reaches the same counsel: tabbing onto the control is reaching for it
+document.querySelector('#console')!.addEventListener('focusin', (e) => {
+  const btn = (e.target as HTMLElement).closest<HTMLElement>('[data-act]');
+  if (btn) showHoverCounsel(btn);
+});
+document.querySelector('#console')!.addEventListener('focusout', clearHoverCounsel);
+
 function renderFinding(e: Event): void {
   const host = document.querySelector<HTMLElement>('#agent-findings');
   if (!host) return;
@@ -1140,6 +1306,7 @@ function renderFinding(e: Event): void {
   const card = document.createElement('article');
   card.className = 'finding';
   card.dataset.seq = String(e.seq);
+  document.querySelector<HTMLElement>('#findings-empty')!.hidden = true;
 
   const head = document.createElement('p');
   head.className = 'finding-summary';
@@ -1280,21 +1447,18 @@ function setSelection(target: EntityRef | null): void {
  * panel that keeps coming back is worse than one that never opens).
  */
 let siteAutoRevealed = false;
-function setSite(on: boolean): void {
-  document.querySelector<HTMLElement>('.shell')!.dataset.site = on ? 'on' : 'off';
-  document.querySelector('#site-toggle')!.setAttribute('aria-pressed', String(on));
-}
 function revealSiteOnTrouble(phase: string): void {
   if (siteAutoRevealed) return;
   if (phase === 'incident' || phase === 'down') {
     siteAutoRevealed = true;
-    setSite(true);
+    setRegion('site', true);
   }
 }
-document.querySelector('#site-toggle')!.addEventListener('click', () => {
-  const on = document.querySelector('#site-toggle')!.getAttribute('aria-pressed') !== 'true';
-  siteAutoRevealed = true; // an explicit choice ends the automatic behaviour
-  setSite(on);
+// any deliberate touch of the storefront's own visibility ends the automatic
+// behaviour — an auto-opening panel that keeps coming back is worse than one
+// that never opens
+document.addEventListener('click', (e) => {
+  if ((e.target as HTMLElement).closest('[data-toggle="site"]')) siteAutoRevealed = true;
 });
 
 document.querySelector('#audit-toggle')!.addEventListener('click', (ev) => {
@@ -1310,7 +1474,7 @@ document.querySelector('#audit-toggle')!.addEventListener('click', (ev) => {
   btn.textContent = on ? `Showing ${shown} actions · show all` : 'Audit trail';
 });
 
-document.querySelector('#control-deck')!.addEventListener('click', (e) => {
+document.querySelector('#console')!.addEventListener('click', (e) => {
   const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-act]');
   if (!btn) {
     // not a control: a click on a NODE is the human pointing at it. Other
@@ -1556,7 +1720,6 @@ function applyHealth(w: World): void {
   if (document.documentElement.dataset.health !== worst) setHealth(worst);
   renderSituation(w, worst);
   const phase = document.querySelector<HTMLElement>('#situation')!.dataset.phase!;
-  discloseFor(phase);
   revealSiteOnTrouble(phase);
 }
 
@@ -1629,8 +1792,12 @@ function renderSituation(w: World, worst: Health): void {
   renderStats(w, worst);
   const hasDeploys = w.deploys.length > 0;
   document.querySelector<HTMLElement>('#deploys-empty')!.hidden = hasDeploys;
-  document.querySelector<HTMLElement>('#stream-empty')!.hidden =
-    (document.querySelector('#event-stream')?.childElementCount ?? 0) > 0;
+  const streamRows = document.querySelector('#event-stream')?.childElementCount ?? 0;
+  document.querySelector<HTMLElement>('#stream-empty')!.hidden = streamRows > 0;
+  document.querySelector<HTMLElement>('#tab-changed-count')!.textContent =
+    hasDeploys ? String(w.deploys.length) : '';
+  document.querySelector<HTMLElement>('#tab-activity-count')!.textContent =
+    streamRows > 0 ? String(streamRows) : '';
   const zone = document.querySelector<HTMLElement>('#situation')!;
   const state = document.querySelector<HTMLElement>('#sit-state')!;
   const head = document.querySelector<HTMLElement>('#sit-head')!;
@@ -1711,23 +1878,6 @@ function renderSituation(w: World, worst: Health): void {
       ? ([['COST', `${w.damage.usersErrored} users · $${w.damage.revenueLost.toFixed(2)}`]] as Array<[string, string]>)
       : []),
   ]);
-}
-
-/**
- * Progressive disclosure, driven by the phase rather than by the user
- * hunting: a zone opens when it starts mattering, and is never auto-closed
- * (closing is the human's call — a view that collapses under you is worse
- * than one that shows too much).
- */
-function discloseFor(phase: string): void {
-  const open = (id: string): void => {
-    const el = document.querySelector<HTMLDetailsElement>(id);
-    if (el && !el.open) el.open = true;
-  };
-  if (phase === 'incident' || phase === 'down' || phase === 'decide') {
-    open('#zone-changed');
-    open('#zone-controls');
-  }
 }
 
 /**
@@ -2010,27 +2160,142 @@ worker.onmessage = (e: MessageEvent<SimResponse>) => {
 
 const shellEl = document.querySelector<HTMLElement>('.shell')!;
 
-/** Collapsed panes leave a rail you can click to bring them back. */
-function setPane(which: 'site' | 'rail', open: boolean): void {
-  if (which === 'site') shellEl.dataset.site = open ? 'on' : 'off';
-  else shellEl.dataset.rail = open ? 'on' : 'off';
+/* ============================================================
+   WORKBENCH REGIONS (2026-09-02)
+   Docks, tabs and sashes. One controller owns every region's
+   visibility, so a closed region always has exactly one obvious
+   way back — the activity bar button that closed it, still lit.
+   ============================================================ */
+
+type Region = 'site' | 'rail' | 'panel';
+
+/** Visibility is one attribute per region; CSS owns the geometry. */
+function setRegion(which: Region, open: boolean): void {
+  shellEl.dataset[which] = open ? 'on' : 'off';
+  document
+    .querySelectorAll<HTMLElement>(`.act-btn[data-toggle="${which}"]`)
+    .forEach((b) => b.setAttribute('aria-pressed', String(open)));
 }
+const regionOpen = (which: Region): boolean => shellEl.dataset[which] === 'on';
 
 document.addEventListener('click', (e) => {
-  const min = (e.target as HTMLElement).closest<HTMLElement>('[data-min]');
-  if (min) {
-    setPane(min.dataset.min as 'site' | 'rail', false);
-    return;
-  }
-  const restore = (e.target as HTMLElement).closest<HTMLElement>('[data-restore]');
-  if (restore) {
-    const which = restore.dataset.restore as 'site' | 'rail';
-    const open = which === 'site' ? shellEl.dataset.site !== 'on' : shellEl.dataset.rail !== 'off';
-    // the masthead button toggles; the pane's own minus only ever closes
-    setPane(which, which === 'site' ? open : shellEl.dataset.rail === 'off');
-    restore.setAttribute('aria-pressed', String(which === 'site' ? open : shellEl.dataset.rail !== 'off'));
-  }
+  const t = (e.target as HTMLElement).closest<HTMLElement>('[data-toggle]');
+  if (!t) return;
+  const which = t.dataset.toggle as Region;
+  // an activity-bar button toggles; a region's own close button only closes
+  setRegion(which, t.classList.contains('act-btn') ? !regionOpen(which) : false);
 });
+
+/* ---- evidence panel: three views of one thing, so they are tabs -------- */
+
+const TABS = ['changed', 'activity', 'chart'] as const;
+type TabName = (typeof TABS)[number];
+const paneFor: Record<TabName, string> = {
+  changed: 'zone-changed',
+  activity: 'zone-activity',
+  chart: 'err-chart',
+};
+
+function selectTab(name: string): void {
+  if (!TABS.includes(name as TabName)) return;
+  setRegion('panel', true); // selecting a view is asking to see it
+  for (const t of TABS) {
+    const tab = document.querySelector<HTMLElement>(`#tab-${t}`)!;
+    const pane = document.querySelector<HTMLElement>(`#${paneFor[t]}`)!;
+    const on = t === name;
+    tab.setAttribute('aria-selected', String(on));
+    tab.tabIndex = on ? 0 : -1;
+    pane.hidden = !on;
+  }
+  if (name === 'chart') renderErrChart(); // the plot sizes off its own box
+}
+
+document.querySelector('.panel-tabs')!.addEventListener('click', (e) => {
+  const tab = (e.target as HTMLElement).closest<HTMLElement>('.ptab');
+  if (tab) selectTab(String(tab.dataset.tab));
+});
+// ARIA tabs pattern: arrows move between tabs, home/end to the ends
+document.querySelector('.panel-tabs')!.addEventListener('keydown', (e) => {
+  const ev = e as KeyboardEvent;
+  const cur = (ev.target as HTMLElement).closest<HTMLElement>('.ptab');
+  if (!cur) return;
+  const i = TABS.indexOf(String(cur.dataset.tab) as TabName);
+  const next =
+    ev.key === 'ArrowRight' ? (i + 1) % TABS.length
+    : ev.key === 'ArrowLeft' ? (i - 1 + TABS.length) % TABS.length
+    : ev.key === 'Home' ? 0
+    : ev.key === 'End' ? TABS.length - 1
+    : -1;
+  if (next < 0) return;
+  ev.preventDefault();
+  const target = TABS[next]!;
+  selectTab(target);
+  document.querySelector<HTMLElement>(`#tab-${target}`)!.focus();
+});
+
+/* ---- sashes: WAI-ARIA window splitter, pointer + keyboard ------------- */
+
+interface SashSpec { prop: string; min: number; max: number; axis: 'x' | 'y' }
+const SASH: Record<Region, SashSpec> = {
+  site: { prop: '--w-site', min: 320, max: 1100, axis: 'x' },
+  rail: { prop: '--w-rail', min: 280, max: 620, axis: 'x' },
+  panel: { prop: '--h-panel', min: 120, max: 900, axis: 'y' },
+};
+
+function sizeOf(name: Region): number {
+  const spec = SASH[name];
+  return parseFloat(getComputedStyle(shellEl).getPropertyValue(spec.prop)) || spec.min;
+}
+function setSize(name: Region, px: number): void {
+  const spec = SASH[name];
+  const v = Math.max(spec.min, Math.min(spec.max, px));
+  shellEl.style.setProperty(spec.prop, `${Math.round(v)}px`);
+  const handle = document.querySelector<HTMLElement>(`.wb-sash[data-sash="${name}"]`);
+  handle?.setAttribute(
+    'aria-valuenow',
+    String(Math.round(((v - spec.min) / (spec.max - spec.min)) * 100))
+  );
+}
+
+for (const handle of document.querySelectorAll<HTMLElement>('.wb-sash')) {
+  const name = handle.dataset.sash as Region;
+  const spec = SASH[name];
+  handle.addEventListener('pointerdown', (e) => {
+    e.preventDefault();
+    handle.setPointerCapture(e.pointerId);
+    handle.dataset.dragging = 'true';
+    const start = spec.axis === 'x' ? e.clientX : e.clientY;
+    const from = sizeOf(name);
+    const move = (m: PointerEvent): void => {
+      // the docks grow leftward and the panel grows upward, so drag inverts
+      const delta = (spec.axis === 'x' ? m.clientX : m.clientY) - start;
+      setSize(name, from - delta);
+    };
+    const up = (): void => {
+      delete handle.dataset.dragging;
+      handle.removeEventListener('pointermove', move);
+      handle.removeEventListener('pointerup', up);
+    };
+    handle.addEventListener('pointermove', move);
+    handle.addEventListener('pointerup', up);
+  });
+  handle.addEventListener('keydown', (e) => {
+    const step = e.shiftKey ? 64 : 16;
+    const grow = spec.axis === 'x' ? 'ArrowLeft' : 'ArrowUp';
+    const shrink = spec.axis === 'x' ? 'ArrowRight' : 'ArrowDown';
+    if (e.key === grow) setSize(name, sizeOf(name) + step);
+    else if (e.key === shrink) setSize(name, sizeOf(name) - step);
+    else if (e.key === 'Home') setSize(name, spec.min);
+    else if (e.key === 'End') setSize(name, spec.max);
+    else if (e.key === 'Enter') {
+      // the splitter pattern's collapse toggle
+      setRegion(name, !regionOpen(name));
+    } else return;
+    e.preventDefault();
+  });
+}
+
+document.querySelector('#act-palette')!.addEventListener('click', () => openPalette());
 
 /**
  * COMMAND PALETTE (Cmd/Ctrl+K).
@@ -2217,6 +2482,9 @@ function renderCapability(tools: AirlockTools): void {
   const writes = active.filter((t) => !t.readOnly && t.name !== 'record_finding');
   const countEl = document.querySelector<HTMLElement>('#tool-count');
   if (countEl) countEl.textContent = String(active.length);
+  const fc = document.querySelector<HTMLElement>('#finding-count');
+  const n = document.querySelectorAll('#agent-findings .finding').length;
+  if (fc) fc.textContent = n ? String(n) : '';
   const sub = document.querySelector<HTMLElement>('#rail-sub');
   if (sub) {
     sub.textContent =
@@ -2324,6 +2592,7 @@ function renderToolRail(tools: AirlockTools): void {
   document.querySelectorAll<HTMLButtonElement>('#mode-switch [data-mode]').forEach((b) => {
     b.setAttribute('aria-pressed', String(b.dataset.mode === tools.mode()));
   });
+  document.querySelector('#wbs-mode')!.textContent = tools.mode();
   const foot = document.querySelector<HTMLElement>('#ladder-foot');
   if (foot) {
     const locked = list.querySelectorAll('li[data-status="locked"]').length;

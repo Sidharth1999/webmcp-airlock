@@ -1,6 +1,20 @@
-/* Console shell: masthead over three instrument modules —
-   console (left) / site pane (center) / tool rail (right).
-   Depth model: page glow → floating panels → raised cards → inset wells. */
+/* ============================================================
+   WORKBENCH SHELL — rebuilt 2026-09-02.
+
+   The previous shell was a three-column grid whose centre column
+   was a scrolling document. At 2400px the controls — the product —
+   sat below the fold, `1fr` columns absorbed all the slack so a
+   control's name and its button stranded at opposite edges, and a
+   pending approval could only be found by scrolling.
+
+   This is a fixed-viewport app shell in the VS Code sense:
+     title bar · activity bar · centre · bottom panel group ·
+     storefront dock · agent dock · status bar
+   Regions are divided by 1px hairlines and draggable sashes, sized
+   to the viewport, and NOTHING scrolls except the inside of one
+   region. Docks carry explicit px widths (never `1fr`) so extra
+   width goes to the centre, where the controls are.
+   ============================================================ */
 
 * { box-sizing: border-box; margin: 0; }
 
@@ -15,218 +29,338 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-.shell {
-  height: 100%;
-  display: grid;
-  grid-template-rows: 56px 1fr;
-  grid-template-columns: minmax(340px, 29%) 1fr minmax(310px, 23%);
-  transition: grid-template-columns var(--dur-settle) var(--ease-settle);
-  grid-template-areas:
-    "masthead masthead masthead"
-    "console  site     rail";
-  gap: 0;
-  padding: 0;
-  /* regions divided by hairlines, not panels floating on a lit void */
-  background: var(--bg);
-  transition: background var(--dur-settle) var(--ease-settle);
+/* surface ladder (Radix 12-step semantics mapped onto our oklch ramp):
+   which surface a thing sits on now follows a rule instead of taste. */
+:root {
+  --s-chrome: oklch(20.5% 0.017 248);  /* title bar, tab bars, status bar */
+  --s-dock:   var(--panel);            /* a docked region's body          */
+  --s-raised: oklch(21.5% 0.017 248);  /* a card sitting on a dock        */
+  --s-well:   oklch(15% 0.014 250);    /* inset scroll containers         */
+  --sash: 5px;
+  /* dock sizes are the sashes' state; both docks are content-sized so the
+     centre keeps every pixel of extra width on a wide display */
+  --w-site: 620px;
+  --w-rail: 360px;
+  --h-panel: clamp(190px, 26vh, 360px);
+  --act-w: 46px;
 }
 
-/* --- masthead: the health strip IS the instrument --------- */
-.masthead {
-  grid-area: masthead;
-  background: var(--panel);
-  border: 0;
+.wb {
+  height: 100dvh;
+  display: grid;
+  overflow: hidden;
+  background: var(--bg);
+  grid-template-columns:
+    var(--act-w)              /* activity bar   */
+    minmax(0, 1fr)            /* centre         */
+    var(--sash) var(--w-site) /* storefront     */
+    var(--sash) var(--w-rail);/* agent          */
+  grid-template-rows: 40px minmax(0, 1fr) 24px;
+  grid-template-areas:
+    "title  title  title  title  title  title"
+    "act    centre sashS  site   sashR  rail"
+    "status status status status status status";
+}
+/* a closed region takes no space at all — no ghost gutter, no residue */
+.wb[data-site='off'] { --w-site: 0px; }
+.wb[data-rail='off'] { --w-rail: 0px; }
+.wb[data-site='off'] .wb-sash[data-sash='site'],
+.wb[data-rail='off'] .wb-sash[data-sash='rail'] { display: none; }
+.wb[data-site='off'] #site-pane,
+.wb[data-rail='off'] #tool-rail { display: none; }
+.wb[data-panel='off'] { --h-panel: 0px; }
+.wb[data-panel='off'] .wb-panel,
+.wb[data-panel='off'] .wb-sash[data-sash='panel'] { display: none; }
+
+/* --- title bar --------------------------------------------- */
+.wb-title {
+  grid-area: title;
+  background: var(--s-chrome);
   border-bottom: 1px solid var(--line-strong);
-  border-radius: 0;
-  /* the health strip is a hairline of state, not a bloom */
-  box-shadow: inset 0 -2px 0 var(--health);
+  box-shadow: inset 0 -2px 0 var(--health);  /* the health strip is a hairline */
   display: flex;
   align-items: center;
-  gap: var(--sp-4);
-  padding: 0 var(--sp-4);
+  gap: var(--sp-3);
+  padding: 0 var(--sp-3) 0 var(--sp-4);
+  min-width: 0;
   transition: box-shadow var(--dur-settle) var(--ease-settle);
 }
-.masthead .wordmark {
+.wb-title .wordmark {
   font-family: var(--font-instrument);
-  font-size: var(--text-sm);
+  font-size: var(--text-xs);
   font-weight: 700;
   letter-spacing: var(--tracking-wide);
   text-transform: uppercase;
   color: var(--ink);
-}
-.masthead .health-lamp {
-  width: 11px; height: 11px;
-  border-radius: 50%;
-  background: var(--health);
-  transition: background var(--dur-settle) var(--ease-settle),
-              box-shadow var(--dur-settle) var(--ease-settle);
-  animation: lamp-breathe 2.8s var(--ease-settle) infinite;
-}
-@keyframes lamp-breathe {
-  0%, 100% { filter: brightness(1); }
-  50% { filter: brightness(1.35); }
-}
-.masthead .health-word {
-  font-family: var(--font-instrument);
-  font-family: var(--font-prose);
-  font-size: var(--text-md);
-  font-weight: 600;
-  letter-spacing: -0.01em;
-  text-transform: capitalize;
-  color: var(--health-bright);
-  transition: color var(--dur-settle) var(--ease-settle),
-              background var(--dur-settle) var(--ease-settle);
-}
-.masthead .spacer { flex: 1; }
-
-/* --- telemetry wall: live instruments in the masthead ------ */
-.tele { display: flex; gap: var(--sp-2); align-items: stretch; }
-.tele-inst, .tele-damage {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-  padding: 3px var(--sp-3);
-  border-left: 1px solid var(--line);
-  color: var(--ink-faint);
-}
-.tele-label {
-  font-family: var(--font-instrument);
-  font-size: var(--text-2xs);
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-label);
-  color: var(--ink-ghost);
-}
-.tele-spark { width: 96px; height: 24px; overflow: visible; }
-.tele-spark path {
-  fill: none;
-  stroke: currentColor;
-  stroke-width: 1.5;
-  stroke-linejoin: round;
-  stroke-linecap: round;
-}
-.tele-val {
-  font-family: var(--font-instrument);
-  font-size: var(--text-xs);
-  font-weight: 600;
-  font-variant-numeric: tabular-nums;
-  color: var(--ink);
-  min-width: 6ch;
-  text-align: right;
-}
-.tele-inst[data-state='warn'] { color: var(--warn); }
-.tele-inst[data-state='warn'] .tele-val { color: var(--warn); }
-.tele-inst[data-state='bad'] { color: var(--bad); }
-.tele-inst[data-state='bad'] .tele-val { color: var(--bad); }
-.tele-damage .tele-val { min-width: 7ch; }
-
-/* dev-only token demo control (?dev=1) */
-.health-demo { display: flex; gap: var(--sp-1); }
-.health-demo button {
-  font-family: var(--font-instrument);
-  font-size: var(--text-2xs);
-  letter-spacing: var(--tracking-label);
-  text-transform: uppercase;
-  color: var(--ink-faint);
-  background: transparent;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--r-sm);
-  padding: var(--sp-1) var(--sp-2);
-  cursor: pointer;
-  transition: color var(--dur-snap) var(--ease-snap),
-              border-color var(--dur-snap) var(--ease-snap);
-}
-.health-demo button:hover { color: var(--ink); }
-.health-demo button[aria-pressed="true"] {
-  color: var(--health-bright);
-  border-color: var(--health-dim);
-}
-
-/* --- the three instrument modules ------------------------- */
-.pane {
-  background: var(--panel);
-  border: 0;
-  border-radius: 0;
-  box-shadow: none;
-  display: flex;
-  flex-direction: column;
-  min-height: 0;
-  overflow: hidden;
-}
-.pane > header {
-  font-family: var(--font-prose);
-  font-size: var(--text-sm);
-  font-weight: 600;
-  letter-spacing: 0;
-  text-transform: none;
-  color: var(--ink);
-  padding: 0 var(--sp-4);
-  min-height: 42px;
-  border-bottom: 1px solid var(--line);
-  background: oklch(0% 0 0 / 0.14);
-  display: flex;
-  align-items: center;
-  gap: var(--sp-3);
   white-space: nowrap;
 }
-.pane > .body {
-  flex: 1;
+.wb-title .health-lamp {
+  width: 9px; height: 9px;
+  border-radius: 50%;
+  background: var(--health);
+  box-shadow: 0 0 8px 1px var(--health-glow);
+  flex: none;
+  transition: background var(--dur-settle) var(--ease-settle),
+              box-shadow var(--dur-settle) var(--ease-settle);
+}
+.wb-title .health-word {
+  font-family: var(--font-prose);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--health-bright);
+  white-space: nowrap;
+  transition: color var(--dur-settle) var(--ease-settle);
+}
+.title-div { width: 1px; height: 18px; background: var(--line-strong); flex: none; }
+.wb-title .spacer { flex: 1; min-width: var(--sp-3); }
+
+/* --- activity bar: the one place a region's visibility lives ---------- */
+.wb-act {
+  grid-area: act;
+  background: var(--s-chrome);
+  border-right: 1px solid var(--line-strong);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 2px;
+  padding: var(--sp-2) 0;
+}
+.act-div { width: 22px; height: 1px; background: var(--line-strong); margin: var(--sp-2) 0; }
+.act-btn {
+  width: 34px; height: 34px;
+  display: grid;
+  place-items: center;
+  background: transparent;
+  border: 0;
+  border-radius: var(--r-md);
+  color: var(--ink-ghost);
+  cursor: pointer;
+  position: relative;
+  transition: color var(--dur-snap) var(--ease-snap),
+              background var(--dur-snap) var(--ease-snap);
+}
+.act-btn svg {
+  width: 19px; height: 19px;
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.4;
+  stroke-linecap: round;
+  stroke-linejoin: round;
+}
+.act-btn:hover { color: var(--ink); background: oklch(100% 0 0 / 0.06); }
+.act-btn[aria-pressed='true'] { color: var(--ink); }
+/* the lit spine says "this region is open" — and, when unlit, that the same
+   button is how it comes back */
+.act-btn[aria-pressed='true']::before {
+  content: '';
+  position: absolute;
+  left: -6px; top: 5px; bottom: 5px;
+  width: 2px;
+  border-radius: 1px;
+  background: var(--ink);
+}
+.act-btn:focus-visible { outline: 2px solid var(--actor-human); outline-offset: -2px; }
+
+/* --- sashes ------------------------------------------------- */
+.wb-sash {
+  background: var(--line-strong);
+  position: relative;
+  z-index: 6;
+  transition: background var(--dur-snap) var(--ease-snap);
+}
+.wb-sash[data-sash='site'] { grid-area: sashS; cursor: col-resize; }
+.wb-sash[data-sash='rail'] { grid-area: sashR; cursor: col-resize; }
+.wb-sash[data-sash='panel'] { cursor: row-resize; }
+/* a 5px target is thin for the pointer; widen the hit area, not the paint */
+.wb-sash::after {
+  content: '';
+  position: absolute;
+  inset: -3px;
+}
+.wb-sash:hover,
+.wb-sash[data-dragging='true'],
+.wb-sash:focus-visible { background: var(--actor-human); outline: none; }
+
+/* --- centre: readout + airlock pinned, controls scroll, panel docked --- */
+.wb-centre {
+  grid-area: centre;
+  container-type: inline-size;
+  container-name: centre;
+  min-width: 0;
   min-height: 0;
-  overflow: auto;
-  padding: var(--sp-5);
-  color: var(--ink-dim);
-  font-size: var(--text-sm);
+  background: var(--bg);
+  display: grid;
+  /* readout · airlock · controls · sash · evidence.
+     The CONTROLS row is content-sized and the EVIDENCE panel takes the
+     slack. The other way round left a band of bare ground under the last
+     control card on any tall display — and the evidence panel (the activity
+     trail especially) is the region that actually benefits from height. */
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto var(--h-panel);
+  overflow: hidden;
+}
+/* EXPLICIT rows. The airlock is `display:none` when nothing is pending, and
+   auto-placement then shifted every region up one track — the panel landed in
+   the sash's row and the last track stayed empty, which is exactly the band
+   of bare ground the 2400px capture showed. Measured, not guessed. */
+.wb-centre > .readout { grid-row: 1; }
+.wb-centre > .airlock { grid-row: 2; }
+.wb-centre > .cmdbar { grid-row: 3; }
+.wb-centre > .wb-centre-body { grid-row: 4; }
+.wb-centre > .wb-sash { grid-row: 5; }
+.wb-centre > .wb-panel { grid-row: 6; }
+.wb-centre-body {
+  container-type: inline-size;
+  container-name: console;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--sp-4);
 }
 
-/* opt-in live site: the console gets the room back when the store is fine,
-   and the store takes it the moment it starts hurting */
-.shell[data-site='off'] { grid-template-columns: 1fr 0px minmax(310px, 23%); }
-.shell[data-site='on']  { grid-template-columns: minmax(340px, 29%) minmax(430px, 1fr) minmax(310px, 23%); }
-/* visibility, not just opacity: a 0-opacity pane is still focusable and still
-   reads as "visible" to assistive tech and to Playwright */
-.shell[data-site='off'] #site-pane {
-  opacity: 0;
-  visibility: hidden;
-  pointer-events: none;
-  transition: opacity var(--dur-settle) var(--ease-settle),
-              visibility 0s linear var(--dur-settle);
-}
-#site-pane {
+/* --- bottom panel group: three views of one thing ---------------------- */
+.wb-panel {
+  min-height: 0;
+  height: var(--h-panel);
+  background: var(--s-dock);
+  border-top: 1px solid var(--line-strong);
+  display: grid;
+  grid-template-rows: 34px minmax(0, 1fr);
   overflow: hidden;
-  opacity: 1;
-  visibility: visible;
-  transition: opacity var(--dur-settle) var(--ease-settle), visibility 0s;
 }
-#site-toggle {
+.panel-tabs {
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  padding-right: var(--sp-2);
+  background: var(--s-chrome);
+  border-bottom: 1px solid var(--line);
+}
+.panel-tabs .spacer { flex: 1; }
+.ptab {
   font-family: var(--font-prose);
   font-size: var(--text-xs);
   font-weight: 500;
+  letter-spacing: 0;
   color: var(--ink-faint);
   background: transparent;
-  border: 1px solid var(--line-strong);
-  border-radius: var(--r-sm);
-  padding: 3px var(--sp-2);
+  border: 0;
+  border-bottom: 2px solid transparent;
+  padding: 0 var(--sp-4);
   cursor: pointer;
-  transition: color var(--dur-snap) var(--ease-snap), border-color var(--dur-snap) var(--ease-snap);
+  white-space: nowrap;
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  transition: color var(--dur-snap) var(--ease-snap),
+              border-color var(--dur-snap) var(--ease-snap);
 }
-#site-toggle:hover { color: var(--ink); }
-/* SUPERSEDED 2026-09-01. This turned #control-deck into a two-column grid
-   and placed each zone by id. Those ids now live inside .act-region and
-   .evidence-region, so the placements stopped matching and the two wrappers
-   were auto-placed as columns with zero height — the console body rendered
-   EMPTY when the storefront was closed.
-   .evidence-region now owns its own columns via a container query, which is
-   better: it responds to the console's actual width rather than to whether
-   the storefront happens to be open. */
-#site-toggle[aria-pressed='true'] { color: var(--ink); border-color: var(--ink-faint); background: oklch(100% 0 0 / 0.06); }
+.ptab:hover { color: var(--ink-dim); }
+.ptab[aria-selected='true'] { color: var(--ink); border-bottom-color: var(--ink); }
+.ptab:focus-visible { outline: 2px solid var(--actor-human); outline-offset: -2px; }
+.ptab-count {
+  font-family: var(--font-instrument);
+  font-size: var(--text-2xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-ghost);
+}
+.ptab-count:empty { display: none; }
+.panel-tabs #audit-toggle { align-self: center; }
+.panel-close, .dock-close {
+  font-family: var(--font-prose);
+  font-size: 15px;
+  line-height: 1;
+  color: var(--ink-ghost);
+  background: transparent;
+  border: 0;
+  border-radius: var(--r-sm);
+  padding: 2px 7px;
+  margin-left: var(--sp-2);
+  cursor: pointer;
+  align-self: center;
+  transition: color var(--dur-snap) var(--ease-snap), background var(--dur-snap) var(--ease-snap);
+}
+.panel-close:hover, .dock-close:hover { color: var(--ink); background: oklch(100% 0 0 / 0.08); }
+.panel-body { min-height: 0; overflow: hidden; display: grid; }
+.tabpane {
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--sp-3) var(--sp-4);
+}
+.tabpane[hidden] { display: none; }
 
-#console   { grid-area: console; border-right: 1px solid var(--line-strong); }
+/* --- docks --------------------------------------------------- */
+.wb-dock {
+  min-width: 0;
+  min-height: 0;
+  background: var(--s-dock);
+  display: grid;
+  grid-template-rows: 34px minmax(0, 1fr);
+  overflow: hidden;
+}
 #site-pane { grid-area: site; }
-#tool-rail { border-left: 1px solid var(--line-strong); }
-/* ux-debt #5: each pane says what it is, once, quietly */
+#tool-rail { grid-area: rail; grid-template-rows: 34px auto minmax(0, 1fr); }
+.dock-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 0 var(--sp-2) 0 var(--sp-4);
+  background: var(--s-chrome);
+  border-bottom: 1px solid var(--line);
+  min-width: 0;
+}
+.dock-title {
+  font-family: var(--font-prose);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.dock-body {
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: var(--sp-4);
+  color: var(--ink-dim);
+  font-size: var(--text-sm);
+}
+#site-pane .dock-body { padding: 0; background: oklch(0% 0 0 / 0.12); }
+
+/* --- status bar: reference lives at the edge -------------------------- */
+.wb-status {
+  grid-area: status;
+  background: var(--s-chrome);
+  border-top: 1px solid var(--line-strong);
+  display: flex;
+  align-items: center;
+  gap: var(--sp-4);
+  padding: 0 var(--sp-4);
+  font-family: var(--font-instrument);
+  font-size: var(--text-2xs);
+  color: var(--ink-ghost);
+  min-width: 0;
+}
+.wb-status .spacer { flex: 1; }
+.wbs-item {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  font-variant-numeric: tabular-nums;
+}
+.wbs-mode { color: var(--ink-dim); text-transform: capitalize; }
+.wbs-hint kbd {
+  font-family: var(--font-instrument);
+  font-size: var(--text-2xs);
+  border: 1px solid var(--line-strong);
+  border-radius: 3px;
+  padding: 0 4px;
+  margin-right: 3px;
+  color: var(--ink-faint);
+}
+
+/* --- pane subtitle: says what a region is, once, quietly -------------- */
 .pane-sub {
   margin-right: auto;
-  /* the subtitle yields first: controls must never clip */
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -237,14 +371,75 @@ body {
   color: var(--ink-faint);
   letter-spacing: 0;
 }
-#site-pane > .body { background: oklch(0% 0 0 / 0.12); }
-#tool-rail { grid-area: rail; }
-
 .placeholder {
   color: var(--ink-ghost);
   font-family: var(--font-prose);
   font-size: var(--text-xs);
   line-height: 1.65;
+}
+
+/* --- telemetry instruments (title bar) -------------------------------- */
+.tele { display: flex; gap: var(--sp-1); align-items: stretch; min-width: 0; }
+.tele-inst, .tele-damage {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: 0 var(--sp-3);
+  border-left: 1px solid var(--line);
+  min-width: 0;
+}
+.tele-label {
+  font-family: var(--font-instrument);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--ink-ghost);
+}
+.tele-spark { width: 62px; height: 18px; overflow: visible; flex: none; }
+.tele-spark path {
+  fill: none;
+  stroke: currentColor;
+  stroke-width: 1.25;
+  stroke-linejoin: round;
+  stroke-linecap: round;
+  opacity: 0.75;
+  color: var(--ink-faint);
+}
+.tele-val {
+  font-family: var(--font-instrument);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--ink);
+  font-variant-numeric: tabular-nums;
+  min-width: 6ch;
+  text-align: right;
+}
+.tele-inst[data-state='warn'] { color: var(--warn); }
+.tele-inst[data-state='warn'] .tele-val { color: var(--warn); }
+.tele-inst[data-state='bad'] { color: var(--bad); }
+.tele-inst[data-state='bad'] .tele-val { color: var(--bad); }
+.tele-damage .tele-val { min-width: 7ch; }
+/* the instruments yield their sparklines before the readings clip */
+@media (max-width: 1500px) { .tele-spark { display: none; } }
+@media (max-width: 1240px) { .tele-inst[data-metric='p95'] { display: none; } }
+
+.health-demo { display: flex; gap: var(--sp-1); }
+.health-demo button {
+  font-family: var(--font-instrument);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--ink-ghost);
+  background: transparent;
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  padding: 2px 6px;
+  cursor: pointer;
+}
+.health-demo button:hover { color: var(--ink); }
+.health-demo button[aria-pressed="true"] {
+  color: var(--health-bright);
+  border-color: var(--health-dim);
 }
 
 /* --- button system ----------------------------------------- */
@@ -280,8 +475,7 @@ body {
 }
 .ctl-btn.primary:hover:not(:disabled) { background: var(--ink); color: var(--bg); opacity: 0.9; }
 
-#sim-run { margin-left: auto; flex: none; }
-.pane > header > .seg, .pane > header > button { flex: none; }
+#sim-run { flex: none; }
 #sim-run[aria-pressed='true'] {
   color: var(--health-bright);
   border-color: var(--health-dim);
@@ -334,52 +528,69 @@ body {
   font-size: var(--text-sm);
 }
 
-/* ZONE 1 — read this and you know the state of the world. */
-#situation {
-  position: sticky;
-  top: calc(var(--sp-5) * -1);
-  z-index: 5;
-  padding: var(--sp-4) var(--sp-5) var(--sp-4);
-  margin: calc(var(--sp-5) * -1) calc(var(--sp-5) * -1) 0;
-  background: var(--panel);
-  border-bottom: 1px solid var(--line);
+/* ============================================================
+   READOUT STRIP — the state of the world, docked, never scrolled.
+   Rebuilt 2026-09-02: it used to be a sticky block whose left half
+   was empty while the metrics crushed into the right. It is now one
+   horizontal instrument band: identity and headline on the left,
+   labelled fields in the middle, impact figures on the right, each
+   in a column that is sized to its content.
+   ============================================================ */
+.readout {
+  display: grid;
+  grid-template-columns: minmax(240px, 22%) minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0;
+  background: var(--s-chrome);
+  border-bottom: 1px solid var(--line-strong);
+  padding: var(--sp-3) var(--sp-4);
+  min-width: 0;
 }
-/* a readout, not a paragraph: state line, elapsed clock, then labelled fields */
-.sit-bar {
+.ro-state {
   display: flex;
   align-items: baseline;
   gap: var(--sp-3);
   font-family: var(--font-instrument);
   font-size: var(--text-2xs);
   letter-spacing: var(--tracking-label);
+  grid-row: 1;
+  grid-column: 1;
 }
 .sit-state {
   font-weight: 700;
   color: var(--ink-faint);
   transition: color var(--dur-settle) var(--ease-settle);
 }
-.sit-clock {
-  margin-left: auto;
-  color: var(--ink-ghost);
-  font-variant-numeric: tabular-nums;
-}
+.sit-clock { color: var(--ink-ghost); font-variant-numeric: tabular-nums; }
 .sit-head {
-  margin-top: 2px;
+  grid-row: 2;
+  grid-column: 1;
+  margin-top: 1px;
+  padding-right: var(--sp-4);
   font-family: var(--font-instrument);
   font-size: var(--text-lg);
   font-weight: 700;
   letter-spacing: 0.01em;
   line-height: 1.15;
   color: var(--ink);
+  text-wrap: balance;
   transition: color var(--dur-settle) var(--ease-settle);
 }
 .sit-fields {
-  margin: var(--sp-3) 0 0;
+  grid-row: 1 / 3;
+  grid-column: 2;
+  margin: 0;
+  padding: 0 var(--sp-5);
+  border-left: 1px solid var(--line);
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(212px, 1fr));
-  gap: 2px var(--sp-5);
+  /* content-sized, so a wide display gives the fields more COLUMNS rather
+     than stretching two of them across a void */
+  grid-template-columns: repeat(auto-fill, minmax(230px, max-content));
+  align-content: center;
+  gap: 3px var(--sp-5);
   font-family: var(--font-instrument);
   font-size: var(--text-xs);
+  min-width: 0;
 }
 .sit-f { display: flex; gap: var(--sp-2); align-items: baseline; min-width: 0; }
 .sit-f dt {
@@ -401,62 +612,34 @@ body {
 .sit-f dd[data-tone='bad']  { color: var(--bad); }
 .sit-f dd[data-tone='ok']   { color: var(--ink-dim); }
 .sit-f dd[data-tone='hold'] { color: var(--actor-agent); }
-#situation[data-phase='incident'] .sit-head,
-#situation[data-phase='incident'] .sit-state { color: var(--warn); }
-#situation[data-phase='down'] .sit-head,
-#situation[data-phase='down'] .sit-state { color: var(--bad); }
-#situation[data-phase='decide'] .sit-head,
-#situation[data-phase='decide'] .sit-state { color: var(--actor-agent); }
-#situation[data-phase='calm'] .sit-head { color: var(--ink); }
+.readout[data-phase='incident'] .sit-head,
+.readout[data-phase='incident'] .sit-state { color: var(--warn); }
+.readout[data-phase='down'] .sit-head,
+.readout[data-phase='down'] .sit-state { color: var(--bad); }
+.readout[data-phase='decide'] .sit-head,
+.readout[data-phase='decide'] .sit-state { color: var(--actor-agent); }
+.readout[data-phase='calm'] .sit-head { color: var(--ink); }
 
-/* ZONES 2-4 — evidence, controls, trail. Open when they start mattering. */
-.zone {
-  border: 1px solid var(--line);
-  border-radius: var(--r-md);
-  background: oklch(100% 0 0 / 0.015);
-  margin-top: var(--sp-4);
-}
-.zone[open] > summary { border-bottom: 1px solid var(--line); }
-.zone > summary {
-  display: flex;
-  align-items: center;
-  gap: var(--sp-2);
-  padding: var(--sp-3) var(--sp-4);
-  cursor: pointer;
-  list-style: none;
-  user-select: none;
-}
-.zone > summary::-webkit-details-marker { display: none; }
-.zone > summary::before {
-  content: '';
-  width: 7px; height: 7px;
-  border-right: 1.5px solid var(--ink-ghost);
-  border-bottom: 1.5px solid var(--ink-ghost);
-  transform: rotate(-45deg);
-  transition: transform var(--dur-snap) var(--ease-snap);
-  flex: none;
-}
-.zone[open] > summary::before { transform: rotate(45deg); }
-.zone > summary:hover::before { border-color: var(--ink-dim); }
-.zone-title { font-size: var(--text-sm); font-weight: 600; color: var(--ink-dim); }
-.zone[open] > summary .zone-title { color: var(--ink); }
-.zone-meta { margin-left: auto; font-size: var(--text-xs); color: var(--ink-ghost); }
-.zone-body { padding: var(--sp-4); }
-
-/* --- impact cards: label, big value, context (Vercel card anatomy) ------ */
+/* impact figures ride the readout's right edge: four instrument readings,
+   not four cards stacked two-by-two down a column */
 .stats {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(158px, 1fr));
-  gap: var(--sp-3);
-  margin-top: var(--sp-4);
+  grid-row: 1 / 3;
+  grid-column: 3;
+  display: flex;
+  align-items: stretch;
+  gap: 0;
+  margin: 0;
+  padding-left: var(--sp-2);
+  border-left: 1px solid var(--line);
 }
 .stat {
-  border: 1px solid var(--line);
-  border-radius: var(--r-md);
-  background: oklch(100% 0 0 / 0.02);
-  padding: var(--sp-3) var(--sp-4) var(--sp-4);
+  border: 0;
+  border-radius: 0;
+  background: none;
+  padding: 0 var(--sp-4);
   min-width: 0;
 }
+.stat + .stat { border-left: 1px solid var(--line); }
 .stat-k {
   font-family: var(--font-prose);
   font-size: var(--text-2xs);
@@ -467,18 +650,18 @@ body {
   text-overflow: ellipsis;
 }
 .stat-v {
-  margin-top: 6px;
+  margin-top: 2px;
   font-family: var(--font-instrument);
-  font-size: 1.75rem;
+  font-size: 1.375rem;
   font-weight: 600;
-  line-height: 1.05;
+  line-height: 1.1;
   letter-spacing: -0.02em;
   color: var(--ink);
   font-variant-numeric: tabular-nums;
   transition: color var(--dur-settle) var(--ease-settle);
 }
 .stat-sub {
-  margin-top: 5px;
+  margin-top: 2px;
   font-family: var(--font-prose);
   font-size: var(--text-2xs);
   color: var(--ink-ghost);
@@ -488,6 +671,113 @@ body {
 }
 .stat[data-tone='warn'] .stat-v { color: var(--warn); }
 .stat[data-tone='bad']  .stat-v { color: var(--bad); }
+/* The band sheds a column at a time as the console narrows. Every threshold
+   is on the CONSOLE's width — the storefront and the agent dock both take
+   from it, so window width says nothing about the room this band has. */
+@container centre (max-width: 1180px) {
+  .readout { grid-template-columns: minmax(220px, 34%) minmax(0, 1fr); }
+  .stats { display: none; }   /* the same figures are in the fields */
+}
+@container centre (max-width: 720px) {
+  .readout { grid-template-columns: minmax(0, 1fr); }
+  .sit-fields {
+    grid-row: 3;
+    grid-column: 1;
+    padding: var(--sp-3) 0 0;
+    border-left: 0;
+    border-top: 1px solid var(--line);
+  }
+}
+
+/* ============================================================
+   THE AIRLOCK — the product's namesake as a docked region.
+   A decision the agent is waiting on must never be something the
+   operator scrolls to find, so it sits between the readout and the
+   controls and pushes them down. It has no height when nothing is
+   pending, so it never leaves a void.
+   ============================================================ */
+.airlock {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: var(--sp-4);
+  padding: var(--sp-3) var(--sp-4);
+  background: oklch(24% 0.045 310 / 0.5);
+  border-bottom: 1px solid var(--actor-agent-dim);
+  box-shadow: inset 3px 0 0 var(--actor-agent);
+}
+.airlock[data-pending='0'] { display: none; }
+.al-label {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-family: var(--font-prose);
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--actor-agent);
+  white-space: nowrap;
+  padding-top: 3px;
+}
+.al-dot {
+  width: 7px; height: 7px;
+  border-radius: 50%;
+  background: var(--actor-agent);
+  box-shadow: 0 0 8px 2px oklch(76% 0.13 310 / 0.4);
+}
+.al-cards { display: grid; gap: var(--sp-2); min-width: 0; }
+
+/* ============================================================
+   CONTROL GRID — the console's primary job.
+   Zones are cards on a real grid that uses the console's width,
+   instead of a stack of full-width rows in a narrow column.
+   ============================================================ */
+#control-deck {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(430px, 1fr));
+  align-items: stretch;
+  gap: var(--sp-4);
+  font-family: var(--font-prose);
+  font-size: var(--text-sm);
+}
+/* the controls are the product: they get the full width of the region */
+#zone-controls { grid-column: 1 / -1; }
+
+.zone {
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  background: var(--s-raised);
+  min-width: 0;
+  /* NOT `overflow: hidden`. Every lever carries its cost in a popover that
+     escapes the card, and clipping the card clipped the one thing the
+     control is supposed to tell you before you press it. */
+}
+.zone-head { border-radius: var(--r-md) var(--r-md) 0 0; }
+.zone-head {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-4);
+  border-bottom: 1px solid var(--line);
+  background: oklch(0% 0 0 / 0.12);
+  min-width: 0;
+}
+.zone-title {
+  font-size: var(--text-sm);
+  font-weight: 600;
+  color: var(--ink);
+  white-space: nowrap;
+}
+.zone-meta {
+  margin-left: auto;
+  font-size: var(--text-xs);
+  color: var(--ink-ghost);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.zone > *:not(.zone-head) { padding: var(--sp-4); }
+.zone > .zone-head + * { padding-top: var(--sp-3); }
+.zone > *:not(.zone-head) + *:not(.zone-head) { padding-top: 0; }
 
 /* --- error-rate plot: the incident has a shape ------------------------- */
 .chart {
@@ -561,7 +851,7 @@ body {
 }
 .empty[hidden] { display: none; }
 @media (prefers-reduced-motion: reduce) {
-  .zone > summary::before, .shell, #site-pane { transition: none; }
+  .wb-sash, .shell, #site-pane { transition: none; }
 }
 
 /* --- service topology: the schematic ----------------------- */
@@ -661,7 +951,6 @@ body {
   color: var(--ink-dim);
   font-size: var(--text-xs);
 }
-#control-deck #sim-status { margin-left: auto; }
 #audit-toggle { padding: 2px var(--sp-2); }
 #audit-toggle[aria-pressed='true'] {
   color: var(--actor-agent);
@@ -695,7 +984,6 @@ body {
 .ctl-row[data-flag-state='on'] .ctl-state { color: var(--ink); }
 .ctl-row[data-service-health='degraded'] .ctl-state { color: var(--warn); }
 .ctl-row[data-service-health='down'] .ctl-state { color: var(--bad); }
-.ctl-row .ctl-btn { margin-left: auto; }
 
 .deploy-card {
   border: 0;
@@ -1173,7 +1461,6 @@ body {
    shrinks and never wraps. Verified by screenshot at 1440 and 1120. */
 #console > header { min-width: 0; }
 .masthead #template-pick { flex: none; margin-left: var(--sp-3); }
-#console > header #sim-run { flex: none; white-space: nowrap; margin-left: auto; }
 
 /* --- masthead: the numbers matter more than their sparklines -------------
    Below ~1300px the scenario chips and the telemetry compete. The readings
@@ -1609,33 +1896,10 @@ body {
 .sc-menu .sc-name { font-size: var(--text-sm); font-weight: 500; }
 .sc-menu .sc-desc { font-size: var(--text-2xs); color: var(--ink-ghost); }
 
-/* --- minimise / restore --------------------------------------------------
-   A console lets you put a panel away. Collapsed panes leave a labelled
-   rail so nothing becomes unreachable. */
-.pane-min {
-  margin-left: auto; flex: none;
-  width: 22px; height: 22px; line-height: 1;
-  display: grid; place-items: center;
-  background: none; border: 1px solid transparent; border-radius: var(--r-sm);
-  color: var(--ink-ghost); cursor: pointer; font-size: 15px;
-}
-.pane-min:hover { color: var(--ink); border-color: var(--line); background: var(--panel-inset); }
-
-.pane-restore {
-  display: none;
-  writing-mode: vertical-rl;
-  background: var(--panel-inset); border: none;
-  border-left: 1px solid var(--line);
-  color: var(--ink-dim); cursor: pointer;
-  font: inherit; font-size: var(--text-2xs);
-  letter-spacing: .1em; text-transform: uppercase;
-  padding: var(--sp-3) 0;
-}
-.pane-restore:hover { color: var(--ink); background: var(--panel); }
-.shell[data-rail='off'] #tool-rail { display: none; }
-.shell[data-rail='off'] { grid-template-columns: minmax(340px, 29%) 1fr 0px; }
-.shell[data-rail='off'][data-site='off'] { grid-template-columns: 1fr 0px 0px; }
-.shell[data-site='off'] { grid-template-columns: 1fr 0px minmax(310px, 23%); }
+/* Region visibility is the activity bar's job now (see the workbench block
+   at the top): a dock collapses to zero width and its icon stays lit-or-not,
+   which is the one obvious way back. The old vertical restore rail and the
+   per-pane minimise chrome are gone. */
 
 /* --- the lever panel: controls that state their price --------------------
    Rule from Vercel Firewall (read live): every control names its blast
@@ -1750,7 +2014,7 @@ body {
 .ctl-row:has(> .ctl-btn:not(.lever)) > .ctl-btn:not(.lever) { justify-self: start; }
 
 /* Wide enough to earn one line per control: the aligned five-column grid. */
-@container console (min-width: 640px) {
+@container ctlgroup (min-width: 520px) {
   .ctl-row {
     grid-template-columns: 40px auto minmax(0, 1fr) 108px 92px;
     grid-template-areas: none;
@@ -1816,81 +2080,34 @@ body {
 /* the cost gets room to be read, instead of a tooltip on a cramped button */
 .am-cost { font-size: var(--text-2xs); color: var(--ink-ghost); line-height: 1.45; }
 
-/* --- ACT first, EVIDENCE second -----------------------------------------
-   The console's job is to act. Telemetry supports that; it does not lead.
-   Evidence sits in two columns so supporting detail uses the width instead
-   of extending the scroll the operator has to travel to reach a control. */
-.act-region { display: flex; flex-direction: column; gap: var(--sp-3); }
-
-.evidence-region {
-  display: grid;
-  grid-template-columns: 1fr;
-  gap: var(--sp-3);
-  margin-top: var(--sp-4);
-  padding-top: var(--sp-4);
-  border-top: 1px solid var(--line);
-}
-.evidence-col { display: flex; flex-direction: column; gap: var(--sp-3); min-width: 0; }
-
-/* two columns as soon as the console is wide enough to earn them */
-@container console (min-width: 760px) {
-  .evidence-region { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
-}
-@supports not (container-type: inline-size) {
-  @media (min-width: 1180px) { .evidence-region { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
-}
-#console > .body { container-type: inline-size; container-name: console; }
-
-/* the four stat tiles were four tall cards; one compact row instead */
-#stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(132px, 1fr)); gap: var(--sp-2); }
-
 /* the controls surface is the biggest thing here, and should look it */
 #zone-controls { border-color: color-mix(in oklch, var(--ink-ghost) 22%, var(--line)); }
-#zone-controls > summary .zone-title { font-size: var(--text-md, 16px); }
+#zone-controls .zone-title { font-size: var(--text-md); }
 
-/* --- SPACE PLANNING -------------------------------------------------------
-   Three tiers, and a panel earns its footprint by what it says at a glance.
-
-   GLANCE (no interaction): is something wrong, how bad, how long, and what
-   can I do right now. State and health metrics belong together at the top;
-   putting the metrics below the actions buried the answer to "how bad".
-   REACH (one interaction): why — what changed, the shape of it, what I have
-   already done.
-   DIG: the full activity trail.
-
-   A panel with nothing to say does not reserve space. */
-
-/* GLANCE: state and the numbers, one band, side by side when there is room */
-.glance { display: grid; grid-template-columns: 1fr; gap: var(--sp-3); }
-@container console (min-width: 720px) {
-  .glance { grid-template-columns: minmax(0, 1.35fr) minmax(300px, 1fr); align-items: start; }
-}
-.glance #stats {
+/* The control groups fill the zone's width in as many columns as it earns,
+   content-sized — never two columns stretched across a 1900px void. */
+.ctl-groups {
   display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--sp-2);
-  align-content: start;
+  grid-template-columns: repeat(auto-fill, minmax(430px, 1fr));
+  gap: var(--sp-5) var(--sp-5);
+  align-items: start;
 }
-
-/* ACT: the control groups sit side by side instead of one narrow column
-   with dead space to its right — Sid: "a lot of empty space in the middle" */
-.ctl-groups { display: grid; grid-template-columns: 1fr; gap: var(--sp-4) var(--sp-6); }
-@container console (min-width: 720px) {
-  .ctl-groups { grid-template-columns: repeat(2, minmax(0, 1fr)); }
-  /* Release carries the most rows, so let it take the full first row */
+/* Release leads only when the card is too narrow for three abreast. */
+@container console (max-width: 900px) {
   .ctl-groups > .ctl-group:first-child { grid-column: 1 / -1; }
 }
-.ctl-group { min-width: 0; display: flex; flex-direction: column; }
+
+.ctl-group {
+  min-width: 0;
+  display: flex;
+  flex-direction: column;
+  container-type: inline-size;
+  container-name: ctlgroup;
+}
 h4.ctl-group-label { margin: 0 0 var(--sp-2); }
 
 /* A panel with nothing to say should not claim a panel's worth of space. */
 #zone-holding:not(:has(.holding)) { display: none; }
-
-/* --- a closed panel leaves NO rail ---------------------------------------
-   The vertical writing-mode restore strip read as a stray artifact. The
-   masthead already owns "is this panel showing" for the storefront, so the
-   agent panel joins it there and closed panes simply collapse to zero. */
-.pane-restore { display: none !important; }
 
 /* --- deploy cards: a summary you can read, detail on demand --------------
    Sid, several times: "the text is so compressed in those cards, and
@@ -1919,9 +2136,6 @@ h4.ctl-group-label { margin: 0 0 var(--sp-2); }
 .dc-details[open] > summary::before { transform: rotate(90deg); }
 .dc-details > summary:hover { color: var(--ink-dim); }
 .dc-details .dc-meta { margin-top: var(--sp-2); display: flex; flex-wrap: wrap; gap: var(--sp-2); }
-
-/* the activity trail is reference, not glance: it arrives when asked for */
-#zone-activity:not([open]) > summary { color: var(--ink-dim); }
 
 /* --- command palette -----------------------------------------------------
    Nineteen levers is past the point where hunting works. Cmd/Ctrl+K. */
@@ -1985,3 +2199,246 @@ h4.ctl-group-label { margin: 0 0 var(--sp-2); }
   padding: 1px 4px; margin-right: 3px; color: var(--ink-dim);
 }
 @media (prefers-reduced-motion: reduce) { .palette-box { animation: none; } }
+
+/* ============================================================
+   WORKBENCH PASS 2 — 2026-09-02, after looking at the 2400px
+   captures. Every item here is a defect that was VISIBLE and not
+   testable, which is why the rule is to screenshot and look.
+   ============================================================ */
+
+/* --- 1. the centre stopped scrolling but started voiding ---------------
+   At 2400x1350 three control zones do not fill 900px of height, so the
+   region read as a black hole above the panel. The evidence panel takes the
+   slack (it is the thing an operator actually wants more of), and the zones
+   stretch to the row they are given rather than hugging their content. */
+:root {
+  --h-panel: clamp(190px, 26vh, 360px);
+  /* both docks are real surfaces, not slivers: the storefront is a website
+     and the agent dock is a first-class region, so they get honest widths
+     and the centre still keeps the remaining slack */
+  --w-site: 700px;
+  --w-rail: 410px;
+}
+/* the deck fills the region it is given, and its rows share the height —
+   two cards breathing beats two cards above a strip of bare ground */
+/* the deck fills the region it is given; two cards with room to breathe read
+   as designed, a black gap under the last card reads as broken */
+.wb-centre-body { display: grid; }
+#control-deck { align-content: stretch; min-height: 100%; }
+
+/* --- 2. control rows went two-line inside the narrower groups ----------
+   The one-line grid needs ~340px; the threshold was set at 520 and the
+   Traffic / Data & DNS groups land near 430, so every row wrapped its verb
+   onto a second line. */
+@container ctlgroup (min-width: 400px) {
+  .ctl-row {
+    grid-template-columns:
+      40px                      /* kind      */
+      minmax(96px, 168px)       /* name      */
+      minmax(72px, 178px)       /* state     */
+      108px                     /* primary   */
+      92px;                     /* actions   */
+    grid-template-areas: none;
+    justify-content: start;
+    max-width: 100%;
+  }
+  .ctl-row > .ctl-btn:not(.lever) { grid-area: auto; grid-column: 4; justify-self: stretch; }
+  .ctl-row > .actions-menu { grid-area: auto; grid-column: 5; justify-self: stretch; }
+}
+/* the group's own rules and labels still span its full width, so the rows
+   read as a table inside it rather than as a floating block */
+.ctl-group > div { min-width: 0; }
+
+/* --- 3. deploy cards were one column in a 1100px panel ----------------- */
+#deploy-controls {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(420px, 1fr));
+  align-items: stretch;
+  gap: var(--sp-3);
+}
+.deploy-card + .deploy-card { margin-top: 0; }
+
+/* --- 4. the airlock card was a strip in a wide empty band -------------- */
+.al-cards { grid-template-columns: repeat(auto-fill, minmax(520px, 1fr)); }
+
+/* --- 5. the storefront left a black void under a short page ------------ */
+#site-pane .dock-body { display: grid; align-content: stretch; }
+#storefront { min-height: 100%; }
+
+/* ============================================================
+   AGENT DOCK — ux-debt #12, finally structural rather than copy.
+
+   The dock was a 26-item capability inventory: a list of things a
+   stranger cannot act on, occupying a whole region. No real console
+   lists an agent's function names down its side.
+
+   It now reads presence -> what it is doing -> what it concluded ->
+   what it may do, in the operator's words. The raw surface stays ON
+   SCREEN and visible (it is the WebMCP mechanic, the film's shot and
+   the judges' tiebreak) but it is an inset, bounded, scrolling well
+   at the bottom of the region instead of the region itself.
+   ============================================================ */
+#tool-rail .dock-body {
+  display: grid;
+  grid-template-rows: auto auto auto minmax(120px, 1fr);
+  gap: var(--sp-3);
+  align-content: start;
+  padding: var(--sp-3) var(--sp-4);
+  min-height: 0;
+}
+.ladder {
+  margin-bottom: 0;
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  background: var(--s-well);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  overflow: hidden;
+}
+.ladder-head {
+  padding: var(--sp-2) var(--sp-3);
+  border-bottom: 1px solid var(--line);
+  background: oklch(0% 0 0 / 0.15);
+}
+#tool-list {
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--sp-1) var(--sp-2);
+  margin: 0;
+}
+/* dense: this is a reference inventory, not the region's headline */
+#tool-list li { padding: 4px var(--sp-2); }
+#tool-list .tool-name { font-size: var(--text-xs); line-height: 1.35; }
+#tool-list .tool-badge { font-size: 9px; }
+.tool-badge-locked { font-size: 9px; }
+.ladder-foot {
+  margin: 0;
+  padding: var(--sp-2) var(--sp-3);
+  border-top: 1px solid var(--line);
+  background: oklch(0% 0 0 / 0.15);
+}
+/* the agent's own conclusions are the region's headline, not its footnote */
+.findings:empty { display: none; }
+
+/* --- 6. the agent cursor label sat on the readout ---------------------- */
+#agent-cursor { z-index: 8; }
+
+/* --- 7. the agent dock had one thing with content: the inventory --------
+   So the inventory read as the region. What the agent CONCLUDES is the
+   headline — it is the half of the thesis a judge can actually watch — and
+   it now has a designed empty state and its own share of the height. The
+   raw surface stays on screen, bounded and scrolling, underneath. */
+#tool-rail .dock-body { grid-template-rows: auto auto minmax(0, 1fr) minmax(0, 1.15fr); }
+/* explicit placement, for the same reason the centre needed it: `agent-doing`
+   is hidden until the agent says something, and auto-placement then left the
+   last track empty at the bottom of the region */
+#tool-rail .agent-presence   { grid-row: 1; }
+#tool-rail .agent-doing      { grid-row: 2; }
+#tool-rail .findings-region  { grid-row: 3; }
+#tool-rail .ladder           { grid-row: 4; }
+.findings-region {
+  min-height: 0;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  background: var(--s-well);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  overflow: hidden;
+}
+.findings-region .findings { min-height: 0; overflow-y: auto; padding: var(--sp-2); }
+.findings-region .findings:empty { display: block; }
+.findings-empty {
+  grid-row: 2;
+  align-self: start;
+  padding: var(--sp-3);
+  margin: 0;
+  font-size: var(--text-xs);
+  line-height: 1.6;
+  color: var(--ink-ghost);
+}
+.findings-empty[hidden] { display: none; }
+.findings-region:has(.finding) .findings-empty { display: none; }
+
+/* --- 8. incident command is a toolbar, not a panel --------------------- */
+.cmdbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-2) var(--sp-3);
+  padding: var(--sp-2) var(--sp-4);
+  background: var(--s-chrome);
+  border-bottom: 1px solid var(--line-strong);
+  min-width: 0;
+}
+.cmdbar-label {
+  font-family: var(--font-instrument);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-label);
+  text-transform: uppercase;
+  color: var(--ink-ghost);
+  white-space: nowrap;
+}
+.cmdbar-meta {
+  margin-left: auto;
+  font-family: var(--font-instrument);
+  font-size: var(--text-2xs);
+  color: var(--ink-ghost);
+  white-space: nowrap;
+}
+.cmdbar .cmd-row { flex: 1 1 auto; min-width: 0; }
+
+/* --- the agent speaks before the click (Sid, 2026-09-02) ----------------
+   Hovering a control the agent has ruled out surfaces its objection at the
+   control, in the agent's own violet. It is counsel, never a block: the
+   button underneath still works, and the click-path caution is untouched. */
+.agent-counsel {
+  position: absolute;
+  z-index: 90;
+  /* beside the control, not over it: a warning that covers the button it is
+     warning about is worse than no warning */
+  left: calc(100% + 10px);
+  top: -2px;
+  width: max-content;
+  max-width: 40ch;
+  padding: var(--sp-2) var(--sp-3);
+  background: oklch(20% 0.05 310);
+  border: 1px solid var(--actor-agent-dim);
+  border-left: 2px solid var(--actor-agent);
+  border-radius: var(--r-sm);
+  box-shadow: 0 12px 30px oklch(0% 0 0 / 0.6);
+  pointer-events: none;
+  animation: counsel-in var(--dur-agent) var(--ease-agent);
+}
+@keyframes counsel-in {
+  from { opacity: 0; transform: translateY(-3px); }
+  to   { opacity: 1; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) { .agent-counsel { animation: none; } }
+.counsel-who {
+  display: block;
+  font-family: var(--font-prose);
+  font-size: var(--text-2xs);
+  font-weight: 600;
+  color: var(--actor-agent);
+}
+.counsel-why {
+  margin: 3px 0 0;
+  font-family: var(--font-prose);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+  color: var(--ink);
+}
+/* the control it is about stays visibly the subject of the sentence */
+[data-counselled='true'] { outline: 1px solid var(--actor-agent); outline-offset: 2px; }
+.ctl-row, .cmd-row, .dc-actions, .ctl-group > div { position: relative; }
+
+/* A row with no primary verb was still reserving the primary verb's column,
+   so `/checkout → api` sat 108px away from its own Actions menu. Collapse the
+   track when there is nothing to put in it. */
+@container ctlgroup (min-width: 400px) {
+  .ctl-row:not(:has(> .ctl-btn:not(.lever))) {
+    grid-template-columns: 40px minmax(96px, 168px) minmax(72px, 178px) 92px;
+  }
+  .ctl-row:not(:has(> .ctl-btn:not(.lever))) > .actions-menu { grid-column: 4; }
+}

@@ -49,6 +49,40 @@ bundle has no trace of it.
 **The eighteen feedback items are all closed.** Nothing from Sid's review round
 is outstanding.
 
+## ROUND 2 — 2026-09-01 (Tue, midday), reviewed live at 1512×945
+
+Eleven more items, **all eleven closed**. Detail + the method lessons:
+`_handoff/2026-09-01-ux-polish-and-value.md`. Sid's verdict: *"The UX is
+looking a lot better, kudos, this is the last mile."*
+
+- **⌘K shows the agent's open asks** (#16, his pick of option 1) and marks the
+  matching lever `agent asked` — never "proposed", because the ask is `cap at
+  150` and the canned row is `cap at 100`.
+- **The capability ladder is opt-in.** 752px of dock back; the count stays on
+  the summary so the surface is still visibly bounded.
+- **Agent presence is a marker on the dock heading**, not a card.
+- **⌘J** shows/hides the agent dock; **⌘ enter / ⌘ del** decide the pending
+  ask. Chords, never bare keys, and they cannot bypass the second key.
+- **"Manual controls" → "Response controls"**; the "can ask for N changes"
+  subtitle and the WebMCP paragraph are gone.
+- **Two defects, one root cause**: `.al-cards` carried a 520px card floor from
+  when the airlock lived in the centre column. In the 360px dock that made
+  every card 170px wider than its container — the plan receipt bled off the
+  right of the SCREEN, and the dock visibly flinched on the first approval
+  (measured: 660px→410px at t=108ms, back at t=114ms). A running plan now also
+  counts as undecided, so elevation cannot drop in the gap between steps.
+- **The plan's head names what it does** — `cap r-checkout at 150 req/s, then
+  roll forward api` — instead of restating its shape.
+
+**METHOD, worth keeping:** the overflow sweep never found either of the last
+two, because it LOADS scenes and never APPROVES anything. Post-decision states
+have to be driven. And Sid's screenshots live at `~/Desktop/Screenshots/` —
+read them off disk, they do not arrive in the conversation.
+
+**NEXT:** the AI polish pass (screenshots of key flows to Claude.ai + ChatGPT,
+free-range feedback, reviewed WITH Sid), then product value — more ordering
+cases where the wrong order is worse than doing nothing — then filming.
+
 ## SESSION 2026-09-01 (Tue, morning) — #16 CLOSED, the last open review item
 
 Sid's answer on #16 was **option 1: the palette shows what the agent asked

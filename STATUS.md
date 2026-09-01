@@ -11,6 +11,21 @@
 
 > **ADDRESSED 2026-09-01 (Tue, later session).** `retry-storm` (Template F) ships with a two-step ordered answer key, and `TemplateMeta.orderTraps` gives the compiler a probe for the ordering claim itself. Six more levers now carry answer keys (`ratelimit.set`, `traffic.drain`, `cache.flush`, `service.restart`, `db.failover`, `alerts.silence`), so **10 of 20 are load-bearing, up from 4.** Details in the session entry below.
 
+## RUBRIC RE-READ (2026-09-01, Tue) — "Impact" is POTENTIAL impact, and the sim tax we have been carrying is smaller than recorded
+
+Fetched from https://webmcp.devpost.com/ today. **Four criteria, verbatim:**
+
+1. **WebMCP Leverage** — *"How thoroughly and skillfully does the project use WebMCP? Does the code reflect genuine effort and a working, non-trivial implementation?"*
+2. **Execution** — *"Does the project deliver a working or runnable project that has a complete, coherent product experience — not just a technical proof of concept?"*
+3. **Potential Impact** — *"Does the project make a credible, specific case for solving a real problem for a real audience — and does the solution actually address that problem based on what's demonstrated?"*
+4. **Creativity & Ambition** — *"How creative and novel is the concept and does the project differ from existing concepts?"*
+
+**WHAT THIS CHANGES.** Every prior round recorded "Impact is weak (it's a sim)". That was reasoning about a criterion whose name is **Potential Impact** and whose test is a *credible, specific case for a real audience*, verified **"based on what's demonstrated"** — not deployed usage, not customers, not a realized saving. **A simulation is an acceptable vehicle; an unconvincing case is not.** The axis therefore turns on: naming the audience (on-call engineers running deploys), naming the problem specifically (recovery ordering under a self-sustaining failure — the wrong order costs more than doing nothing), and DEMONSTRATING the solution addressing that. The film and the writeup are the axis, not a chore attached to it.
+
+**"Execution" is also more demanding than recorded** — *"a complete, coherent product experience — not just a technical proof of concept"* is close to Sid's own standing bar ("the product must stand on its own WITHOUT an agent"), which makes the workbench rebuild and any remaining product gaps score directly rather than indirectly.
+
+**CAVEAT, do not overwrite the 8/30 record:** the page fetched today states no weighting and no tie-break. Sid verified "4 criteria EQUALLY weighted, ties broken on Leverage first" on the Devpost rules on 8/30; `/details/rules` 404s today. Treat the 8/30 verification as the record and this as unconfirmed-today, NOT as a contradiction.
+
 ## This session (2026-09-01, Tuesday) — ORDERING FAMILY SHIPPED; TWO DEFECTS FOUND BY SPENDING $0.56
 
 - **Boot:** `npm run smoke` GREEN run alone (65 assertions). M4 25.0% · M5 10.0% · overall 53.3%.

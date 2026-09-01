@@ -1348,7 +1348,11 @@ function renderPlan(e: Event): void {
   who.textContent = `agent proposes ${steps.length} steps, in this order`;
   const state = document.createElement('span');
   state.className = 'pl-state';
-  state.textContent = 'one at a time — nothing runs ahead of you';
+  // The head carries STATE, not a sales line. "one at a time — nothing runs
+  // ahead of you" was explanation that belongs in a voiceover, it was the
+  // thing overflowing the card's edge, and the behaviour is self-evident the
+  // moment you see step 2 sitting locked underneath step 1.
+  head.title = 'Approved one step at a time — nothing runs ahead of you';
   head.append(who, state);
   el.append(head);
 
@@ -1362,13 +1366,6 @@ function renderPlan(e: Event): void {
   k.textContent = 'Why this order';
   const body = document.createElement('p');
   body.className = 'pl-why-t';
-  body.tabIndex = 0;
-  body.title = 'Show the whole reason';
-  // clamped to two lines at rest; the reason for an ORDER is worth reading in
-  // full, but not worth three lines of wall before you have decided to
-  body.addEventListener('click', () => {
-    body.dataset.expanded = body.dataset.expanded === 'true' ? 'false' : 'true';
-  });
   renderCitedText(body, String(d.reason ?? ''));
   why.append(k, body);
   el.append(why);

@@ -392,9 +392,60 @@ export async function runCampaign(
  * the cross-product period — stride 14 over a 280-run plan whose inner
  * axes cycle every 8 lands on only 2 of the 4 phrasings.
  */
+/**
+ * The canary sample, and the fix for the reason the 8/31 canary's numbers
+ * meant nothing: it sorted the plan by runId and sliced. runIds are hashes,
+ * so the two arms of one scenario land nowhere near each other and the
+ * sample came out with ZERO complete pairs — 20 runs of gated and ungated on
+ * DIFFERENT scenarios, compared as if they were a comparison.
+ *
+ * A cell is (candidate, phrasing, model); its arms are the paired
+ * observations. This samples whole cells, round-robin across phrasings so
+ * every prompt variant is represented, and hash-ordered within a phrasing so
+ * the spread over the corpus is deterministic without being the head of the
+ * list.
+ */
 export function canarySample(specs: RunSpec[], n = CANARY_RUNS): RunSpec[] {
   if (specs.length <= n) return [...specs];
-  return [...specs].sort((a, b) => a.runId.localeCompare(b.runId)).slice(0, n);
+  const cells = new Map<string, RunSpec[]>();
+  for (const spec of specs) {
+    const key = [spec.candidate.id, spec.phrasingId, spec.model].join('|');
+    const cell = cells.get(key);
+    if (cell) cell.push(spec);
+    else cells.set(key, [spec]);
+  }
+  const byPhrasing = new Map<string, Array<{ key: string; runs: RunSpec[] }>>();
+  for (const [key, runs] of cells) {
+    const list = byPhrasing.get(runs[0]!.phrasingId) ?? [];
+    list.push({ key, runs });
+    byPhrasing.set(runs[0]!.phrasingId, list);
+  }
+  const buckets = [...byPhrasing.keys()].sort().map((id) =>
+    byPhrasing
+      .get(id)!
+      .sort((a, b) =>
+        createHash('sha256').update(a.key).digest('hex') <
+        createHash('sha256').update(b.key).digest('hex')
+          ? -1
+          : 1
+      )
+  );
+  const out: RunSpec[] = [];
+  for (let round = 0; out.length < n; round++) {
+    let progressed = false;
+    for (const bucket of buckets) {
+      const cell = bucket[round];
+      if (!cell) continue;
+      progressed = true;
+      // whole cells only: a half-sampled cell is an unpaired observation,
+      // which is what made the last canary uninterpretable
+      if (out.length + cell.runs.length > n) continue;
+      out.push(...cell.runs);
+      if (out.length >= n) break;
+    }
+    if (!progressed) break;
+  }
+  return out;
 }
 
 /** Cross-product of the campaign's axes, in a stable order. */
@@ -404,11 +455,16 @@ export function planSpecs(
   phrasingIds: string[],
   models: CampaignModel[]
 ): RunSpec[] {
+  // ARM IS THE INNERMOST LOOP ON PURPOSE: it makes every PREFIX of the plan
+  // pair-complete, so `--limit n` (and any interrupted run) still yields
+  // whole cells. With arms on the outside, a truncated campaign compares
+  // gated and ungated on different scenarios — which is exactly how the
+  // 8/31 canary produced numbers that meant nothing.
   const specs: RunSpec[] = [];
   for (const model of models) {
     for (const candidate of candidates) {
-      for (const arm of arms) {
-        for (const phrasingId of phrasingIds) {
+      for (const phrasingId of phrasingIds) {
+        for (const arm of arms) {
           specs.push({
             candidate,
             arm,

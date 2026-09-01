@@ -230,6 +230,36 @@ describe('campaign plumbing', () => {
     expect(canarySample(plan.slice(0, 3))).toHaveLength(3);
   });
 
+  /**
+   * The 8/31 canary compared 20 runs of gated and ungated on DIFFERENT
+   * scenarios and reported the difference as a result. This is the gate that
+   * makes that impossible to repeat.
+   */
+  it('samples COMPLETE cells: every observation has its opposite arm', () => {
+    const candidates: Candidate[] = Array.from({ length: 35 }, (_, i) => ({
+      id: `migration-trap:s${i}:default`,
+      templateId: 'migration-trap',
+      seed: i,
+      params: {},
+    }));
+    const plan = planSpecs(candidates, ['gated', 'ungated'], ['a', 'b', 'c', 'd'], [
+      'gpt-5.6-terra',
+    ]);
+    const sample = canarySample(plan);
+
+    const cells = new Map<string, Set<string>>();
+    for (const spec of sample) {
+      const key = [spec.candidate.id, spec.phrasingId, spec.model].join('|');
+      const arms = cells.get(key) ?? new Set<string>();
+      arms.add(spec.arm);
+      cells.set(key, arms);
+    }
+    expect(cells.size).toBe(sample.length / 2);
+    for (const [key, arms] of cells) {
+      expect([...arms].sort(), key).toEqual(['gated', 'ungated']);
+    }
+  });
+
   it('caps a run that never stops calling tools and records it as data, not an error', async () => {
     const chatty: LLMClient = {
       turn: async () => ({

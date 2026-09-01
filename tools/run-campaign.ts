@@ -119,7 +119,17 @@ async function main(): Promise<void> {
   const phrasingArg = arg('phrasings', 'all')!;
   const phrasingIds =
     phrasingArg === 'all' ? phrasings.map((p) => p.id) : phrasingArg.split(',').map((p) => p.trim());
-  const candidates = loadCorpus();
+  const allCandidates = loadCorpus();
+  // Spend where the question is. A family filter keeps the arms PAIRED (the
+  // filter is applied to candidates, before the cross-product) — unlike
+  // slicing the plan, which is what unpaired a campaign before.
+  const family = arg('family');
+  const candidates = family
+    ? allCandidates.filter((c) => c.templateId === family)
+    : allCandidates;
+  if (candidates.length === 0) {
+    throw new Error(`--family ${family}: no accepted candidates with that templateId`);
+  }
 
   let specs = planSpecs(candidates, arms, phrasingIds, models);
   if (canary) {
@@ -136,7 +146,7 @@ async function main(): Promise<void> {
     : new OpenAIClient(models[0]!);
 
   console.log(
-    `[campaign] ${name}: ${specs.length} run(s) · models=${models.join(',')} · arms=${arms.join(',')} · phrasings=${phrasingIds.length} · client=${dry ? 'MOCK (no spend)' : 'OpenAI'}`
+    `[campaign] ${name}: ${specs.length} run(s) · ${candidates.length} candidate(s)${family ? ` (family=${family})` : ''} · models=${models.join(',')} · arms=${arms.join(',')} · phrasings=${phrasingIds.length} · client=${dry ? 'MOCK (no spend)' : 'OpenAI'}`
   );
   if (!dry && !process.env.OPENAI_API_KEY) {
     throw new Error('OPENAI_API_KEY is not set — run with --dry, or unlock the key first');

@@ -238,9 +238,39 @@ drives — is not built. The controls now light up in order, which was the part
 that carries on film; the agent actually operating the palette is the part that
 does not exist yet.
 
-Also untouched, and both are Sid-shaped: **M6-04** (4-6 deliberate gallery
-stills at full res — the sweep in `log/ux/` is raw material, not a curated set)
-and the film itself.
+### M6-04 — six gallery stills exported (`in_progress`)
+`tools/capture-stills.mjs` drives the real page and re-exports the set on
+demand, so they never go stale. In `log/stills/`:
+
+1. the console with **no agent connected** — the frame that answers "is this a toy?"
+2. a plan is an order with a price
+3. the plan numbering the controls it will touch, before any approval
+4. step 2 was not proposed until step 1 ran
+5. **the page knows where the idea came from** — a tier-1 rollback promoted to
+   the dual-key rung by provenance alone, injected text quoted on the card
+6. the agent objects before your click, framed WITH the lever it objects to
+
+Left `in_progress`: the check ends "and reviewed", and that is yours.
+
+### Progress at close
+**M4 25.0% · M5 20.0% · M6 12.5% · overall 56.0%** (was 53.3% at boot). The
+number understates the session — the four agent-UX features are not tracked by
+any features.json entry, and I did not invent entries for them, because
+inventing entries mid-session inflates the denominator until the number stops
+meaning anything.
+
+### What is left, ranked
+1. **The film** (M6-01/02) — yours. Stills 1-6 and the two driver scenarios are
+   its content; `npm run driver` is a rehearsal you can watch.
+2. **Two placeholders in README.md** — `<LIVE-URL>`, `<REPO-URL>`.
+3. **The four things at the top of this file that need your call**, especially
+   `tierName`, which is wrong on 12 of 20 actions and appears on the proposal
+   card in still 2 and in the situation header.
+4. **Verify the Devpost required-field list** against the live form; the repo
+   records one mandated prompt and M6-03 says four.
+5. Item 4's other half — Sid's ⌘K idea, the agent DRIVING the palette the human
+   drives — is still not built. The controls light up in order, which was the
+   part that carries on film; the agent operating the palette does not exist.
 
 
 ## SCENARIO-vs-LEVER AUDIT (2026-09-01) — read before running any more agent evals

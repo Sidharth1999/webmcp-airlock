@@ -263,7 +263,7 @@ export function createAirlockTools(
     const tool: ToolDescriptor = {
       name: 'record_finding',
       description:
-        'Write your current read of the incident into the console so the operator can see it: what you believe is happening and why. Use ruledOut to say what you considered and rejected — that is often the most useful thing you can tell them. Changes nothing and needs no approval.',
+        'Write your current read of the incident into the console so the operator can see it: what you believe is happening and why. Use ruledOut for what you considered and rejected, and advisesAgainst to name an action that would be harmful — if the operator reaches for it, they see your reasoning first. Changes nothing, blocks nobody, needs no approval.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -275,12 +275,17 @@ export function createAirlockTools(
             type: 'string',
             description: 'An action you considered and rejected, and why.',
           },
+          advisesAgainst: {
+            type: 'string',
+            description:
+              'An action you believe would be harmful, as tool:target (e.g. deploy.rollback:d-201). If the operator reaches for it they see your reasoning first.',
+          },
         },
         required: ['summary'],
       },
       annotations: { readOnlyHint: false },
       execute: async (input) => {
-        const i = coerceInput(input) as { summary?: unknown; ruledOut?: unknown };
+        const i = coerceInput(input) as { summary?: unknown; ruledOut?: unknown; advisesAgainst?: unknown };
         const summary = String(i.summary ?? '').slice(0, 400);
         if (!summary) {
           return {
@@ -288,7 +293,11 @@ export function createAirlockTools(
           };
         }
         const ruledOut = i.ruledOut === undefined ? undefined : String(i.ruledOut).slice(0, 400);
-        recordFinding({ summary, ...(ruledOut ? { ruledOut } : {}) });
+        const against =
+          (i as { advisesAgainst?: unknown }).advisesAgainst === undefined
+            ? undefined
+            : String((i as { advisesAgainst?: unknown }).advisesAgainst).slice(0, 80);
+        recordFinding({ summary, ...(ruledOut ? { ruledOut } : {}), ...(against ? { advisesAgainst: against } : {}) });
         return {
           content: [{ type: 'text', text: JSON.stringify({ status: 'recorded', note: 'The operator can see this in the console.' }) }],
         };

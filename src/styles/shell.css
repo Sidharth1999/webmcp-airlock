@@ -1463,3 +1463,35 @@ body {
   margin-bottom: 2px;
 }
 @media (prefers-reduced-motion: reduce) { .finding { animation: none; } }
+
+/* --- the agent counselling the human ------------------------------------
+   Anchored to the control the human reached for, never a modal. It carries
+   the agent's colour because it is the agent speaking, and it is explicitly
+   not a barrier: the next click goes through. */
+.agent-caution {
+  /* the control rows are flex: take a whole line rather than squeezing the
+     button we are talking about into a sliver */
+  flex-basis: 100%;
+  width: 100%;
+  margin-top: var(--sp-2);
+  padding: var(--sp-3);
+  border: 1px solid color-mix(in oklch, var(--actor-agent) 42%, var(--line));
+  border-left: 2px solid var(--actor-agent);
+  border-radius: var(--r-sm);
+  background: color-mix(in oklch, var(--actor-agent) 8%, var(--panel-inset));
+  animation: doing-in 200ms cubic-bezier(.2,.7,.3,1) both;
+  max-width: 46ch;
+}
+.caution-who {
+  display: block;
+  font-family: var(--font-instrument);
+  font-size: var(--text-2xs);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  color: var(--actor-agent);
+  margin-bottom: 4px;
+}
+.caution-why { margin: 0; font-size: var(--text-sm); line-height: 1.5; color: var(--ink); }
+.caution-foot { margin: var(--sp-2) 0 0; font-size: var(--text-2xs); color: var(--ink-ghost); }
+[data-caution='pending'] { box-shadow: 0 0 0 1px var(--actor-agent); }
+@media (prefers-reduced-motion: reduce) { .agent-caution { animation: none; } }

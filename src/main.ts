@@ -1,5 +1,6 @@
 import './styles/tokens.css';
 import './styles/shell.css';
+import { actionKey } from './harness/metrics';
 import { Engine } from './sim/engine';
 import { MODES, type Mode } from './sim/modes';
 import type { EntityRef, QueryRequest } from './sim/queries';
@@ -806,11 +807,75 @@ function touchRegion(selector: string): void {
  * only v1") was invisible to the person who needed it most. What it RULED
  * OUT is often worth more than what it did.
  */
+/**
+ * THE AIRLOCK POINTS BOTH WAYS.
+ *
+ * Everyone builds "human approves agent". The other direction is the one
+ * that actually bites at 3am: the HUMAN reaches for the obvious lever and it
+ * is the wrong one. Our own console has a Roll back button that will strand
+ * old code in front of migrated data, and nothing stopped anyone clicking it.
+ *
+ * An agent that has already read the evidence can say so. It COUNSELS, it
+ * NEVER BLOCKS — the human stays sovereign or the whole thesis inverts. One
+ * click surfaces the reasoning; the next one proceeds regardless.
+ */
+const advisories = new Map<string, { summary: string; ruledOut?: string }>();
+
+/** The answer-key vocabulary, so agent advice and human clicks speak the same language. */
+function humanActionKey(tool: string, input: Record<string, unknown>): string {
+  return actionKey(tool, input);
+}
+
+function clearCaution(): void {
+  document.querySelectorAll('.agent-caution').forEach((n) => n.remove());
+  document.querySelectorAll<HTMLElement>('[data-caution="pending"]').forEach((b) => {
+    delete b.dataset.caution;
+  });
+}
+
+/**
+ * Show the agent's objection next to the control the human just reached for.
+ * Returns true if we intercepted (caller must not dispatch yet).
+ */
+function cautionFor(btn: HTMLButtonElement, key: string): boolean {
+  const advice = advisories.get(key);
+  if (!advice) return false;
+  if (btn.dataset.caution === 'pending') return false; // second click: they meant it
+  clearCaution();
+  btn.dataset.caution = 'pending';
+
+  const box = document.createElement('div');
+  box.className = 'agent-caution';
+  box.dataset.testid = 'agent-caution';
+  box.setAttribute('role', 'alert');
+
+  const who = document.createElement('span');
+  who.className = 'caution-who';
+  who.textContent = 'The agent has read this';
+  const why = document.createElement('p');
+  why.className = 'caution-why';
+  why.textContent = advice.ruledOut ?? advice.summary;
+  const foot = document.createElement('p');
+  foot.className = 'caution-foot';
+  foot.textContent = 'Click again to do it anyway.';
+
+  box.append(who, why, foot);
+  btn.parentElement?.insertBefore(box, btn.nextSibling);
+  // A warning below the fold is not a warning. `nearest` keeps this inside
+  // the console's own scroller — `center` drags the whole shell (the bug the
+  // stream hit earlier).
+  box.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+  return true;
+}
+
 function renderFinding(e: Event): void {
   const host = document.querySelector<HTMLElement>('#agent-findings');
   if (!host) return;
-  const d = e.data as { summary?: string; ruledOut?: string };
+  const d = e.data as { summary?: string; ruledOut?: string; advisesAgainst?: string };
   if (!d.summary) return;
+  if (d.advisesAgainst) {
+    advisories.set(d.advisesAgainst, { summary: d.summary, ruledOut: d.ruledOut });
+  }
 
   const card = document.createElement('article');
   card.className = 'finding';
@@ -1019,12 +1084,17 @@ document.querySelector('#control-deck')!.addEventListener('click', (e) => {
       const flag = world.flags.find((f) => f.id === btn.dataset.flag);
       if (!flag) return;
       const on = flag.state === 'on' || (typeof flag.state === 'number' && flag.state > 0);
-      send({ type: 'act', tool: 'flag.set', input: { id: flag.id, state: on ? 'off' : 'on' } });
+      const input = { id: flag.id, state: on ? 'off' : 'on' };
+      if (cautionFor(btn, humanActionKey('flag.set', input))) return;
+      send({ type: 'act', tool: 'flag.set', input });
       break;
     }
-    case 'rollback':
-      send({ type: 'act', tool: 'deploy.rollback', input: { deployId: btn.dataset.deploy } });
+    case 'rollback': {
+      const input = { deployId: btn.dataset.deploy };
+      if (cautionFor(btn, humanActionKey('deploy.rollback', input))) return;
+      send({ type: 'act', tool: 'deploy.rollback', input });
       break;
+    }
     case 'rollforward':
       send({ type: 'act', tool: 'deploy.rollforward', input: { service: btn.dataset.service } });
       break;

@@ -218,7 +218,7 @@ app.innerHTML = `
         <div class="panel-tabs" role="tablist" aria-label="Evidence">
           <button type="button" role="tab" class="ptab" data-tab="changed" data-testid="tab-changed"
                   id="tab-changed" aria-controls="zone-changed" aria-selected="true" tabindex="0">
-            What changed<span class="ptab-count" id="tab-changed-count"></span>
+            Deploys<span class="ptab-count" id="tab-changed-count"></span>
           </button>
           <button type="button" role="tab" class="ptab" data-tab="activity" data-testid="tab-activity"
                   id="tab-activity" aria-controls="zone-activity" aria-selected="false" tabindex="-1">
@@ -372,7 +372,7 @@ app.innerHTML = `
              column ELEVATES over the page instead of reshaping it. One
              reserved area, one axis. -->
         <div class="airlock" id="airlock" data-pending="0">
-          <div class="al-label"><span class="al-dot" aria-hidden="true"></span>Waiting on you</div>
+          <div class="al-label" data-state="settled"><span class="al-dot" aria-hidden="true"></span><span class="al-text">Nothing waiting on you</span></div>
           <div class="al-cards" id="airlock-cards"></div>
         </div>
 
@@ -685,36 +685,46 @@ function renderDeployCard(deploy: Deploy, canRollback: boolean): void {
     const canary = deploy.canaryDelta
       ? `canary Δerr +${(deploy.canaryDelta.errRate * 100).toFixed(1)}% · Δp95 +${deploy.canaryDelta.p95}ms`
       : 'no canary data';
+    // ONE ROW SHAPE FOR EVERY DEPLOY.
+    //
+    // These used to render two ways: the live build as a tall card and the
+    // rest as a compact strip, on the reasoning that eight equal cards are a
+    // wall of history. What that actually produced was a list you cannot read
+    // as a list — the eye has no column to run down, and "which of these
+    // could I roll back to" becomes a shape-matching exercise. Every deploy
+    // is the same row now; the live one is MARKED, not re-shaped, and the
+    // detail every row carries is behind the same disclosure on all of them.
     card.innerHTML = `
-      <div class="dc-title"></div>
-      <div class="dc-head">
-        <span class="dc-target"></span>
-        <span class="dc-id"></span>
-        <span class="dc-status"></span>
-      </div>
-      ${
-        deploy.containsMigration
-          ? `<div class="dc-flag"><span class="dc-badge dc-badge-migration">migration · ${
-              deploy.migrationReversible ? 'reversible' : 'irreversible'
-            }</span></div>`
-          : ''
-      }
+      <span class="dc-status"></span>
+      <span class="dc-main">
+        <span class="dc-title"></span>
+        ${
+          deploy.containsMigration
+            ? `<span class="dc-badge dc-badge-migration">${
+                deploy.migrationReversible ? 'reversible' : 'irreversible'
+              } migration</span>`
+            : ''
+        }
+      </span>
+      <span class="dc-target"></span>
+      <span class="dc-id"></span>
+      <span class="dc-actions">
+        <button type="button" class="ctl-btn dc-rollback" data-act="rollback" data-deploy="${deploy.id}" data-testid="rollback-${deploy.id}">Roll back</button>
+      </span>
       <details class="dc-details">
         <summary data-testid="details-${deploy.id}">Details</summary>
         <div class="dc-meta">
           ${deploy.flagsTouched.length ? `<span class="dc-badge">flags: ${deploy.flagsTouched.join(', ')}</span>` : ''}
           <span class="dc-badge">${canary}</span>
           <span class="dc-badge">${deploy.diffstat.files} files +${deploy.diffstat.plus} −${deploy.diffstat.minus}</span>
+          <span class="dc-badge">${deploy.author}</span>
         </div>
       </details>
-      <div class="dc-actions">
-        <button type="button" class="ctl-btn dc-rollback" data-act="rollback" data-deploy="${deploy.id}" data-testid="rollback-${deploy.id}">Roll back</button>
-      </div>
     `;
     // the human story first: a stranger should read WHAT SHIPPED, not a key
     card.querySelector('.dc-title')!.textContent =
       deploy.note ?? `${deploy.service} ${deploy.version}`;
-    card.querySelector('.dc-target')!.textContent = `${deploy.author} · ${deploy.service} ${deploy.version}`;
+    card.querySelector('.dc-target')!.textContent = `${deploy.service} ${deploy.version}`;
     card.querySelector('.dc-id')!.textContent = deploy.id;
     deployControls.prepend(card);
   }
@@ -1258,6 +1268,11 @@ function advancePlan(plan: LivePlan): void {
     plan.state = 'complete';
     plan.el.dataset.state = 'complete';
     plan.el.querySelector<HTMLElement>('.pl-state')!.textContent = 'every step executed';
+    // A finished plan is a RECEIPT, not a live decision: at full height it
+    // pushed everything the agent had worked out below the fold. It keeps one
+    // line and opens again on click, because the sequence you agreed to is
+    // exactly what you want to re-read when something goes wrong later.
+    plan.el.dataset.collapsed = 'true';
     clearPlanAnchors(plan);
     syncAirlock();
     return;
@@ -1322,8 +1337,12 @@ function renderPlan(e: Event): void {
   el.dataset.testid = `plan-${d.planId}`;
   el.dataset.planId = d.planId;
 
-  const head = document.createElement('div');
+  const head = document.createElement('button');
+  head.type = 'button';
   head.className = 'pl-head';
+  head.addEventListener('click', () => {
+    el.dataset.collapsed = el.dataset.collapsed === 'true' ? 'false' : 'true';
+  });
   const who = document.createElement('span');
   who.className = 'pl-actor';
   who.textContent = `agent proposes ${steps.length} steps, in this order`;
@@ -1420,6 +1439,25 @@ function renderPlan(e: Event): void {
   plans.set(plan.id, plan);
   syncAirlock();
   advancePlan(plan);
+}
+
+/**
+ * THE PART THAT WAS MISSING: what the decision achieved.
+ *
+ * A plan completing said "every step executed" and stopped there, which is a
+ * report on the CLICKING rather than on the incident. The whole argument for
+ * shedding load before shipping is that the outage ends; if the console never
+ * says it ended, the operator is left to infer their own outcome from a
+ * health dot. Reported once, when it is actually true.
+ */
+function reportPlanOutcome(): void {
+  if (document.documentElement.dataset.health !== 'ok') return;
+  for (const plan of plans.values()) {
+    if (plan.state !== 'complete' || plan.el.dataset.outcome) continue;
+    plan.el.dataset.outcome = 'resolved';
+    plan.el.querySelector<HTMLElement>('.pl-state')!.textContent =
+      'every step executed — the incident is over';
+  }
 }
 
 function resetPlans(): void {
@@ -1543,6 +1581,15 @@ const airlockCards = document.querySelector<HTMLElement>('#airlock-cards')!;
 function syncAirlock(): void {
   // the region STAYS while a finished plan's receipt is on screen...
   airlockEl.dataset.pending = String(pendingCards.size + plans.size);
+  // ...but it must stop SAYING "waiting on you" once it is not. A label that
+  // keeps asking after you have answered is the console lying to you.
+  const label = airlockEl.querySelector<HTMLElement>('.al-label')!;
+  label.dataset.state = pendingCards.size ? 'waiting' : 'settled';
+  label.querySelector<HTMLElement>('.al-text')!.textContent = pendingCards.size
+    ? pendingCards.size > 1
+      ? `Waiting on you · ${pendingCards.size} decisions`
+      : 'Waiting on you'
+    : 'Nothing waiting on you';
   // ...but the region only ELEVATES while something is actually undecided.
   // Keying elevation off the same count left the dock covering the page for
   // the rest of the session once a plan completed, because its receipt is
@@ -2406,6 +2453,7 @@ function applyHealth(w: World): void {
     'ok'
   );
   if (document.documentElement.dataset.health !== worst) setHealth(worst);
+  reportPlanOutcome();
   renderSituation(w, worst);
   const phase = document.querySelector<HTMLElement>('#situation')!.dataset.phase!;
   revealSiteOnTrouble(phase);
@@ -2506,21 +2554,18 @@ function renderSituation(w: World, worst: Health): void {
       .join('');
   };
 
-  // an unanswered proposal outranks the world: it is what the console is for
-  const pending = [...pendingCards.values()][0];
-  if (pending) {
-    const diff = pending.card.querySelector('.ap-diff')?.textContent ?? 'pending change';
-    const tier = pending.card.querySelector('.ap-tier')?.textContent ?? '';
-    zone.dataset.phase = 'decide';
-    state.textContent = 'PROPOSAL PENDING';
-    head.textContent = 'OPERATOR DECISION REQUIRED';
-    put([
-      ['ACTION', diff],
-      ['TOUCHES', tier.replace(/\s+/g, ' ').trim() || '—'],
-      ['APPLIED', 'nothing — airlock holding', 'hold'],
-    ]);
-    return;
-  }
+  // NO PROPOSAL BRANCH HERE (removed 2026-09-01, Sid).
+  //
+  // A pending proposal used to hijack this readout — PROPOSAL PENDING /
+  // OPERATOR DECISION REQUIRED, with the action and what it touches restated
+  // as fields. Two things wrong with that. It DUPLICATED the approval card,
+  // which already says all of it and says it better, in a corner of the
+  // console away from the buttons. And it evicted the incident readout at the
+  // exact moment an operator most needs to know what is broken and what it is
+  // costing while they decide.
+  //
+  // This zone reports the WORLD. What the agent is asking for belongs in the
+  // agent's own region, with the decision, and lives there only.
 
   if (worst === 'down') {
     zone.dataset.phase = 'down';

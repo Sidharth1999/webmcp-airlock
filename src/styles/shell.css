@@ -744,8 +744,12 @@ body {
   border-left: 2px solid var(--actor-agent);
   box-shadow: -22px 0 60px oklch(0% 0 0 / 0.55);
 }
+/* NO width transition here. The dock changes `position` when it elevates, and
+   a position change cannot tween — the browser jumps the box and animates the
+   width from the wrong origin, which is the ugly slide Sid saw on the way back
+   down. An honest snap beats a broken tween. Only the shadow fades. */
 @media (prefers-reduced-motion: no-preference) {
-  #tool-rail { transition: width var(--dur-settle) var(--ease-settle); }
+  #tool-rail { transition: box-shadow var(--dur-settle) var(--ease-settle); }
 }
 /* A plan is much taller than a single proposal, and the airlock is pinned
    above the deck: an unbounded one pushed the very controls the plan numbers
@@ -2793,66 +2797,104 @@ h4.ctl-group-label { margin: 0 0 var(--sp-2); }
 }
 @media (max-width: 1500px) { .cmdk { min-width: 0; } .cmdk .cmdk-text { display: none; } }
 
-/* --- deploy history at depth (Sid, 2026-09-01) --------------------------
-   With eight builds in the list, eight equal cards is a wall of history in
-   which the one that is LIVE and the one you would roll back to look exactly
-   like the six you will never touch. Superseded and rolled-back builds
-   collapse to a single row — still selectable, still carrying their roll-back
-   button, just no longer shaped like the thing that needs attention. This is
-   the grouped-hierarchy rule from Grafana/Argo applied to our own list. */
+/* --- the deploy list: ONE row shape, the live one MARKED ----------------
+   (Sid, 2026-09-01, revising the 08-31 call.) Two shapes — a tall card for
+   the live build and a strip for the rest — meant the eye had no column to
+   run down and "which of these could I roll back to" became shape-matching.
+   Every deploy is the same grid row; status is a chip, detail is the same
+   disclosure on every row, and live is a colour and a rule, not a layout. */
 #deploy-controls {
-  grid-auto-rows: min-content;
-  align-content: start;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
 }
-.deploy-card[data-deploy-status='superseded'],
-.deploy-card[data-deploy-status='rolled_back'] {
+.deploy-card {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
+  /* five columns, not six: the migration badge rides WITH the title rather
+     than claiming a track of its own, which at a 520px pane width was
+     crushing the title to an ellipsis and then colliding with the version */
+  grid-template-columns: 5.5rem minmax(0, 1fr) auto auto auto;
   align-items: baseline;
   column-gap: var(--sp-3);
-  row-gap: 0;
+  row-gap: var(--sp-1);
   padding: var(--sp-2) var(--sp-3);
-  opacity: 1;                     /* legibility is not the same as emphasis */
+  margin: 0;
+  border: 0;
+  border-left: 2px solid transparent;
+  border-radius: 0;
+  background: none;
+  opacity: 1;
 }
-.deploy-card[data-deploy-status='superseded'] .dc-title,
-.deploy-card[data-deploy-status='rolled_back'] .dc-title {
-  grid-column: 1;
-  font-weight: 400;
-  font-size: var(--text-xs);
-  color: var(--ink-dim);
-  margin-bottom: 0;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.deploy-card[data-deploy-status='superseded'] .dc-head,
-.deploy-card[data-deploy-status='rolled_back'] .dc-head {
-  grid-column: 2;
-  gap: var(--sp-2);
-  font-size: var(--text-2xs);
-  flex-wrap: nowrap;
-}
-.deploy-card[data-deploy-status='superseded'] .dc-target,
-.deploy-card[data-deploy-status='rolled_back'] .dc-target { display: none; }
-.deploy-card[data-deploy-status='superseded'] .dc-status,
-.deploy-card[data-deploy-status='rolled_back'] .dc-status { margin-left: 0; }
-.deploy-card[data-deploy-status='superseded'] .dc-details,
-.deploy-card[data-deploy-status='rolled_back'] .dc-details,
-.deploy-card[data-deploy-status='superseded'] .dc-flag,
-.deploy-card[data-deploy-status='rolled_back'] .dc-flag { display: none; }
-.deploy-card[data-deploy-status='superseded'] .dc-actions,
-.deploy-card[data-deploy-status='rolled_back'] .dc-actions {
-  grid-column: 3;
-  margin-top: 0;
-}
-/* the roll-back target is the reason this row is still here: it stays a real
-   control, and only announces itself when the row is reached for */
-.deploy-card[data-deploy-status='superseded'] .dc-rollback { opacity: 0.55; }
-.deploy-card[data-deploy-status='superseded']:hover .dc-rollback,
-.deploy-card[data-deploy-status='superseded']:focus-within .dc-rollback { opacity: 1; }
+.deploy-card:nth-child(odd) { background: oklch(100% 0 0 / 0.02); }
+.deploy-card:hover { background: oklch(100% 0 0 / 0.05); }
+.deploy-card + .deploy-card { margin-top: 0; }
 
-/* the live build is the one thing in this list that should dominate */
-.deploy-card[data-deploy-status='live'] { grid-column: 1 / -1; }
+.dc-status {
+  grid-column: 1;
+  justify-self: start;
+  padding: 1px var(--sp-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  color: var(--ink-faint);
+  font-family: var(--font-instrument);
+  font-size: var(--text-2xs);
+  text-transform: lowercase;
+  white-space: nowrap;
+}
+.dc-main {
+  grid-column: 2;
+  min-width: 0;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 2px var(--sp-2);
+}
+.dc-title {
+  min-width: 0;
+  color: var(--ink-dim);
+  font-size: var(--text-xs);
+  line-height: 1.4;
+  /* WHAT SHIPPED wraps rather than truncating. In a 520px pane an ellipsis
+     turned "checkout v2 + session schema migration" into "checkout v…",
+     which is the one column a person actually reads down this list for. */
+}
+/* a chip among chips: decision-grade, not a headline */
+.dc-main .dc-badge-migration { flex: none; font-size: var(--text-2xs); white-space: nowrap; }
+.dc-target {
+  grid-column: 3;
+  color: var(--ink-faint);
+  font-family: var(--font-instrument);
+  font-size: var(--text-2xs);
+  white-space: nowrap;
+}
+.dc-id {
+  grid-column: 4;
+  color: var(--ink-ghost);
+  font-family: var(--font-instrument);
+  font-size: var(--text-2xs);
+  font-variant-numeric: tabular-nums;
+}
+.dc-actions { grid-column: 5; margin: 0; }
+.dc-details { grid-column: 1 / -1; }
+.dc-details > summary { color: var(--ink-ghost); font-size: var(--text-2xs); }
+
+/* LIVE is marked, never re-shaped: a rule, a colour, and a brighter title. */
+.deploy-card[data-deploy-status='live'] {
+  border-left-color: oklch(62% 0.06 165);
+  background: oklch(62% 0.06 165 / 0.06);
+}
+.deploy-card[data-deploy-status='live'] .dc-title { color: var(--ink); }
+.deploy-card[data-deploy-status='live'] .dc-status {
+  color: oklch(72% 0.09 165);
+  border-color: oklch(62% 0.06 165);
+}
+.deploy-card[data-deploy-status='rolled_back'] { border-left-color: var(--bad); }
+.deploy-card[data-deploy-status='rolled_back'] .dc-status { color: var(--bad); border-color: var(--bad); }
+/* a roll-back target is still a real control; it just does not shout */
+.deploy-card:not([data-deploy-status='live']) .dc-rollback { opacity: 0.55; }
+.deploy-card:hover .dc-rollback,
+.deploy-card:focus-within .dc-rollback { opacity: 1; }
+
 
 /* --- logs pane: the human's read_logs ------------------------------------
    Same lines the agent is served, with the two affordances a stream cannot
@@ -3015,3 +3057,47 @@ details.ap-evidence > *:not(summary) { margin-top: var(--sp-2); }
    tighter rows, quieter default state, the verb still legible */
 #tool-list li { line-height: 1.35; }
 .ladder-foot { line-height: 1.4; }
+
+
+/* --- the settled state: a receipt, not a question ------------------------
+   The airlock keeps a finished plan on screen because "what did I agree to"
+   is the question you ask an hour later. But at full height it buried
+   everything the agent had worked out, and its label went on saying "waiting
+   on you" after the waiting was over. One line, the right words, click to
+   re-open. */
+.al-label[data-state='settled'] { color: var(--ink-faint); }
+.al-label[data-state='settled'] .al-dot { background: var(--ink-ghost); }
+
+.pl-head {
+  width: 100%;
+  background: none;
+  border: 0;
+  padding: 0;
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+  color: inherit;
+}
+.pl-head:focus-visible { outline: 2px solid var(--actor-agent); outline-offset: 2px; }
+.plan-card[data-collapsed='true'] .pl-why,
+.plan-card[data-collapsed='true'] .pl-steps { display: none; }
+.plan-card[data-collapsed='true'] {
+  border-left-color: var(--good);
+  border-color: color-mix(in oklch, var(--good) 30%, var(--line));
+  background: none;
+}
+.plan-card[data-collapsed='true'] .pl-actor { color: var(--ink-dim); }
+.plan-card[data-outcome='resolved'] .pl-state { color: var(--good); }
+/* the affordance that it re-opens */
+.pl-head::after {
+  content: '';
+  display: inline-block;
+  margin-left: var(--sp-2);
+  width: 5px;
+  height: 5px;
+  border-right: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+  transform: rotate(45deg) translateY(-2px);
+  opacity: 0.55;
+}
+.plan-card[data-collapsed='true'] .pl-head::after { transform: rotate(-45deg) translateY(-1px); }

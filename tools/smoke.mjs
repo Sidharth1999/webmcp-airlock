@@ -483,7 +483,7 @@ try {
   await healthIs(play, 'degraded');
   check(
     'trap deploy card shows decision-grade metadata (irreversible migration badge)',
-    /migration · irreversible/.test(await play.getByTestId('deploy-card-d-201').textContent())
+    /irreversible migration/.test(await play.getByTestId('deploy-card-d-201').textContent())
   );
   await siteIs(play, 'broken');
   check('site pane visibly breaks when the trap fires', await play.getByTestId('sf-banner').isVisible());

@@ -2471,6 +2471,46 @@ h4.ctl-group-label { margin: 0 0 var(--sp-2); }
   animation: palette-in 140ms cubic-bezier(.2,.7,.3,1) both;
 }
 @keyframes palette-in { from { opacity: 0; transform: translateY(-6px); } to { opacity: 1; transform: none; } }
+/* --- the agent's open asks, above the search field ----------------------
+   The operator opened this to reach for a lever. That the agent is already
+   holding one is the first thing that changes WHICH lever — so it sits above
+   the field, in the agent's own colour, and never scrolls with the list. */
+.palette-asks {
+  border-bottom: 1px solid var(--line-strong, var(--line));
+  background: oklch(76% 0.13 310 / 0.08);
+  padding: var(--sp-3) var(--sp-3) var(--sp-2);
+}
+.palette-asks[hidden] { display: none; }
+.pa-head {
+  margin: 0 0 var(--sp-2) var(--sp-3);
+  font-family: var(--font-instrument);
+  font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-label); text-transform: uppercase;
+  color: var(--actor-agent);
+}
+.pa-list { display: flex; flex-direction: column; gap: 2px; max-height: 22vh; overflow-y: auto; }
+.pa-item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: 'label go' 'meta go';
+  gap: 2px var(--sp-3);
+  align-items: center;
+  width: 100%; text-align: left;
+  padding: var(--sp-2) var(--sp-3);
+  background: none; border: none; border-radius: var(--r-sm);
+  cursor: pointer; font: inherit; color: var(--ink);
+}
+.pa-item:hover, .pa-item:focus-visible { background: oklch(76% 0.13 310 / 0.14); }
+.pa-label { grid-area: label; font-size: var(--text-sm); }
+.pa-meta { grid-area: meta; font-size: var(--text-2xs); color: var(--ink-faint); }
+/* the row is a POINTER, not a second approve button — it says where it goes */
+.pa-go {
+  grid-area: go;
+  font-family: var(--font-instrument); font-size: var(--text-2xs);
+  color: var(--ink-ghost); white-space: nowrap;
+}
+.pa-item:hover .pa-go, .pa-item:focus-visible .pa-go { color: var(--actor-agent); }
+
 #palette-input {
   font: inherit; font-size: var(--text-md, 16px);
   padding: var(--sp-4);
@@ -2481,8 +2521,8 @@ h4.ctl-group-label { margin: 0 0 var(--sp-2); }
 .palette-list { max-height: 46vh; overflow-y: auto; padding: var(--sp-2); }
 .palette-item {
   display: grid;
-  grid-template-columns: 78px minmax(0, 1fr);
-  grid-template-areas: 'group label' '.     cost';
+  grid-template-columns: 78px minmax(0, 1fr) auto;
+  grid-template-areas: 'group label flag' '.     cost  cost';
   gap: 2px var(--sp-3);
   width: 100%; text-align: left;
   padding: var(--sp-2) var(--sp-3);
@@ -2500,6 +2540,14 @@ h4.ctl-group-label { margin: 0 0 var(--sp-2); }
 .pi-label { grid-area: label; font-size: var(--text-sm); }
 /* the price rides with the command, same string the control and agent get */
 .pi-cost { grid-area: cost; font-size: var(--text-2xs); color: var(--ink-ghost); line-height: 1.45; }
+/* the same lever, marked in the main list: the two surfaces are one vocabulary */
+.pi-flag {
+  grid-area: flag;
+  font-family: var(--font-instrument); font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-label); text-transform: uppercase;
+  color: var(--actor-agent); white-space: nowrap;
+}
+.pi-flag::before { content: '● '; }
 .palette-empty { margin: 0; padding: var(--sp-4); color: var(--ink-ghost); font-size: var(--text-sm); }
 .palette-foot {
   padding: var(--sp-2) var(--sp-4);

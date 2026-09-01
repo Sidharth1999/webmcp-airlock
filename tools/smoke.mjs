@@ -304,6 +304,41 @@ try {
     (await page.locator('#flag-controls [data-flag-id="new-checkout"].proposal-anchor').count()) === 1
   );
 
+  // ---- the palette and the agent surface are ONE vocabulary (#16) --------
+  // The lever the agent is asking for is a lever the human can reach by hand,
+  // so ⌘K — where they reach for it — has to say the ask is open. It shows,
+  // it does not decide: no approve button is reachable from in here.
+  await page.keyboard.press('Control+k');
+  await page.getByTestId('palette-input').waitFor({ timeout: 5_000 });
+  check(
+    'an open ask shows at the top of the palette',
+    (await page.locator('#palette-asks').isVisible()) &&
+      (await page.locator('.pa-item').count()) === 1 &&
+      (await page.locator('.pa-item .pa-label').textContent()).length > 10
+  );
+  check(
+    'the command for that same lever is marked, and the mark does not claim to BE the ask',
+    (await page.locator('.palette-item[data-proposed="true"]').count()) === 1 &&
+      /flag new-checkout/.test(
+        await page.locator('.palette-item[data-proposed="true"] .pi-label').textContent()
+      ) &&
+      /agent asked/.test(
+        await page.locator('.palette-item[data-proposed="true"] .pi-flag').textContent()
+      )
+  );
+  check(
+    'the palette shows the ask, it does not decide it',
+    (await page.locator('#palette [data-act="approve"], #palette [data-act="reject"]').count()) === 0
+  );
+  // a row here is a POINTER: it closes and puts you in front of the decision
+  await page.locator('.pa-item').click();
+  check(
+    'clicking the ask closes the palette on the decision itself',
+    (await page.locator('#palette').isHidden()) &&
+      (await page.evaluate(() => document.activeElement?.dataset.testid)) ===
+        `approve-${flagProp.proposalSeq}`
+  );
+
   await page.getByTestId(`approve-${flagProp.proposalSeq}`).click();
   const executedLi = page.locator('#event-stream li[data-kind="action.executed"][data-actor="agent"]').first();
   await executedLi.waitFor({ timeout: 5_000 });
@@ -311,6 +346,17 @@ try {
     'approve executes as the agent, causedBy-threaded to the approval',
     (await executedLi.getAttribute('data-caused-by')) !== '' &&
       (await page.locator(`[data-testid="approval-${flagProp.proposalSeq}"]`).count()) === 0
+  );
+
+  check(
+    'deciding it empties the palette section — no ghost ask',
+    await page.evaluate(async () => {
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'k', ctrlKey: true, bubbles: true }));
+      const hidden = document.querySelector('#palette-asks').hidden;
+      const marked = document.querySelectorAll('.palette-item[data-proposed="true"]').length;
+      document.dispatchEvent(new KeyboardEvent('keydown', { key: 'Escape', bubbles: true }));
+      return hidden && marked === 0;
+    })
   );
 
   await page.getByTestId('audit-toggle').click();
@@ -333,6 +379,15 @@ try {
     'tier-4 card renders disarmed (approve disabled until the key)',
     await page.getByTestId(`approve-${routeProp.proposalSeq}`).isDisabled()
   );
+  // the palette repeats the one consequence of the ladder a human can act on
+  await page.keyboard.press('Control+k');
+  await page.getByTestId('palette-input').waitFor({ timeout: 5_000 });
+  check(
+    'a two-key ask says so in the palette too',
+    /needs your key/.test(await page.locator('.pa-item .pa-meta').textContent())
+  );
+  await page.keyboard.press('Escape');
+
   await page.getByTestId(`key-${routeProp.proposalSeq}`).check();
   check(
     'engaging the key arms approve',

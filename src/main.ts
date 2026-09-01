@@ -51,6 +51,15 @@ const app = document.querySelector<HTMLDivElement>('#app')!;
 app.innerHTML = `
   <div class="palette" id="palette" role="dialog" aria-modal="true" aria-label="Run a command" hidden>
     <div class="palette-box">
+      <!-- The palette and the agent surface are two projections of the SAME
+           twenty verbs, so a pending ask belongs here too. This is where the
+           operator reaches for a lever; it is therefore where they should
+           find out the agent has already reached for one. Read-only by
+           design — the decision itself stays at the gate, in the dock. -->
+      <div class="palette-asks" id="palette-asks" data-testid="palette-asks" hidden>
+        <p class="pa-head">The agent is asking for</p>
+        <div class="pa-list" id="palette-asks-list"></div>
+      </div>
       <input id="palette-input" type="text" autocomplete="off" spellcheck="false"
              placeholder="Run a command — try &quot;drain&quot;, &quot;restart&quot;, &quot;status page&quot;"
              aria-label="Search commands" data-testid="palette-input" />
@@ -986,7 +995,41 @@ function prune(host: HTMLElement, attr: string, ids: readonly string[]): void {
 // human approves or rejects; the causedBy chain proposed → approved →
 // executed is the audit trail (and IS the event log, filtered).
 
-const pendingCards = new Map<number, { card: HTMLElement; anchor: HTMLElement | null }>();
+/** What the palette needs to show an ask without reaching into the card DOM. */
+interface Ask {
+  seq: number;
+  summary: string; // the sentence the card leads with, verbatim
+  touches: string;
+  dualKey: boolean;
+  scope: string; // the lever it lands on, for marking the command list
+}
+
+const pendingCards = new Map<
+  number,
+  { card: HTMLElement; anchor: HTMLElement | null; ask: Ask }
+>();
+
+/**
+ * The LEVER a proposal lands on, with its magnitude taken off.
+ *
+ * `actionKey` is the answer-key vocabulary and deliberately keeps the
+ * parameter that carries the decision (`ratelimit.set:r-checkout=150`),
+ * which is right for grading and wrong for marking a menu: the palette's
+ * canned row caps that same route at 100 and would never match. Marking
+ * answers a coarser question — has the agent asked for something HERE — so
+ * the number comes out and the entity stays.
+ */
+function proposalScope(tool: string, input: Record<string, unknown>): string {
+  const entity =
+    input.route ??
+    input.service ??
+    input.deployId ??
+    input.id ??
+    input.key ??
+    input.hostname ??
+    input.scope;
+  return entity === undefined ? tool : `${tool}:${String(entity)}`;
+}
 
 /**
  * The row on the console that a write would land on.
@@ -1556,7 +1599,17 @@ function addApprovalCard(e: Event): void {
   // the agent dock scrolls as one column, so a long plan can put the very
   // buttons being asked about below the fold. Bring the live decision up.
   card.scrollIntoView({ block: 'nearest' });
-  pendingCards.set(e.seq, { card, anchor });
+  pendingCards.set(e.seq, {
+    card,
+    anchor,
+    ask: {
+      seq: e.seq,
+      summary: d.diffSummary,
+      touches: WHAT_IT_TOUCHES[d.tierName] ?? d.tierName,
+      dualKey,
+      scope: proposalScope(d.tool, d.input),
+    },
+  });
   syncAirlock();
 }
 
@@ -1569,6 +1622,13 @@ function revealAnchor(anchor: HTMLElement): void {
 
 const airlockEl = document.querySelector<HTMLElement>('#airlock')!;
 const airlockCards = document.querySelector<HTMLElement>('#airlock-cards')!;
+/**
+ * Assigned by the palette, which is built further down this file. Reaching
+ * the other way — a `const` down there, called from up here — puts a proposal
+ * that lands during boot inside its temporal dead zone. The dependency runs
+ * one direction only: the airlock announces, the palette listens if it is open.
+ */
+let paletteRefresh: (() => void) | null = null;
 /**
  * The region only exists while something is pending; it never leaves a void.
  * A plan holds it open for its whole life, INCLUDING after the last step ran:
@@ -1594,6 +1654,8 @@ function syncAirlock(): void {
   document.querySelector<HTMLElement>('.wb')!.dataset.decision = pendingCards.size
     ? 'pending'
     : 'none';
+  // an ask that arrives or resolves while ⌘K is open
+  paletteRefresh?.();
 }
 
 function resolveApprovalCard(proposalSeq: number): void {
@@ -3170,6 +3232,8 @@ function buildCommands(w: World): Command[] {
 const paletteEl = document.querySelector<HTMLElement>('#palette')!;
 const paletteInput = document.querySelector<HTMLInputElement>('#palette-input')!;
 const paletteList = document.querySelector<HTMLElement>('#palette-list')!;
+const paletteAsks = document.querySelector<HTMLElement>('#palette-asks')!;
+const paletteAsksList = document.querySelector<HTMLElement>('#palette-asks-list')!;
 let paletteCmds: Command[] = [];
 let paletteActive = 0;
 let paletteReturnFocus: HTMLElement | null = null;
@@ -3180,8 +3244,42 @@ function paletteMatches(): Command[] {
   return paletteCmds.filter((c) => `${c.group} ${c.label}`.toLowerCase().includes(q));
 }
 
+/**
+ * THE AGENT'S OPEN ASKS, at the top of the palette.
+ *
+ * It does not approve anything. Approve-from-palette would put a second door
+ * on the gate, and the gate is the product — so a row here is a POINTER: it
+ * closes the palette and puts you in front of the decision, where the cost,
+ * the evidence and the key still are.
+ */
+function renderAsks(): void {
+  const asks = [...pendingCards.values()].map((p) => p.ask);
+  paletteAsks.hidden = asks.length === 0;
+  paletteAsksList.innerHTML = '';
+  for (const a of asks) {
+    const row = document.createElement('button');
+    row.type = 'button';
+    row.className = 'pa-item';
+    row.dataset.seq = String(a.seq);
+    row.dataset.testid = `palette-ask-${a.seq}`;
+    const label = document.createElement('span');
+    label.className = 'pa-label';
+    label.textContent = a.summary;
+    const meta = document.createElement('span');
+    meta.className = 'pa-meta';
+    meta.textContent = `${a.touches}${a.dualKey ? ' · needs your key' : ''} · pending`;
+    const go = document.createElement('span');
+    go.className = 'pa-go';
+    go.textContent = 'go to the decision';
+    row.append(label, meta, go);
+    paletteAsksList.append(row);
+  }
+}
+
 function renderPalette(): void {
   const items = paletteMatches();
+  // the levers the agent has an open ask on, so the menu row says so too
+  const proposed = new Set([...pendingCards.values()].map((p) => p.ask.scope));
   if (paletteActive >= items.length) paletteActive = Math.max(0, items.length - 1);
   paletteList.innerHTML = '';
   if (items.length === 0) {
@@ -3208,6 +3306,19 @@ function renderPalette(): void {
     cost.className = 'pi-cost';
     cost.textContent = WRITE_ACTIONS[c.tool]?.cost ?? '';
     row.append(g, l, cost);
+    if (proposed.has(proposalScope(c.tool, c.input))) {
+      row.dataset.proposed = 'true';
+      // NOT "proposed". The ask is `cap at 150`; this canned row is `cap at
+      // 100`. A row labelled "proposed" invites an enter press that would run
+      // a DIFFERENT command, as the human, and read as approving the agent.
+      // The mark claims only what is true: the agent has asked about this
+      // lever — go and read the ask.
+      row.title = 'the agent has an open ask on this lever — see the top of the palette';
+      const flag = document.createElement('span');
+      flag.className = 'pi-flag';
+      flag.textContent = 'agent asked';
+      row.append(flag);
+    }
     paletteList.append(row);
   });
   paletteList.querySelector<HTMLElement>('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' });
@@ -3220,6 +3331,7 @@ function openPalette(): void {
   paletteInput.value = '';
   paletteActive = 0;
   paletteEl.hidden = false;
+  renderAsks();
   renderPalette();
   paletteInput.focus();
 }
@@ -3260,7 +3372,29 @@ paletteList.addEventListener('click', (e) => {
   const row = (e.target as HTMLElement).closest<HTMLElement>('[data-idx]');
   if (row) runPalette(Number(row.dataset.idx));
 });
+paletteAsksList.addEventListener('click', (e) => {
+  const row = (e.target as HTMLElement).closest<HTMLElement>('[data-seq]');
+  if (!row) return;
+  const entry = pendingCards.get(Number(row.dataset.seq));
+  closePalette(); // restores focus first, so ours below wins
+  if (!entry) return;
+  entry.card.scrollIntoView({ block: 'nearest' });
+  // the key toggle when there is one: engaging it is the first thing to do
+  (
+    entry.card.querySelector<HTMLElement>('.ap-key-toggle') ??
+    entry.card.querySelector<HTMLElement>('.ap-approve')
+  )?.focus();
+});
 paletteEl.addEventListener('click', (e) => { if (e.target === paletteEl) closePalette(); });
+
+// both ends exist now: the airlock can tell an OPEN palette that the set of
+// asks moved under it
+paletteRefresh = () => {
+  if (paletteEl.hidden || !world) return;
+  paletteCmds = buildCommands(world);
+  renderAsks();
+  renderPalette();
+};
 
 runBtn.addEventListener('click', () => {
   running = !running;

@@ -41,20 +41,35 @@ body {
      centre keeps every pixel of extra width on a wide display */
   --w-site: 620px;
   --w-rail: 360px;
+  /* what the console needs before anything else is allowed to have room:
+     the airlock's card plus its "waiting on you" gutter */
+  --w-centre-min: 560px;
   --h-panel: clamp(190px, 26vh, 360px);
   --act-w: 46px;
 }
 
 .wb {
+  position: relative; /* the agent dock elevates out of the grid over it */
   height: 100dvh;
   display: grid;
   overflow: hidden;
   background: var(--bg);
+  /* THE CENTRE HAS A FLOOR AND THE DOCKS YIELD TO IT.
+     These were fixed px tracks with the centre taking whatever was left,
+     which meant the centre could end up NARROWER THAN ITS OWN CONTENT: at
+     1512px it got 346px, the approval card's intrinsic width is ~520px, and
+     the overflow was painted over by the storefront. The one decision the
+     operator has to make was hiding behind a product page.
+     `minmax(--w-centre-min, 1fr)` for the centre and `minmax(0, Npx)` for the
+     docks says it properly — the docks shrink proportionally when the window
+     cannot hold everything, and the airlock is never squeezed under its
+     content. No breakpoint: a fixed track that overflows is wrong at EVERY
+     width, not below some chosen one. */
   grid-template-columns:
-    var(--act-w)              /* activity bar   */
-    minmax(0, 1fr)            /* centre         */
-    var(--sash) var(--w-site) /* storefront     */
-    var(--sash) var(--w-rail);/* agent          */
+    var(--act-w)                            /* activity bar   */
+    minmax(var(--w-centre-min), 1fr)        /* centre         */
+    var(--sash) minmax(0, var(--w-site))    /* storefront     */
+    var(--sash) minmax(0, var(--w-rail));   /* agent          */
   grid-template-rows: 40px minmax(0, 1fr) 24px;
   grid-template-areas:
     "title  title  title  title  title  title"
@@ -696,26 +711,61 @@ body {
    controls and pushes them down. It has no height when nothing is
    pending, so it never leaves a void.
    ============================================================ */
+/* Inside the agent dock now, so it stacks rather than sitting in a gutter:
+   a label row over the cards. The horizontal "Waiting on you" gutter cost
+   101px of every width and bought nothing. */
 .airlock {
-  display: grid;
-  grid-template-columns: auto minmax(0, 1fr);
-  align-items: start;
-  gap: var(--sp-4);
-  padding: var(--sp-3) var(--sp-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  min-width: 0;
+  margin: 0 0 var(--sp-3);
+  padding: var(--sp-3);
   background: oklch(24% 0.045 310 / 0.5);
-  border-bottom: 1px solid var(--actor-agent-dim);
-  box-shadow: inset 3px 0 0 var(--actor-agent);
+  border: 1px solid var(--actor-agent-dim);
+  border-left: 3px solid var(--actor-agent);
+  border-radius: var(--r-sm);
 }
 .airlock[data-pending='0'] { display: none; }
+
+/* THE Z AXIS INSTEAD OF A SECOND LAYOUT.
+   A pending decision needs more room than the dock's resting width, and the
+   old answer was to reshape the console around it — which is how Manual
+   controls ended up hidden and the approval ended up behind the storefront.
+   The dock leaves the grid and rises over the page instead. Nothing below it
+   moves, so there is one console layout, not one per state. */
+.wb[data-decision='pending'] #tool-rail {
+  position: absolute;
+  top: 40px;
+  bottom: 24px;
+  right: 0;
+  width: min(660px, 46vw);
+  z-index: 40;
+  border-left: 2px solid var(--actor-agent);
+  box-shadow: -22px 0 60px oklch(0% 0 0 / 0.55);
+}
+@media (prefers-reduced-motion: no-preference) {
+  #tool-rail { transition: width var(--dur-settle) var(--ease-settle); }
+}
 /* A plan is much taller than a single proposal, and the airlock is pinned
    above the deck: an unbounded one pushed the very controls the plan numbers
    off the bottom of the screen, so "the sequence lights up the console" was
    true and invisible at the same time. Cap it and let it scroll on its own. */
 #airlock-cards {
-  max-height: min(46vh, 620px);
-  overflow-y: auto;
-  overscroll-behavior: contain;
+  /* No inner scroll cap: the dock scrolls as ONE column now, and a nested
+     scroller put Approve and Reject below a fold the reviewer could not see.
+     min-width:0 because a flex/grid child's default is min-content, which is
+     what let the cards overflow their container in the first place. */
+  min-width: 0;
 }
+.approval-card,
+.plan-card { min-width: 0; }
+.ap-diff,
+.pl-what,
+.pl-cost,
+.ap-ev-said,
+.pl-why-t,
+.pl-because { overflow-wrap: anywhere; }
 .al-label {
   display: flex;
   align-items: center;
@@ -2472,18 +2522,12 @@ h4.ctl-group-label { margin: 0 0 var(--sp-2); }
   --w-site: 700px;
   --w-rail: 410px;
 }
-/* ...but those are FIXED grid tracks, and the centre is the console the whole
-   product is. Below ~1500px 46 + 700 + 410 + sashes leaves the centre under
-   350px, and at 1120px the sum EXCEEDS the viewport: the storefront revealing
-   itself mid-incident hid the console completely, so the operator lost the
-   thing they were meant to be operating exactly when it mattered. The docks
-   yield instead. Nothing at 1920px or above changes. */
-@media (max-width: 1500px) {
-  :root {
-    --w-site: min(700px, 40vw);
-    --w-rail: min(410px, 24vw);
-  }
-}
+/* ...and they are the docks' PREFERRED widths, not their actual ones: the
+   grid above makes both tracks minmax(0, N) so they give way to the centre's
+   floor instead of squeezing it under its own content. The 2026-09-01
+   max-width:1500 breakpoint this replaces was the wrong shape — Sid's own
+   window is 1512px, so it never fired, and the approval card sat behind the
+   storefront on the machine the product is designed on. */
 /* the deck fills the region it is given, and its rows share the height —
    two cards breathing beats two cards above a strip of bare ground */
 /* the deck fills the region it is given; two cards with room to breathe read

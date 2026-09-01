@@ -156,14 +156,6 @@ app.innerHTML = `
         <section class="stats" id="stats" data-testid="stats"></section>
       </div>
 
-      <!-- THE AIRLOCK. The product's namesake gets a permanent docked region:
-           a decision the agent is waiting on must never be something you
-           scroll to find. The row it would change still lights up in place. -->
-      <div class="airlock" id="airlock" data-pending="0">
-        <div class="al-label"><span class="al-dot" aria-hidden="true"></span>Waiting on you</div>
-        <div class="al-cards" id="airlock-cards"></div>
-      </div>
-
       <div class="cmdbar" id="zone-command-bar">
         <span class="cmdbar-label">Incident command</span>
         <div class="cmd-row" id="cmd-row"></div>
@@ -371,6 +363,19 @@ app.innerHTML = `
         </div>
       </div>
       <div class="dock-body">
+        <!-- THE AIRLOCK, inside the agent region.
+             It used to be a pinned block in the CENTRE column, which meant
+             the console had to be laid out twice — once with a decision
+             pending and once without — and at 1512px it overflowed its track
+             and sat underneath the storefront. Everything the agent says or
+             asks now lives in one column, and when a decision is pending that
+             column ELEVATES over the page instead of reshaping it. One
+             reserved area, one axis. -->
+        <div class="airlock" id="airlock" data-pending="0">
+          <div class="al-label"><span class="al-dot" aria-hidden="true"></span>Waiting on you</div>
+          <div class="al-cards" id="airlock-cards"></div>
+        </div>
+
         <div class="agent-presence" id="agent-presence" data-state="off">
           <span class="ap-dot" aria-hidden="true"></span>
           <span class="ap-text">
@@ -1466,6 +1471,9 @@ function addApprovalCard(e: Event): void {
   // a plan step's card belongs INSIDE its step, so the sequence stays one
   // object on screen instead of scattering into loose asks
   (planHostFor(e.seq) ?? airlockCards).appendChild(card);
+  // the agent dock scrolls as one column, so a long plan can put the very
+  // buttons being asked about below the fold. Bring the live decision up.
+  card.scrollIntoView({ block: 'nearest' });
   pendingCards.set(e.seq, { card, anchor });
   syncAirlock();
 }
@@ -1486,7 +1494,11 @@ const airlockCards = document.querySelector<HTMLElement>('#airlock-cards')!;
  * to vanish the instant the final card resolved.
  */
 function syncAirlock(): void {
-  airlockEl.dataset.pending = String(pendingCards.size + plans.size);
+  const pending = pendingCards.size + plans.size;
+  airlockEl.dataset.pending = String(pending);
+  // the agent region rises OVER the page while it needs an answer; the
+  // console underneath does not move, so there is only ever one layout
+  document.querySelector<HTMLElement>('.wb')!.dataset.decision = pending ? 'pending' : 'none';
 }
 
 function resolveApprovalCard(proposalSeq: number): void {
@@ -1965,13 +1977,19 @@ document.querySelector('#audit-toggle')!.addEventListener('click', (ev) => {
   btn.textContent = on ? `Showing ${shown} actions · show all` : 'Audit trail';
 });
 
-document.querySelector('#console')!.addEventListener('click', (e) => {
+// Delegated from the DOCUMENT, not from #console. It was scoped to the centre
+// column, which was invisible until the airlock moved into the agent dock and
+// every Approve and Reject silently stopped working — the buttons were outside
+// the listener. A control's behaviour must not depend on which region it was
+// rendered into. Selection is still a CONSOLE gesture and is guarded as one.
+document.addEventListener('click', (e) => {
   const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-act]');
   if (!btn) {
     // not a control: a click on a NODE is the human pointing at it. Other
     // interactive elements in the deck (audit toggle, dual-key checkbox) and
     // dead space are NOT selection gestures — they must never clear or move
     // the selection. Click-again on the selected node is the clear gesture.
+    if (!(e.target as HTMLElement).closest('#console')) return;
     if ((e.target as HTMLElement).closest('button, input, label, select, a')) return;
     const target = selectableTarget(e.target as HTMLElement);
     if (target !== null) {

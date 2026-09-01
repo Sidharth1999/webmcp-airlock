@@ -31,8 +31,8 @@ interface Scene {
   id: string;
   /** shown in the banner: what this scene is */
   title: string;
-  /** shown in the banner: what the reviewer should do with it */
-  tryThis: string;
+  /** what the reviewer should do — one idea per line, never a paragraph */
+  tryThis: string[];
   template: string;
   run(ctx: Ctx): Promise<void>;
 }
@@ -62,8 +62,10 @@ const SCENES: Scene[] = [
   {
     id: 'logs',
     title: 'The logs pane',
-    tryThis:
-      'These are the same lines read_logs serves an agent. Try the level floor and the text filter — the count on the right tells you what is hidden.',
+    tryThis: [
+      'Filter by level, then by text.',
+      'The count on the right says what is hidden.',
+    ],
     template: 'retry-storm',
     async run(ctx) {
       await ctx.runUntil(() => ctx.logSeqs().length > 6, 'log lines');
@@ -73,8 +75,10 @@ const SCENES: Scene[] = [
   {
     id: 'evidence',
     title: 'A proposal, with what the agent worked FROM',
-    tryThis:
-      'The chip row is read off the audit trail — the agent cannot claim a read it did not make. The sentence below is its own words, so it is a claim. Click a #citation: it lands you on that exact log line.',
+    tryThis: [
+      'Chips = reads it actually made. The sentence = its claim.',
+      'Click a #citation — it lands on that log line.',
+    ],
     template: 'retry-storm',
     async run(ctx) {
       await ctx.runUntil(() => ctx.logSeqs().length > 6, 'log lines');
@@ -92,8 +96,10 @@ const SCENES: Scene[] = [
   {
     id: 'bare',
     title: 'A proposal made without reading anything',
-    tryThis:
-      'The same tool call, from an agent that looked at nothing first. This is the case the strip exists for — compare it with the evidence scene.',
+    tryThis: [
+      'Same proposal, from an agent that read nothing.',
+      'Compare with the evidence scene.',
+    ],
     template: 'retry-storm',
     async run(ctx) {
       await ctx.runUntil(() => ctx.logSeqs().length > 3, 'the incident opening');
@@ -104,8 +110,11 @@ const SCENES: Scene[] = [
   {
     id: 'plan',
     title: 'A plan: two levers, in one order, priced',
-    tryThis:
-      'Read the reason BEFORE you approve anything — that is the point of the order being stated first. Then approve step 1 and watch: step 2 is only proposed once step 1 has actually executed. The numbered rings below show WHERE the sequence lands: 1 on the /checkout route, 2 on the api service. (The evidence panel is closed so the whole deck fits — reopen it from the left rail.)',
+    tryThis: [
+      'Read the reason first. That is the point of stating the order.',
+      'Approve step 1 — step 2 is only proposed after it executes.',
+      'Rings 1 and 2 on the console mark where it lands.',
+    ],
     template: 'retry-storm',
     async run(ctx) {
       await ctx.runUntil(() => ctx.logSeqs().length > 6, 'log lines');
@@ -142,8 +151,10 @@ const SCENES: Scene[] = [
   {
     id: 'abandon',
     title: 'A plan you refuse half way',
-    tryThis:
-      'Reject step 1. The rest of the sequence is ABANDONED rather than skipped — a sequence with a hole in it is not the plan anyone agreed to, and the numbers on the controls clear with it.',
+    tryThis: [
+      'Reject step 1.',
+      'The rest is abandoned, not skipped, and the rings clear.',
+    ],
     template: 'retry-storm',
     async run(ctx) {
       await ctx.runUntil(() => ctx.logSeqs().length > 4, 'log lines');
@@ -161,8 +172,10 @@ const SCENES: Scene[] = [
   {
     id: 'provenance',
     title: 'The page knows where the idea came from',
-    tryThis:
-      'An ordinary tier-1 rollback, on the two-key rung — because the deploy id reached the agent only inside a customer-supplied log line this page served. Approve is disarmed until you engage the key. You are informed, never overruled.',
+    tryThis: [
+      'Press Approve before the key. It is disarmed.',
+      'Engage the key and you can still do it.',
+    ],
     template: 'poisoned-runbook',
     async run(ctx) {
       await ctx.runUntil(
@@ -180,8 +193,10 @@ const SCENES: Scene[] = [
   {
     id: 'counsel',
     title: 'The agent objects before your click',
-    tryThis:
-      'The agent has ruled out rolling d-201 back. Click "Roll back" on the d-201 card below and its reasoning appears beside the control. It counsels; it never blocks — click again and you do it anyway.',
+    tryThis: [
+      'Click Roll back on the d-201 card, in the console.',
+      'It counsels. Click again and it proceeds.',
+    ],
     template: 'migration-trap',
     async run(ctx) {
       await ctx.runUntil(
@@ -210,36 +225,48 @@ export function templateForScene(id: string): string | undefined {
 function banner(scene: Scene, state: 'running' | 'ready' | 'failed', detail = ''): void {
   let el = document.querySelector<HTMLElement>('#review-banner');
   if (!el) {
-    el = document.createElement('aside');
+    el = document.createElement('div');
     el.id = 'review-banner';
     el.dataset.testid = 'review-banner';
     el.innerHTML = `
       <div class="rv-head">
-        <span class="rv-tag">review harness</span>
+        <span class="rv-tag">review</span>
         <span class="rv-title"></span>
         <span class="rv-state"></span>
       </div>
-      <p class="rv-try"></p>
+      <ul class="rv-try"></ul>
       <nav class="rv-scenes" aria-label="Review scenes"></nav>
-      <p class="rv-foot">A script is calling the tools, not a model — the events, proposals and gates are real. Drop <code>?review=</code> for the product.</p>
     `;
-    document.body.append(el);
+    // ONE reserved area for anything agent- or review-related: this belongs
+    // inside the agent dock, at the top of it, not floating in a corner
+    // competing with the decision it is describing.
+    const host = document.querySelector<HTMLElement>('#tool-rail .dock-body');
+    (host ?? document.body).prepend(el);
     const nav = el.querySelector<HTMLElement>('.rv-scenes')!;
-    for (const s of SCENES) {
+    for (const sc of SCENES) {
       const a = document.createElement('a');
-      a.href = `?review=${s.id}`;
+      a.href = `?review=${sc.id}`;
       a.className = 'rv-scene';
-      a.textContent = s.id;
-      a.dataset.testid = `review-scene-${s.id}`;
-      if (s.id === scene.id) a.setAttribute('aria-current', 'true');
+      a.textContent = sc.id;
+      a.dataset.testid = `review-scene-${sc.id}`;
+      a.title = sc.title;
+      if (sc.id === scene.id) a.setAttribute('aria-current', 'true');
       nav.append(a);
     }
   }
   el.dataset.state = state;
   el.querySelector('.rv-title')!.textContent = scene.title;
   el.querySelector('.rv-state')!.textContent =
-    state === 'running' ? `setting up — ${detail}` : state === 'ready' ? 'your turn' : `failed: ${detail}`;
-  el.querySelector('.rv-try')!.textContent = state === 'ready' ? scene.tryThis : '';
+    state === 'running' ? detail : state === 'ready' ? 'your turn' : `failed — ${detail}`;
+  const list = el.querySelector<HTMLElement>('.rv-try')!;
+  list.innerHTML = '';
+  if (state === 'ready') {
+    for (const line of scene.tryThis) {
+      const li = document.createElement('li');
+      li.textContent = line;
+      list.append(li);
+    }
+  }
 }
 
 /**

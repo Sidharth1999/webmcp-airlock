@@ -96,6 +96,76 @@ for (const [vp, viewport] of Object.entries(VIEWPORTS)) {
     console.log('  (counsel shot skipped: control not reachable at this width)');
   }
 
+  // ---- 8-11: the agent-UX surfaces (2026-09-01) -------------------------
+  // These live on retry-storm, because it is the only family whose answer is
+  // a SEQUENCE and the only one that emits log lines from the first ticks.
+  const rs = await browser.newPage({ viewport });
+  rs.on('pageerror', (e) => errors.push(String(e)));
+  rs.on('console', (m) => {
+    if (m.type() === 'error') errors.push(m.text());
+  });
+  await rs.goto('http://localhost:8917/?template=retry-storm&tick=120', { waitUntil: 'networkidle' });
+  await rs.getByTestId('sim-run').click();
+  await rs.waitForFunction(() => document.querySelectorAll('#log-stream .log-row').length > 6, {
+    timeout: 40000,
+  });
+  await rs.getByTestId('mode-recovery').click();
+
+  // 8. the human's own read_logs, with a level floor applied
+  await rs.getByTestId('tab-logs').click();
+  await shot(rs, `${vp}-08-logs-pane`);
+  await rs.getByTestId('log-lvl-warn').click();
+  await shot(rs, `${vp}-08b-logs-filtered`);
+  await rs.getByTestId('log-lvl-all').click();
+
+  // 9. a proposal carrying the reads it was assembled from
+  const cite = await rs.evaluate(async () => {
+    for (const t of ['airlock_status', 'list_deploys', 'read_logs', 'read_logs', 'traffic_history', 'list_changes']) {
+      await window.__airlock.invoke(t, {});
+    }
+    return [...document.querySelectorAll('#log-stream .log-row')].map((n) => Number(n.dataset.seq));
+  });
+  await rs.evaluate(async (c) => {
+    await window.__airlock.invoke('record_finding', {
+      summary: `Offered rate on /checkout is ~4x its organic share while /browse is flat, and contention already cleared (#${c.at(-3)}) — the load is retries sustaining themselves.`,
+    });
+  }, cite);
+
+  // 10. THE PLAN: the order, its reason, every step priced, one gate live
+  const plan = JSON.parse(
+    await rs.evaluate(
+      (c) =>
+        window.__airlock.invoke('propose_plan', {
+          reason: `The fleet is at its autoscaler ceiling with no spare instances (#${c.at(-2)}), so a rolling replacement withdraws capacity this incident cannot spare. Headroom has to exist before the fix ships; the other way round takes api down.`,
+          steps: [
+            { tool: 'propose_rate_limit', input: { route: 'r-checkout', rps: 150 }, because: 'buys headroom now — it rejects real customers and fixes nothing' },
+            { tool: 'propose_rollforward', input: { service: 'api' }, because: '2.4.2 is staged and green: retry attempts 2, full jitter, budget 10%' },
+          ],
+        }),
+      cite
+    )
+  );
+  await rs.getByTestId(`plan-${plan.planId}`).waitFor({ timeout: 10000 });
+  await rs.waitForTimeout(400);
+  await shot(rs, `${vp}-10-plan-step1`);
+
+  // 11. step 1 executed — and only NOW is step 2 put to the human
+  await rs.locator('.pl-step[data-state="live"] .ap-approve').click();
+  await rs.waitForFunction(
+    (id) => document.querySelector(`[data-testid="plan-step-${id}-1"]`)?.dataset.state === 'live',
+    plan.planId,
+    { timeout: 10000 }
+  );
+  await shot(rs, `${vp}-11-plan-step2`);
+  await rs.locator('.pl-step[data-state="live"] .ap-approve').click();
+  await rs.waitForFunction(
+    (id) => document.querySelector(`[data-testid="plan-${id}"]`)?.dataset.state === 'complete',
+    plan.planId,
+    { timeout: 10000 }
+  );
+  await shot(rs, `${vp}-12-plan-done`);
+  await rs.close();
+
   if (errors.length) {
     console.log(`  !! ${errors.length} console/page error(s):`);
     for (const e of errors.slice(0, 5)) console.log(`     ${e}`);

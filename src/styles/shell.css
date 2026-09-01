@@ -2344,6 +2344,14 @@ h4.ctl-group-label { margin: 0 0 var(--sp-2); }
 
 /* A panel with nothing to say should not claim a panel's worth of space. */
 #zone-holding:not(:has(.holding)) { display: none; }
+/* ...but a hidden grid child still leaves its 593px track as BARE GROUND at
+   2400px — half the deck's second row was black, which is the one thing this
+   layout's own first rule forbids. The status page takes the whole row when
+   nothing is being held, and yields it back the moment something is.
+   (:has() cannot be nested inside :has(), so this asks the deck directly.) */
+#control-deck:not(:has(.holding)) #zone-command {
+  grid-column: 1 / -1;
+}
 
 /* --- deploy cards: a summary you can read, detail on demand --------------
    Sid, several times: "the text is so compressed in those cards, and
@@ -2454,6 +2462,18 @@ h4.ctl-group-label { margin: 0 0 var(--sp-2); }
      and the centre still keeps the remaining slack */
   --w-site: 700px;
   --w-rail: 410px;
+}
+/* ...but those are FIXED grid tracks, and the centre is the console the whole
+   product is. Below ~1500px 46 + 700 + 410 + sashes leaves the centre under
+   350px, and at 1120px the sum EXCEEDS the viewport: the storefront revealing
+   itself mid-incident hid the console completely, so the operator lost the
+   thing they were meant to be operating exactly when it mattered. The docks
+   yield instead. Nothing at 1920px or above changes. */
+@media (max-width: 1500px) {
+  :root {
+    --w-site: min(700px, 40vw);
+    --w-rail: min(410px, 24vw);
+  }
 }
 /* the deck fills the region it is given, and its rows share the height —
    two cards breathing beats two cards above a strip of bare ground */

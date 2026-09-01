@@ -914,11 +914,41 @@ try {
       (await pl.getByTestId(`plan-step-${planned.planId}-1`).getAttribute('data-state')) === 'pending' &&
       (await planCard.locator('.approval-card').count()) === 1
   );
+  // THE DOCK MUST NOT FLINCH BETWEEN STEPS. Approving step 1 empties the
+  // airlock for the few ms it takes step 2's proposal to return, and keying
+  // elevation off that count alone collapsed the dock 660px -> 410px and
+  // 250px to the right, inside ONE frame. Sample its box every frame.
+  await pl.evaluate(() => {
+    window.__boxes = new Set();
+    const rail = document.querySelector('#tool-rail');
+    const t0 = performance.now();
+    (function tick() {
+      const r = rail.getBoundingClientRect();
+      window.__boxes.add(`${Math.round(r.width)}x${Math.round(r.left)}:${getComputedStyle(rail).position}`);
+      if (performance.now() - t0 < 2000) requestAnimationFrame(tick);
+    })();
+  });
   await planCard.locator('.pl-step[data-state="live"] .ap-approve').click();
   await pl.waitForFunction(
     (id) => document.querySelector(`[data-testid="plan-step-${id}-1"]`)?.dataset.state === 'live',
     planned.planId,
     { timeout: 10_000 }
+  );
+  check(
+    'the dock does not flinch between two steps of a plan',
+    (await pl.evaluate(() => [...window.__boxes])).length === 1
+  );
+  // the airlock's cards carried a 520px floor from when the airlock lived in
+  // the centre column; in the dock that made every card wider than its box
+  check(
+    'an airlock card never outgrows the dock holding it',
+    await pl.evaluate(() => {
+      const box = document.querySelector('#airlock-cards');
+      const w = box.getBoundingClientRect().width;
+      return [...box.querySelectorAll('.plan-card, .approval-card')].every(
+        (c) => c.getBoundingClientRect().width <= w + 1
+      );
+    })
   );
   check(
     'executing step 1 is what proposes step 2 — never before',

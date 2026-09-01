@@ -1647,10 +1647,18 @@ function syncAirlock(): void {
   // ...but the region only ELEVATES while something is actually undecided.
   // Keying elevation off the same count left the dock covering the page for
   // the rest of the session once a plan completed, because its receipt is
-  // deliberately kept. Elevation answers "are you waiting on me", nothing else.
-  document.querySelector<HTMLElement>('.wb')!.dataset.decision = pendingCards.size
-    ? 'pending'
-    : 'none';
+  // deliberately kept.
+  //
+  // A RUNNING PLAN COUNTS AS UNDECIDED. Approving step 1 empties the airlock
+  // for the ~6ms it takes step 2's proposal to come back from the worker, and
+  // keying elevation off the count alone made the dock un-elevate and
+  // re-elevate inside a single frame: 660px → 410px and 250px to the right,
+  // then back. That one-frame collapse is the flash after the first approval.
+  // Between one step executing and the next being put to you, you have not
+  // stopped deciding — the plan says so itself, so ask it.
+  const planRunning = [...plans.values()].some((p) => p.state === 'running');
+  document.querySelector<HTMLElement>('.wb')!.dataset.decision =
+    pendingCards.size || planRunning ? 'pending' : 'none';
   // an ask that arrives or resolves while ⌘K is open
   paletteRefresh?.();
 }

@@ -1657,7 +1657,10 @@ body {
   font-family: var(--font-prose);
   font-weight: 600;
 }
-.pl-state { margin-left: auto; color: var(--ink-faint); font-size: var(--text-2xs); text-align: right; }
+.pl-state {
+  margin-left: auto; min-width: 0; overflow-wrap: anywhere;
+  color: var(--ink-faint); font-size: var(--text-2xs); text-align: right;
+}
 .plan-card[data-state='complete'] .pl-state { color: var(--good); }
 
 .pl-why { display: flex; flex-direction: column; gap: 2px; }
@@ -2634,7 +2637,12 @@ h4.ctl-group-label { margin: 0 0 var(--sp-2); }
 .deploy-card + .deploy-card { margin-top: 0; }
 
 /* --- 4. the airlock card was a strip in a wide empty band -------------- */
-.al-cards { grid-template-columns: repeat(auto-fill, minmax(520px, 1fr)); }
+/* A 520px FLOOR, written when the airlock lived in the centre column. The
+   airlock moved into the 360px dock and the floor came with it, so every card
+   was 170px wider than the box holding it: the plan receipt ran off the right
+   of the SCREEN, and dropping out of elevation (660px → 360px) was a card
+   visibly failing to follow the dock down. One column, no floor. */
+.al-cards { grid-template-columns: minmax(0, 1fr); }
 
 /* --- 5. the storefront left a black void under a short page ------------ */
 #site-pane .dock-body { display: grid; align-content: stretch; }

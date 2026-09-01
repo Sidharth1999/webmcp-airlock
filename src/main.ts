@@ -29,6 +29,7 @@ const TEMPLATE_LABELS: Record<string, string> = {
   'migration-trap': 'Checkout',
   'innocent-deploy': 'Timeouts',
   'poisoned-runbook': 'Payments',
+  'retry-storm': 'Backlog',
 };
 /** the fuller phrasing, on hover — the chip itself must stay one word */
 const TEMPLATE_TITLES: Record<string, string> = {
@@ -36,6 +37,7 @@ const TEMPLATE_TITLES: Record<string, string> = {
   'migration-trap': 'Checkout is failing',
   'innocent-deploy': 'Timeouts spreading across routes',
   'poisoned-runbook': 'Payments failing at checkout',
+  'retry-storm': 'Orders backing up — queue growing, latency climbing',
 };
 
 const TEMPLATE_ID = templateIds().includes(requestedTemplate)

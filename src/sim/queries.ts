@@ -27,6 +27,23 @@ const TRAFFIC_PAGE = 5;
 const asOf = (events: readonly Event[]): number =>
   events.length === 0 ? 0 : events[events.length - 1]!.seq;
 
+/**
+ * PAID-RUN FINDING (2026-09-01): a live model opens paginated reads with
+ * `cursor: 0`, meaning "start at the beginning", and every one of them
+ * answered with a silently empty page — so it reasoned about an incident
+ * having seen no deploys, no logs and no traffic.
+ *
+ * Sequence numbers start at 1, so 0 (or anything below it) names no
+ * position. Treat it as absent rather than as "nothing older than nothing".
+ * A cursor that IS a position is left alone, so walking to the end of a set
+ * still terminates instead of looping back to the newest page.
+ */
+const atPosition = (cursor?: number): number | undefined =>
+  cursor === undefined || !Number.isFinite(cursor) || cursor <= 0 ? undefined : cursor;
+
+/** An empty page must still say how to get un-stuck. */
+const EMPTY_PAGE_NOTE = 'nothing older than that cursor; omit cursor for the newest page';
+
 /** Co-presence (M3-05): what the human is pointing at, from the log. */
 export interface EntityRef {
   type: 'service' | 'deploy' | 'flag' | 'route';
@@ -186,6 +203,7 @@ function deploys(
     })),
   };
   if (page.length === DEPLOY_PAGE && oldestReturned > 0) out.nextCursor = oldestReturned;
+  if (page.length === 0 && cursor !== undefined) out.note = EMPTY_PAGE_NOTE;
   if (svc) out.scopedTo = { humanSelection: sel, service: svc };
   return out;
 }
@@ -226,6 +244,7 @@ function logs(
     }),
   };
   if (nextCursor !== undefined) out.nextCursor = nextCursor;
+  if (page.length === 0 && cursor !== undefined) out.note = EMPTY_PAGE_NOTE;
   return out;
 }
 
@@ -311,6 +330,7 @@ function traffic(events: readonly Event[], cursor?: number): Record<string, unkn
     }),
   };
   if (nextCursor !== undefined) out.nextCursor = nextCursor;
+  if (page.length === 0 && cursor !== undefined) out.note = EMPTY_PAGE_NOTE;
   return out;
 }
 
@@ -323,13 +343,13 @@ export function runQuery(
     case 'status':
       return status(events, world);
     case 'deploys':
-      return deploys(events, world, q.cursor);
+      return deploys(events, world, atPosition(q.cursor));
     case 'logs':
-      return logs(events, world, q.cursor);
+      return logs(events, world, atPosition(q.cursor));
     case 'changes':
       return changes(events, world);
     case 'traffic':
-      return traffic(events, q.cursor);
+      return traffic(events, atPosition(q.cursor));
     case 'surface':
       return {
         asOfSeq: asOf(events),

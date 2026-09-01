@@ -39,6 +39,62 @@ function walk(
   throw new Error(`${kind}: pagination never terminated`);
 }
 
+/**
+ * PAID-RUN FINDING (2026-09-01, first live run against retry-storm): the
+ * model opened every paginated read with `{"cursor": 0}` — a natural reading
+ * of "start at the beginning" — and got a silently EMPTY page back from
+ * list_deploys, read_logs and traffic_history. It then reasoned about the
+ * incident having seen no deploys, no logs and no traffic at all.
+ *
+ * Seq numbering starts at 1, so 0 names no position. A paginated tool that
+ * answers a nonsense cursor with an empty page and no explanation is a
+ * protocol defect, not a model error.
+ */
+describe('cursor 0 is not a position (live-run finding)', () => {
+  const engine = (): Engine => {
+    const e = new Engine({ templateId: 'migration-trap', seed: 42 });
+    e.step(60);
+    return e;
+  };
+
+  it('answers cursor 0 with the newest page, not an empty one', () => {
+    const e = engine();
+    for (const kind of ['deploys', 'logs', 'traffic'] as const) {
+      const zero = runQuery(e.events, e.world, { kind, cursor: 0 });
+      const newest = runQuery(e.events, e.world, { kind });
+      expect(zero, kind).toEqual(newest);
+    }
+  });
+
+  it('explains itself when a real cursor has nothing older behind it', () => {
+    const e = engine();
+    const page = runQuery(e.events, e.world, { kind: 'logs', cursor: 1 }) as {
+      lines: unknown[];
+      note?: string;
+    };
+    expect(page.lines).toEqual([]);
+    // an empty page must still say how to get un-stuck
+    expect(page.note).toMatch(/omit/i);
+  });
+
+  it('still terminates a legitimate walk to the end of the set', () => {
+    const e = engine();
+    let cursor: number | undefined;
+    let pages = 0;
+    for (;;) {
+      const out = runQuery(e.events, e.world, { kind: 'traffic', ...(cursor ? { cursor } : {}) }) as {
+        ticks: unknown[];
+        nextCursor?: number;
+      };
+      pages++;
+      if (out.nextCursor === undefined) break;
+      cursor = out.nextCursor;
+      expect(pages).toBeLessThan(50); // a remap-on-empty would loop forever
+    }
+    expect(pages).toBeGreaterThan(1);
+  });
+});
+
 describe('read-tool query contract (M3-01)', () => {
   const engine = longRun();
   const ALL: QueryRequest[] = [

@@ -32,7 +32,8 @@ const CURSOR_SCHEMA = {
   properties: {
     cursor: {
       type: 'number',
-      description: 'Pass the previous response’s nextCursor to fetch the next (older) page. Omit for the newest page.',
+      description:
+        'Pass the previous response’s nextCursor for the next (older) page. Omit it for the newest page; there is no page 0.',
     },
   },
 } as const;

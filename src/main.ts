@@ -942,14 +942,32 @@ function renderDeck(w: World): void {
 
 const pendingCards = new Map<number, { card: HTMLElement; anchor: HTMLElement | null }>();
 
+/**
+ * The row on the console that a write would land on.
+ *
+ * This used to cover three of the twenty actions, so seventeen proposals
+ * anchored to nothing and the operator was told WHAT the agent wanted
+ * without being shown WHERE. The mapping is just the input key that names
+ * the entity, per action; the vocabulary already fixes those names.
+ */
 function anchorFor(tool: string, input: Record<string, unknown>): HTMLElement | null {
   switch (tool) {
     case 'flag.set':
       return flagControls.querySelector(`[data-flag-id="${input.id}"]`);
     case 'deploy.rollback':
+    case 'canary.set':
       return deployControls.querySelector(`[data-deploy-id="${input.deployId}"]`);
     case 'deploy.rollforward':
+    case 'service.restart':
+    case 'service.scale':
+    case 'db.failover':
       return serviceControls.querySelector(`[data-service-id="${input.service}"]`);
+    case 'route.set':
+      return routeControls.querySelector(`[data-route-id="${input.id}"]`);
+    case 'ratelimit.set':
+    case 'traffic.shift':
+    case 'traffic.drain':
+      return routeControls.querySelector(`[data-route-id="${input.route}"]`);
     default:
       return null;
   }
@@ -1143,6 +1161,8 @@ interface LivePlan {
   index: number;
   el: HTMLElement;
   stepEls: HTMLElement[];
+  /** the console row each step would land on, numbered in place */
+  anchors: (HTMLElement | null)[];
   state: 'running' | 'complete' | 'abandoned';
   currentProposalSeq?: number;
 }
@@ -1167,6 +1187,20 @@ function setStepState(plan: LivePlan, i: number, state: string, note: string): v
   if (!el) return;
   el.dataset.state = state;
   el.querySelector<HTMLElement>('.pl-note')!.textContent = note;
+  // the console row wears the same state, so the plan is legible from the
+  // controls as well as from the card
+  const anchor = plan.anchors[i];
+  if (anchor) anchor.dataset.planState = state;
+}
+
+/** Numbers are only true while the plan is live; a settled plan drops them. */
+function clearPlanAnchors(plan: LivePlan): void {
+  for (const a of plan.anchors) {
+    if (!a) continue;
+    a.classList.remove('plan-anchor');
+    delete a.dataset.planStep;
+    delete a.dataset.planState;
+  }
 }
 
 /** Put the next step through the airlock. Nothing else advances a plan. */
@@ -1176,6 +1210,7 @@ function advancePlan(plan: LivePlan): void {
     plan.state = 'complete';
     plan.el.dataset.state = 'complete';
     plan.el.querySelector<HTMLElement>('.pl-state')!.textContent = 'every step executed';
+    clearPlanAnchors(plan);
     syncAirlock();
     return;
   }
@@ -1188,6 +1223,7 @@ function advancePlan(plan: LivePlan): void {
       plan.el.dataset.state = 'abandoned';
       plan.el.querySelector<HTMLElement>('.pl-state')!.textContent =
         'stopped: the airlock refused this step';
+      clearPlanAnchors(plan);
       return;
     }
     plan.currentProposalSeq = res.seq;
@@ -1224,6 +1260,7 @@ function planDecided(proposalSeq: number, executed: boolean): void {
   plan.el.dataset.state = 'abandoned';
   plan.el.querySelector<HTMLElement>('.pl-state')!.textContent =
     'abandoned — a sequence with a hole in it is not the plan that was agreed';
+  clearPlanAnchors(plan);
 }
 
 function renderPlan(e: Event): void {
@@ -1265,6 +1302,7 @@ function renderPlan(e: Event): void {
   const list = document.createElement('ol');
   list.className = 'pl-steps';
   const stepEls: HTMLElement[] = [];
+  const anchors: (HTMLElement | null)[] = [];
   steps.forEach((step, i) => {
     const li = document.createElement('li');
     li.className = 'pl-step';
@@ -1300,6 +1338,16 @@ function renderPlan(e: Event): void {
     li.append(slot);
     list.append(li);
     stepEls.push(li);
+    // THE WHOLE SEQUENCE LIGHTS UP ON THE CONSOLE, IN ORDER, before a single
+    // step is approved. The operator sees where this plan is going to land on
+    // the surface they already operate, not only inside the agent's card.
+    const anchor = anchorFor(step.tool, step.input);
+    anchors.push(anchor);
+    if (anchor) {
+      anchor.classList.add('plan-anchor');
+      anchor.dataset.planStep = String(i + 1);
+      anchor.dataset.planState = 'pending';
+    }
   });
   el.append(list);
   airlockCards.appendChild(el);
@@ -1311,6 +1359,7 @@ function renderPlan(e: Event): void {
     index: 0,
     el,
     stepEls,
+    anchors,
     state: 'running',
   };
   plans.set(plan.id, plan);
@@ -1319,6 +1368,7 @@ function renderPlan(e: Event): void {
 }
 
 function resetPlans(): void {
+  for (const p of plans.values()) clearPlanAnchors(p);
   plans.clear();
   planForProposal.clear();
   approvalToProposal.clear();

@@ -734,6 +734,15 @@ try {
     (await planCard.locator('.pl-cost').count()) === 2
   );
   // THE PROMISE: this is not a batch. Only step 1 has been put to the human.
+  // the sequence is legible from the CONTROLS too, not only from the card
+  check(
+    'the plan numbers the console rows it will land on, in order',
+    JSON.stringify(
+      await pl.locator('.plan-anchor').evaluateAll((n) =>
+        n.map((a) => [a.dataset.planStep, a.dataset.planState]).sort()
+      )
+    ) === JSON.stringify([['1', 'live'], ['2', 'pending']])
+  );
   check(
     'only the first step is live; the second is not proposed yet',
     (await planCard.locator('.pl-step[data-state="live"]').count()) === 1 &&
@@ -761,6 +770,10 @@ try {
     'a finished plan says so and keeps its receipt on screen',
     (await planCard.locator('.pl-step[data-state="done"]').count()) === 2 &&
       (await planCard.isVisible())
+  );
+  check(
+    'a settled plan stops numbering the controls (a stale number is a lie)',
+    (await pl.locator('.plan-anchor').count()) === 0
   );
   // every step went through the airlock as its own gated proposal
   const gated = await pl.evaluate(() =>

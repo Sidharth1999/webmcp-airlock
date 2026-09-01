@@ -1668,6 +1668,43 @@ body {
 .pl-slot .ap-actor { display: none; }
 .pl-slot .ap-tier { margin-left: 0; }
 
+/* --- a plan, on the console itself --------------------------------------
+   The card says what the sequence is; these numbers say WHERE it lands, on
+   the same rows the operator uses by hand. Pending is quiet, live is the
+   agent's colour, done goes green and stops competing for attention. */
+.plan-anchor { position: relative; }
+.plan-anchor::before {
+  content: attr(data-plan-step);
+  position: absolute;
+  left: calc(var(--sp-2) * -1 - 9px);
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-instrument);
+  font-size: var(--text-2xs);
+  font-variant-numeric: tabular-nums;
+  background: var(--panel);
+  border: 1px solid var(--actor-agent-dim);
+  color: var(--ink-faint);
+  pointer-events: none;
+}
+.plan-anchor[data-plan-state='live']::before {
+  border-color: var(--actor-agent);
+  color: var(--actor-agent);
+  box-shadow: 0 0 0 3px oklch(76% 0.13 310 / 0.18);
+}
+.plan-anchor[data-plan-state='done']::before {
+  content: '✓';
+  border-color: var(--good);
+  background: var(--good);
+  color: var(--panel);
+}
+.plan-anchor[data-plan-state='live'] { outline: 1px solid var(--actor-agent-dim); outline-offset: 2px; }
+
 /* --- evidence strip: what the agent worked from -------------------------
    Two registers on purpose. The chip row is PAGE-DERIVED — read off the
    audit trail, so it cannot be overstated by the agent — and is therefore

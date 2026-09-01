@@ -89,6 +89,12 @@ export interface Route {
   path: string;
   target: string;
   tier: 'dns' | 'route';
+  /** share of this route's traffic sent to `target` (traffic.shift) */
+  splitPercent?: number;
+  /** the route serves nobody while drained (traffic.drain) */
+  drained?: boolean;
+  /** requests above this are rejected (ratelimit.set) */
+  rateLimitRps?: number;
 }
 
 export interface Migration {
@@ -121,6 +127,14 @@ export interface DamageState {
   revenueLost: number; // Σ rps * errRate * valuePerReq — formula visible in user.impact events
 }
 
+/** A hostname and where it currently points (dns.cutover). */
+export interface DnsRecord {
+  hostname: string;
+  target: string;
+  /** resolvers cache: the cutover is not effective until this tick */
+  effectiveAtTick?: number;
+}
+
 export interface World {
   services: Service[];
   deploys: Deploy[];
@@ -130,6 +144,9 @@ export interface World {
   migrations: Migration[];
   traffic: TrafficState;
   damage: DamageState;
+  /** which node currently accepts writes (db.failover) */
+  dbPrimary?: string;
+  dns: DnsRecord[];
 }
 
 export interface SeedSpec {

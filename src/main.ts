@@ -6,7 +6,7 @@ import { MODES, MODE_WRITE_TOOLS, type Mode } from './sim/modes';
 import type { EntityRef, QueryRequest } from './sim/queries';
 import { templateIds } from './sim/templates';
 import type { SimRequest, SimResponse } from './sim/worker';
-import type { Deploy, Event, Flag, World } from './sim/types';
+import type { Actor, Deploy, Event, Flag, World } from './sim/types';
 import { hasWebMCP } from './webmcp/shim';
 import { createAirlockTools, type AirlockTools } from './webmcp/tools';
 
@@ -136,6 +136,14 @@ app.innerHTML = `
             </div>
             <div class="chart-axis"><span>60 ticks ago</span><span>now</span></div>
           </section>
+
+          <details class="zone" id="zone-holding" data-testid="zone-holding" open>
+            <summary><span class="zone-title">Holding the incident</span><span class="zone-meta" id="holding-meta"></span></summary>
+            <div class="zone-body">
+              <div id="holding-list"></div>
+              <p class="empty" id="holding-empty">Nothing is being held. No mitigations are in force.</p>
+            </div>
+          </details>
 
           <!-- ZONE 2 — what changed. Open while it matters. -->
           <details class="zone" id="zone-changed" data-testid="zone-changed" open>
@@ -336,6 +344,11 @@ let eventCount = 0;
 let tickCount = 0;
 let world: World | null = null;
 
+function resetHoldings(): void {
+  executedLog.length = 0;
+  renderHoldings(executedLog, { deploys: [] } as unknown as World);
+}
+
 function markTemplate(id: string): void {
   templatePick.querySelectorAll<HTMLButtonElement>('[data-template]').forEach((b) => {
     b.setAttribute('aria-checked', String(b.dataset.template === id));
@@ -388,6 +401,7 @@ function seed(templateId: string): void {
   sfFeed.textContent = '';
   setHealth('ok');
   statusEl.textContent = 'seeded · paused';
+  resetHoldings(); // a new scenario holds nothing
   airlockTools.reset(); // fresh world, fresh ritual — and no ghost tombstones
   renderToolRail(airlockTools);
   send({ type: 'seed', templateId, seed: SEED });
@@ -1110,6 +1124,13 @@ document.querySelector('#control-deck')!.addEventListener('click', (e) => {
       send({ type: 'act', tool: 'deploy.rollback', input });
       break;
     }
+    case 'undo-holding': {
+      const tool = String(btn.dataset.tool);
+      const input = JSON.parse(String(btn.dataset.input)) as Record<string, unknown>;
+      if (cautionFor(btn, humanActionKey(tool, input))) return;
+      send({ type: 'act', tool, input });
+      break;
+    }
     case 'rollforward':
       send({ type: 'act', tool: 'deploy.rollforward', input: { service: btn.dataset.service } });
       break;
@@ -1499,6 +1520,119 @@ const KIND_LABEL: Record<string, string> = {
   'traffic.tick': 'Traffic',
 };
 
+/**
+ * WHAT IS CURRENTLY IN FORCE.
+ *
+ * Rule taken from Vercel's Firewall, read live: a control surface keeps a
+ * first-class table of "Persistent Actions" — the interventions currently
+ * applied, when they started, and how to lift them. Our console applied a
+ * change and forgot it, which is the difference between a dashboard and a
+ * control centre.
+ *
+ * It is also the real on-call experience: you accumulate mitigations during
+ * an incident and then have to remember what to unwind. Every row here is
+ * derived from action.executed in the log — nothing is stored separately.
+ */
+/**
+ * Only action.executed is retained — bounded by the number of real actions
+ * taken in an incident, not by tick count.
+ */
+const executedLog: Event[] = [];
+
+interface Holding {
+  key: string;
+  what: string;
+  by: Actor;
+  atMs: number;
+  undo?: { tool: string; input: Record<string, unknown>; label: string };
+}
+
+function holdingsFrom(events: readonly Event[], w: World): Holding[] {
+  const held = new Map<string, Holding>();
+  for (const e of events) {
+    if (e.kind !== 'action.executed') continue;
+    const { tool, input } = e.data as { tool: string; input: Record<string, unknown> };
+    if (tool === 'flag.set') {
+      const id = String(input.id);
+      const state = String(input.state);
+      const key = `flag:${id}`;
+      if (state === 'off') {
+        held.set(key, {
+          key,
+          what: `Feature flag ${id} held off`,
+          by: e.actor,
+          atMs: e.t,
+          undo: { tool: 'flag.set', input: { id, state: 'on' }, label: 'Turn back on' },
+        });
+      } else {
+        held.delete(key);
+      }
+    } else if (tool === 'env.set') {
+      const k = String(input.key);
+      held.set(`env:${k}`, { key: `env:${k}`, what: `${k} changed`, by: e.actor, atMs: e.t });
+    } else if (tool === 'route.set') {
+      const id = String(input.id);
+      held.set(`route:${id}`, {
+        key: `route:${id}`,
+        what: `Route ${id} pointed at ${String(input.target)}`,
+        by: e.actor,
+        atMs: e.t,
+      });
+    } else if (tool === 'deploy.rollback') {
+      const id = String(input.deployId);
+      held.set(`rb:${id}`, { key: `rb:${id}`, what: `${id} rolled back`, by: e.actor, atMs: e.t });
+    }
+  }
+  // a roll-forward supersedes the rollback it replaced
+  for (const d of w.deploys) {
+    if (d.status === 'live') held.delete(`rb:${d.id}`);
+  }
+  return [...held.values()].sort((a, b) => a.atMs - b.atMs);
+}
+
+const WHO: Record<string, string> = { human: 'you', agent: 'the agent', sim: 'the system', system: 'the system' };
+
+function renderHoldings(events: readonly Event[], w: World): void {
+  const list = document.querySelector<HTMLElement>('#holding-list');
+  const empty = document.querySelector<HTMLElement>('#holding-empty');
+  const meta = document.querySelector<HTMLElement>('#holding-meta');
+  if (!list || !empty || !meta) return;
+
+  const rows = holdingsFrom(events, w);
+  meta.textContent = rows.length ? `${rows.length} in force` : '';
+  empty.hidden = rows.length > 0;
+  list.innerHTML = '';
+
+  for (const h of rows) {
+    const row = document.createElement('div');
+    row.className = 'holding';
+    row.dataset.holding = h.key;
+    const t = document.createElement('div');
+    t.className = 'holding-text';
+    const what = document.createElement('span');
+    what.className = 'holding-what';
+    what.textContent = h.what;
+    const meta2 = document.createElement('span');
+    meta2.className = 'holding-meta';
+    meta2.textContent = `by ${WHO[h.by] ?? h.by} · ${Math.max(0, Math.round((simNowMs - h.atMs) / 1000))}s ago`;
+    t.append(what, meta2);
+    row.append(t);
+    if (h.undo) {
+      const b = document.createElement('button');
+      b.type = 'button';
+      b.className = 'ctl-btn';
+      b.dataset.act = 'undo-holding';
+      b.dataset.tool = h.undo.tool;
+      b.dataset.input = JSON.stringify(h.undo.input);
+      b.dataset.testid = `undo-${h.key}`;
+      b.setAttribute('data-testid', `undo-${h.key}`);
+      b.textContent = h.undo.label;
+      row.append(b);
+    }
+    list.append(row);
+  }
+}
+
 function renderEvents(events: Event[], w: World): void {
   world = w;
   if (events.length) simNowMs = events[events.length - 1]!.t;
@@ -1526,6 +1660,9 @@ function renderEvents(events: Event[], w: World): void {
       showAgentAttention(e);
     }
   }
+  for (const e of events) if (e.kind === 'action.executed') executedLog.push(e);
+  renderHoldings(executedLog, w);
+
   // cap the stream DOM, but never evict the agency trail — the audit view is
   // this same DOM filtered by CSS, and action/mode rows are its whole point
   const AUDIT_KINDS = /^action\.|^tool\.called$|^mode\.changed$/;

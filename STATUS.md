@@ -41,9 +41,67 @@ bundle has no trace of it.
 - **A bug that would have shipped**: approve/reject were delegated from
   `#console`, so cards rendered anywhere else silently did nothing.
 
-**OPEN, needs Sid:** should the agent visibly use the ⌘K palette? The capability
-already exists (incident command is granted in Triage); what does not exist is
-the agent visibly operating it. Three options in the handoff file.
+- **⌘K says what the agent has asked for** (#16, Sid picked option 1). The
+  palette and the agent surface are two projections of the same twenty verbs,
+  so the place an operator reaches for a lever now says when the agent has
+  already reached for one. It SHOWS; it does not decide.
+
+**The eighteen feedback items are all closed.** Nothing from Sid's review round
+is outstanding.
+
+## SESSION 2026-09-01 (Tue, morning) — #16 CLOSED, the last open review item
+
+Sid's answer on #16 was **option 1: the palette shows what the agent asked
+for.** Built, verified at 1512×945, committed as `7e67c81`.
+
+- An **"the agent is asking for"** section above the palette's search field:
+  one row per pending proposal, carrying the card's own sentence, what the
+  change touches, and whether it needs the second key.
+- The matching command in the main list is marked — **`agent asked`, not
+  `proposed`**. A judgement call worth disagreeing with if you want to: the
+  agent's ask is `cap at 150 req/s` and the palette's canned row is `cap at
+  100 req/s`, so a row wearing the agent's word invites an enter press that
+  runs a DIFFERENT command, as the human, while reading as approving the
+  agent. One word to change if you want the mockup's wording back.
+- A row in that section is a **pointer, not a second approve button**: it
+  closes the palette on the decision itself and focuses the key toggle (or
+  approve, where there is no key). Option 2 would have put a second door on
+  the gate, and the gate is the product.
+- **No badge on the ⌘K button.** The dock already elevates over the page when
+  a decision is pending; a second attention signal for the same event is
+  exactly the "agent colonising the console" fault that round 2 fixed. Say so
+  if you want it anyway.
+
+**TEST-FILE DIFF — `tools/smoke.mjs`, ADDED ONLY, nothing edited or deleted.**
+Six gates: the ask shows; the matching lever is marked and the mark does not
+claim to BE the ask; **no approve/reject control is reachable from inside the
+palette**; clicking an ask lands focus on the decision; deciding it leaves no
+ghost ask; a two-key ask says "needs your key" in the palette too.
+
+### Also done this session
+- **`docs/ux-debt.md` has rounds 2 and 3** — the structural read (agent UI had
+  been added wherever there was room), the collapse rule the #2/#18 reversal
+  settled, and the sweep method, including the one false positive it produces
+  (`getComputedStyle` on a child of a `display:none` parent does not report
+  `none`; use `checkVisibility`).
+- **`capture-ux.mjs` gained a `sid` viewport at 1512×945**, and CLAUDE.md's
+  working agreement now names both sizes. 1512 was never in the sweep, which
+  is exactly how a `max-width: 1500px` rule shipped that could not fire on the
+  machine the review happened on.
+- **M6-04 stills re-shot** after the layout change (`log/stills/`, six frames,
+  no console errors). Still `in_progress` — the check says "and reviewed",
+  which is yours. The palette-asks frame may be a stronger WebMCP-thesis image
+  than one of the six; the feature says 4-6 stills, so swapping is your call,
+  not an addition I made.
+
+**Verified after the change:** `npm run smoke` GREEN alone · `npm test` 187 ·
+`npm run typecheck` · `npm run lint:sim` · `npm run corpus` 91/0 · overflow
+sweep NONE at 1512×945 with the palette open, filtered and closed.
+
+**Still yours:** the film (M6-01/02), the two README placeholders
+(`<LIVE-URL>`, `<REPO-URL>`), and verifying the Devpost required-field list
+against the live form — the repo records ONE mandated prompt and M6-03's check
+says four.
 
 ## SESSION 2026-09-01 (Tue, overnight) — AGENT UX BUILT: items 1-4 of the agreed order
 

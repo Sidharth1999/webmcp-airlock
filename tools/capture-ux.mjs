@@ -11,8 +11,14 @@ mkdirSync(OUT, { recursive: true });
 // defect he reported — `1fr` columns absorbing all the slack, content
 // stranded at opposite edges, the glance band wasting its left half.
 // Never judge this layout without looking at `ultra`.
+// AND SID REVIEWS AT 1512x945. That width was not in this list, which is how
+// a `max-width: 1500px` rule shipped that never fired on the machine the
+// review happened on — twelve pixels above it. Every capture looked right and
+// the artifact did not. `sid` is the size the feedback comes from; `ultra` is
+// the size the layout is tuned at. Look at BOTH.
 const VIEWPORTS = {
   ultra: { width: 2400, height: 1350 },
+  sid: { width: 1512, height: 945 },
   wide: { width: 1920, height: 1080 },
   desk: { width: 1440, height: 900 },
   narrow: { width: 1120, height: 820 },

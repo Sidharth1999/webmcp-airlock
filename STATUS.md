@@ -79,9 +79,26 @@ two, because it LOADS scenes and never APPROVES anything. Post-decision states
 have to be driven. And Sid's screenshots live at `~/Desktop/Screenshots/` —
 read them off disk, they do not arrive in the conversation.
 
-**NEXT:** the AI polish pass (screenshots of key flows to Claude.ai + ChatGPT,
-free-range feedback, reviewed WITH Sid), then product value — more ordering
-cases where the wrong order is worse than doing nothing — then filming.
+- **Capability is a pinned line that opens over the page.** Collapsing it
+  inline was not enough — it was still last in a scrolling column, so it was
+  hidden whether open or not. The dock has a pinned footer, `27 tools
+  available · VIEW`, and the rungs open in a sheet that names the stage its
+  count is true for.
+
+**ONE ITEM OPEN — #13, deferred by Sid to the next session.** *"Minimizing the
+bottom panel leaves a black/empty space ... 'response controls' is still highly
+scrolling requiring when there's so much space below."* `.wb-centre` is a fixed
+row grid and hiding the evidence panel zeroes its track **without giving the
+height to anything**, so the console leaves bare ground AND the deck keeps
+scrolling. Breaks two written rules at once: a void is a bug, and the app must
+not scroll. Nothing started.
+
+**NEXT:** (1) the AI polish pass — screenshots of key flows AND transitions to
+Claude.ai + ChatGPT, free-range feedback, reviewed WITH Sid; (2) **ONE demo
+scenario polished for the recording** (Sid: "that just blows the judges away" —
+`retry-storm` is the candidate; separate job from widening the corpus, and
+since the rubric judges Impact on what is demonstrated, the filmed scenario IS
+the Impact score); (3) filming and submission formalities.
 
 ## SESSION 2026-09-01 (Tue, morning) — #16 CLOSED, the last open review item
 

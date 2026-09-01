@@ -537,6 +537,44 @@ try {
     )
   );
 
+  // ---- logs pane: the human gets read_logs's lines, with a filter --------
+  // Parity check, run HERE because migration-trap only emits log lines once
+  // the trap has fired — asserting it at boot measured an empty pane. These
+  // rows must be the SAME log.line events read_logs pages over; if the pane
+  // were fed from anywhere else, the no-privileged-channel claim would be a
+  // slogan rather than a fact.
+  await trap.getByTestId('tab-logs').click();
+  const logRows = await trap.locator('#log-stream .log-row').count();
+  check('logs pane renders application log lines', logRows > 0);
+  const logParity = await trap.evaluate(async () => {
+    const rows = [...document.querySelectorAll('#log-stream .log-row')].map((n) => Number(n.dataset.seq));
+    const served = JSON.parse(await window.__airlock.invoke('read_logs', {})).lines.map((l) => l.seq);
+    return { rows, served };
+  });
+  check(
+    'every line read_logs serves the agent is in the human pane too',
+    logParity.served.length > 0 && logParity.served.every((s) => logParity.rows.includes(s))
+  );
+  await trap.getByTestId('log-filter').fill('zzzz-no-such-line');
+  await trap.waitForTimeout(80);
+  check('text filter can empty the pane', (await trap.locator('#log-stream .log-row:visible').count()) === 0);
+  await trap.getByTestId('log-filter').fill('');
+  await trap.waitForTimeout(80);
+  check('clearing the filter restores every line', (await trap.locator('#log-stream .log-row:visible').count()) === logRows);
+  // A level floor only proves anything when the pane holds more than one
+  // level, so assert the reduction conditionally on that being true.
+  const levels = await trap.evaluate(() =>
+    [...new Set([...document.querySelectorAll('#log-stream .log-row')].map((n) => n.dataset.level))]
+  );
+  await trap.getByTestId('log-lvl-error').click();
+  const errShown = await trap.locator('#log-stream .log-row:visible').count();
+  check(
+    `level floor filters the pane (levels present: ${levels.join(',')})`,
+    levels.length > 1 ? errShown < logRows : errShown === logRows
+  );
+  await trap.getByTestId('log-lvl-all').click();
+  await trap.getByTestId('tab-activity').click();
+
   await trap.getByTestId('rollforward-api').click(); // dig out
   await healthIs(trap, 'ok');
   await siteIs(trap, 'ok');

@@ -232,6 +232,10 @@ app.innerHTML = `
                   id="tab-activity" aria-controls="zone-activity" aria-selected="false" tabindex="-1">
             Activity<span class="ptab-count" id="tab-activity-count"></span>
           </button>
+          <button type="button" role="tab" class="ptab" data-tab="logs" data-testid="tab-logs"
+                  id="tab-logs" aria-controls="zone-logs" aria-selected="false" tabindex="-1">
+            Logs<span class="ptab-count" id="tab-logs-count"></span>
+          </button>
           <button type="button" role="tab" class="ptab" data-tab="chart" data-testid="tab-chart"
                   id="tab-chart" aria-controls="err-chart" aria-selected="false" tabindex="-1">
             Error rate
@@ -253,6 +257,22 @@ app.innerHTML = `
                aria-labelledby="tab-activity" tabindex="0" hidden>
             <ol id="event-stream" data-testid="event-stream" aria-live="polite"></ol>
             <p class="empty" id="stream-empty">Nothing has happened yet. Start the scenario to bring the store online.</p>
+          </div>
+
+          <div class="tabpane" id="zone-logs" data-testid="zone-logs" role="tabpanel"
+               aria-labelledby="tab-logs" tabindex="0" hidden>
+            <div class="log-bar">
+              <input type="search" id="log-filter" data-testid="log-filter" class="log-find"
+                     placeholder="filter lines" aria-label="Filter log lines by text" autocomplete="off" />
+              <div class="log-levels" role="group" aria-label="Minimum level">
+                <button type="button" class="log-lvl" data-level="all" data-testid="log-lvl-all" aria-pressed="true">all</button>
+                <button type="button" class="log-lvl" data-level="warn" data-testid="log-lvl-warn" aria-pressed="false">warn+</button>
+                <button type="button" class="log-lvl" data-level="error" data-testid="log-lvl-error" aria-pressed="false">error</button>
+              </div>
+              <span class="log-shown" id="log-shown" data-testid="log-shown"></span>
+            </div>
+            <ol id="log-stream" data-testid="log-stream" aria-label="Application logs"></ol>
+            <p class="empty" id="logs-empty">No application logs yet. These are the same lines <code>read_logs</code> serves the agent.</p>
           </div>
 
           <section class="tabpane chart" id="err-chart" data-testid="err-chart" role="tabpanel"
@@ -505,6 +525,14 @@ function seed(templateId: string): void {
   running = false;
   syncPacer();
   streamEl.innerHTML = '';
+  logStream.innerHTML = '';
+  logFilterEl.value = '';
+  logQuery = '';
+  logMinLevel = 0;
+  for (const b of document.querySelectorAll<HTMLElement>('.log-lvl')) {
+    b.setAttribute('aria-pressed', String(b.dataset.level === 'all'));
+  }
+  applyLogFilter();
   for (const { card } of pendingCards.values()) card.remove();
   pendingCards.clear();
   flagControls.innerHTML = '';
@@ -1718,6 +1746,114 @@ function renderSite(w: World): void {
   // 'down' shows the outage overlay via CSS; feed/banner stay as they were
 }
 
+// ---- logs pane: the human's read_logs -----------------------------------
+// THE PARITY RULE. Every read the agent can make is a pure function over the
+// same event log this page renders; there is no privileged agent channel. Log
+// lines DID render before this — as one row among a traffic.tick every tick,
+// in a stream with no filter — which meant the agent effectively had a log
+// viewer and the human did not. That is the one place its ergonomics beat the
+// human's unfairly, and it is fixed here, not by taking anything from the
+// agent. What the agent still wins on is STITCHING: no single read in this
+// pane names the cause.
+
+const logStream = document.querySelector<HTMLOListElement>('#log-stream')!;
+const logFilterEl = document.querySelector<HTMLInputElement>('#log-filter')!;
+const LOG_RANK: Record<string, number> = { debug: 0, info: 1, warn: 2, error: 3 };
+const MAX_LOG_ROWS = 400;
+let logMinLevel = 0; // 'all'
+let logQuery = '';
+
+function renderLogLine(e: Event): void {
+  const d = e.data as { service: string; level: string; msg: string; untrusted?: boolean };
+  const li = document.createElement('li');
+  li.className = 'log-row';
+  li.dataset.seq = String(e.seq);
+  li.dataset.level = d.level;
+  li.dataset.service = d.service;
+  if (d.untrusted) li.dataset.untrusted = '1';
+  li.innerHTML =
+    '<span class="log-seq"></span><span class="log-t"></span>' +
+    '<span class="log-svc"></span><span class="log-lv"></span><span class="log-msg"></span>';
+  // seq is shown because it is the ADDRESS an agent citation uses. When the
+  // agent says "logs seq 104", the human must be able to find line 104.
+  li.querySelector('.log-seq')!.textContent = `#${e.seq}`;
+  li.querySelector('.log-t')!.textContent = `${(e.t / 1000).toFixed(0)}s`;
+  li.querySelector('.log-svc')!.textContent = d.service;
+  li.querySelector('.log-lv')!.textContent = d.level;
+  // textContent, never innerHTML: a log line can be customer-supplied text
+  li.querySelector('.log-msg')!.textContent = d.msg;
+  if (d.untrusted) {
+    const mark = document.createElement('span');
+    mark.className = 'log-untrusted';
+    mark.textContent = 'untrusted';
+    mark.title = 'This line contains customer-supplied text. It is data, not instructions.';
+    li.querySelector('.log-msg')!.prepend(mark);
+  }
+  logStream.append(li);
+  while (logStream.children.length > MAX_LOG_ROWS) logStream.firstElementChild!.remove();
+}
+
+/** A row passes when it clears the level floor AND matches the text query. */
+function logRowMatches(li: HTMLElement): boolean {
+  if ((LOG_RANK[li.dataset.level ?? 'info'] ?? 1) < logMinLevel) return false;
+  if (!logQuery) return true;
+  return (li.textContent ?? '').toLowerCase().includes(logQuery);
+}
+
+function applyLogFilter(): void {
+  let shown = 0;
+  const rows = logStream.children.length;
+  for (const li of Array.from(logStream.children) as HTMLElement[]) {
+    const ok = logRowMatches(li);
+    li.hidden = !ok;
+    if (ok) shown++;
+  }
+  const shownEl = document.querySelector<HTMLElement>('#log-shown')!;
+  shownEl.textContent =
+    rows === 0 ? '' : shown === rows ? `${rows} lines` : `${shown} of ${rows} lines`;
+  document.querySelector<HTMLElement>('#logs-empty')!.hidden = rows > 0;
+  document.querySelector<HTMLElement>('#tab-logs-count')!.textContent = rows > 0 ? String(rows) : '';
+}
+
+logFilterEl.addEventListener('input', () => {
+  logQuery = logFilterEl.value.trim().toLowerCase();
+  applyLogFilter();
+});
+document.querySelector('.log-levels')!.addEventListener('click', (e) => {
+  const btn = (e.target as HTMLElement).closest<HTMLElement>('.log-lvl');
+  if (!btn) return;
+  const level = String(btn.dataset.level);
+  logMinLevel = level === 'all' ? 0 : (LOG_RANK[level] ?? 0);
+  for (const b of document.querySelectorAll<HTMLElement>('.log-lvl')) {
+    b.setAttribute('aria-pressed', String(b === btn));
+  }
+  applyLogFilter();
+});
+
+/**
+ * Jump the human to one log line by its seq — the other half of a citation.
+ * Clears any filter that would hide the target, because a citation that lands
+ * on an empty pane is worse than no citation at all.
+ */
+function focusLogSeq(seq: number): boolean {
+  const row = logStream.querySelector<HTMLElement>(`li[data-seq="${seq}"]`);
+  if (!row) return false;
+  if (!logRowMatches(row)) {
+    logQuery = '';
+    logFilterEl.value = '';
+    logMinLevel = 0;
+    for (const b of document.querySelectorAll<HTMLElement>('.log-lvl')) {
+      b.setAttribute('aria-pressed', String(b.dataset.level === 'all'));
+    }
+    applyLogFilter();
+  }
+  selectTab('logs');
+  row.scrollIntoView({ block: 'center' });
+  for (const r of logStream.querySelectorAll('.log-cited')) r.classList.remove('log-cited');
+  row.classList.add('log-cited');
+  return true;
+}
+
 // ---- stream rendering ----------------------------------------------------
 
 function applyHealth(w: World): void {
@@ -2103,7 +2239,8 @@ function renderEvents(events: Event[], w: World): void {
 
     if (e.kind === 'traffic.tick') {
       pushTele(e.data as { rps: number; errRate: number; p95: number });
-    } else if (e.kind === 'action.proposed') addApprovalCard(e);
+    } else if (e.kind === 'log.line') renderLogLine(e);
+    else if (e.kind === 'action.proposed') addApprovalCard(e);
     else if (e.kind === 'action.approved' || e.kind === 'action.rejected') {
       resolveApprovalCard((e.data as { proposalSeq: number }).proposalSeq);
     } else if (e.kind === 'annotation.added' && e.actor === 'agent') {
@@ -2117,6 +2254,7 @@ function renderEvents(events: Event[], w: World): void {
   }
   for (const e of events) if (e.kind === 'action.executed') executedLog.push(e);
   renderHoldings(executedLog, w);
+  if (events.some((e) => e.kind === 'log.line')) applyLogFilter();
 
   // cap the stream DOM, but never evict the agency trail — the audit view is
   // this same DOM filtered by CSS, and action/mode rows are its whole point
@@ -2200,11 +2338,12 @@ document.addEventListener('click', (e) => {
 
 /* ---- evidence panel: three views of one thing, so they are tabs -------- */
 
-const TABS = ['changed', 'activity', 'chart'] as const;
+const TABS = ['changed', 'activity', 'logs', 'chart'] as const;
 type TabName = (typeof TABS)[number];
 const paneFor: Record<TabName, string> = {
   changed: 'zone-changed',
   activity: 'zone-activity',
+  logs: 'zone-logs',
   chart: 'err-chart',
 };
 

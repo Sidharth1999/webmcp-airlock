@@ -2549,3 +2549,99 @@ h4.ctl-group-label { margin: 0 0 var(--sp-2); }
 
 /* the live build is the one thing in this list that should dominate */
 .deploy-card[data-deploy-status='live'] { grid-column: 1 / -1; }
+
+/* --- logs pane: the human's read_logs ------------------------------------
+   Same lines the agent is served, with the two affordances a stream cannot
+   give: a level floor and a text filter. Monospace and column-aligned so the
+   eye can scan a service or a level down the page instead of reading prose. */
+.log-bar {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-2) var(--sp-2) 0;
+  border-bottom: 1px solid var(--line);
+  position: sticky;
+  top: 0;
+  background: var(--panel);
+  z-index: 2;
+}
+.log-find {
+  flex: 1 1 auto;
+  min-width: 8ch;
+  background: var(--panel-inset);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  color: var(--ink);
+  font-family: var(--font-instrument);
+  font-size: var(--text-xs);
+  padding: var(--sp-1) var(--sp-2);
+}
+.log-find::placeholder { color: var(--ink-ghost); }
+.log-find:focus-visible { outline: 2px solid var(--health); outline-offset: 1px; }
+.log-levels { display: flex; gap: 1px; flex: none; }
+.log-lvl {
+  background: var(--panel-inset);
+  border: 1px solid var(--line);
+  color: var(--ink-faint);
+  font-family: var(--font-instrument);
+  font-size: var(--text-2xs);
+  padding: 2px var(--sp-2);
+  cursor: pointer;
+}
+.log-lvl[aria-pressed='true'] { color: var(--ink); border-color: var(--line-strong); background: var(--panel-raised); }
+.log-shown { flex: none; color: var(--ink-ghost); font-family: var(--font-instrument); font-size: var(--text-2xs); }
+
+#log-stream {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  max-height: 34vh;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  font-family: var(--font-instrument);
+  font-size: var(--text-xs);
+  line-height: 1.8;
+}
+.log-row {
+  display: flex;
+  gap: var(--sp-2);
+  align-items: baseline;
+  padding: 0 var(--sp-2);
+  border-left: 2px solid transparent;
+}
+/* display:flex above outranks the UA's [hidden]{display:none}, so a filtered
+   row stayed on screen. Restate it at author level. */
+.log-row[hidden] { display: none; }
+.log-row:nth-child(odd) { background: oklch(100% 0 0 / 0.02); }
+.log-row:hover { background: oklch(100% 0 0 / 0.05); }
+.log-seq { color: var(--ink-ghost); min-width: 5ch; text-align: right; font-variant-numeric: tabular-nums; flex: none; }
+.log-t { color: var(--ink-ghost); min-width: 4ch; text-align: right; font-variant-numeric: tabular-nums; flex: none; }
+.log-svc { color: var(--ink-faint); min-width: 12ch; flex: none; overflow: hidden; text-overflow: ellipsis; }
+.log-lv { min-width: 5ch; flex: none; text-transform: uppercase; font-size: var(--text-2xs); color: var(--ink-faint); }
+.log-msg { color: var(--ink-dim); flex: 1 1 auto; white-space: pre-wrap; word-break: break-word; }
+.log-row[data-level='warn'] .log-lv { color: var(--warn); }
+.log-row[data-level='error'] .log-lv { color: var(--bad); }
+.log-row[data-level='error'] .log-msg { color: var(--ink); }
+.log-row[data-level='debug'] .log-msg { color: var(--ink-ghost); }
+.log-row[data-untrusted] { border-left-color: var(--warn-dim); }
+.log-untrusted {
+  display: inline-block;
+  margin-right: var(--sp-2);
+  padding: 0 4px;
+  border: 1px solid var(--warn-dim);
+  color: var(--warn);
+  font-size: var(--text-2xs);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+}
+/* a cited line, jumped to from an agent's evidence chip */
+.log-row.log-cited {
+  border-left-color: var(--actor-agent);
+  background: oklch(76% 0.13 310 / 0.12);
+  animation: log-cite-in var(--dur-settle) var(--ease-settle);
+}
+@keyframes log-cite-in {
+  from { background: oklch(76% 0.13 310 / 0.34); }
+  to   { background: oklch(76% 0.13 310 / 0.12); }
+}
+@media (prefers-reduced-motion: reduce) { .log-row.log-cited { animation: none; } }

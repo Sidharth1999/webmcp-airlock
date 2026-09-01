@@ -533,6 +533,7 @@ function seed(templateId: string): void {
     b.setAttribute('aria-pressed', String(b.dataset.level === 'all'));
   }
   applyLogFilter();
+  resetEvidence(); // a new world, and the old world's reads are not evidence for it
   for (const { card } of pendingCards.values()) card.remove();
   pendingCards.clear();
   flagControls.innerHTML = '';
@@ -953,6 +954,158 @@ function anchorFor(tool: string, input: Record<string, unknown>): HTMLElement | 
   }
 }
 
+// ---- evidence assembly: what the agent actually worked from -------------
+// A proposal card that says only WHAT the agent wants to do asks the human to
+// take the reasoning on faith, which is the thing that makes approving agent
+// writes feel like a coin flip. The console can do better than faith, because
+// every read is audited (`tool.called`) into the same log the page renders:
+// it knows which reads the agent made, how many times, and in what order.
+//
+// So the card carries two things that come from DIFFERENT places on purpose:
+//   · WORKED FROM — page-derived, uncounterfeitable. The agent cannot claim a
+//     read it did not make, because this is read off the audit trail.
+//   · WHAT IT CONCLUDED — the agent's own words, from record_finding. A claim,
+//     not a fact, and shown as one.
+// The human reads the claim against the reads that back it, which is exactly
+// the review a good reviewer does and exactly what no chat transcript affords.
+//
+// The zero-read case is not an empty state, it is the finding: an agent that
+// proposes a write having looked at nothing is the single most useful thing
+// this strip can tell an operator.
+
+interface ReadTally {
+  count: number;
+  lastSeq: number;
+}
+const agentReads = new Map<string, ReadTally>();
+let latestFinding: { summary: string; seq: number } | null = null;
+
+function noteAgentRead(tool: string, seq: number): void {
+  if (!(tool in READ_NARRATION)) return; // writes and proposals are not evidence
+  const t = agentReads.get(tool);
+  if (t) {
+    t.count += 1;
+    t.lastSeq = seq;
+  } else {
+    agentReads.set(tool, { count: 1, lastSeq: seq });
+  }
+}
+
+function resetEvidence(): void {
+  agentReads.clear();
+  latestFinding = null;
+}
+
+/** Take the human to the surface a read looked at, so a chip is a place. */
+function focusRead(tool: string): void {
+  if (tool === 'read_logs') {
+    selectTab('logs');
+    return;
+  }
+  const region = READ_NARRATION[tool]?.region;
+  if (!region) return;
+  const el = document.querySelector<HTMLElement>(region);
+  if (!el) return;
+  const pane = el.closest<HTMLElement>('.tabpane');
+  if (pane?.hidden) selectTab(pane.id.replace(/^zone-|^err-/, ''));
+  el.scrollIntoView({ block: 'nearest' });
+  touchRegion(region);
+}
+
+// "#104" and "seq 104" are how a model writes a citation in prose. Both are
+// recognised; nothing else is, because guessing at looser shapes would turn
+// ordinary numbers ("6/6 instances") into dead links.
+const CITE_RE = /#(\d{1,6})\b|\bseq\.?\s*(\d{1,6})\b/gi;
+
+/**
+ * Render the agent's prose with its log citations made clickable — but ONLY
+ * where the citation lands. A seq the pane cannot show stays plain text: a
+ * link that goes nowhere is a worse promise than no link.
+ */
+function renderCitedText(host: HTMLElement, text: string): void {
+  let last = 0;
+  for (const m of text.matchAll(CITE_RE)) {
+    const seq = Number(m[1] ?? m[2]);
+    const at = m.index ?? 0;
+    const landable = !!logStream.querySelector(`li[data-seq="${seq}"]`);
+    if (!landable) continue;
+    if (at > last) host.append(document.createTextNode(text.slice(last, at)));
+    const b = document.createElement('button');
+    b.type = 'button';
+    b.className = 'ap-cite';
+    b.dataset.seq = String(seq);
+    b.textContent = m[0];
+    b.title = `Show log line #${seq}`;
+    b.addEventListener('click', () => focusLogSeq(seq));
+    host.append(b);
+    last = at + m[0].length;
+  }
+  if (last < text.length) host.append(document.createTextNode(text.slice(last)));
+}
+
+/** The provenance strip for one proposal, built fresh so it snapshots NOW. */
+function buildEvidence(proposalSeq: number): HTMLElement {
+  const box = document.createElement('div');
+  box.className = 'ap-evidence';
+  box.dataset.testid = `evidence-${proposalSeq}`;
+
+  const head = document.createElement('span');
+  head.className = 'ap-ev-head';
+  const calls = [...agentReads.values()].reduce((n, t) => n + t.count, 0);
+  head.textContent =
+    agentReads.size === 0
+      ? 'Worked from nothing'
+      : `Worked from ${agentReads.size} read${agentReads.size === 1 ? '' : 's'} · ${calls} call${calls === 1 ? '' : 's'}`;
+  box.append(head);
+
+  if (agentReads.size === 0) {
+    const none = document.createElement('p');
+    none.className = 'ap-ev-none';
+    none.dataset.testid = `evidence-none-${proposalSeq}`;
+    none.textContent = 'This agent proposed a change without reading anything in this console.';
+    box.append(none);
+  } else {
+    const chips = document.createElement('div');
+    chips.className = 'ap-ev-reads';
+    // ordered by when the agent last used them: the freshest look first
+    const order = [...agentReads.entries()].sort((a, b) => b[1].lastSeq - a[1].lastSeq);
+    for (const [tool, tally] of order) {
+      const chip = document.createElement('button');
+      chip.type = 'button';
+      chip.className = 'ap-ev-chip';
+      chip.dataset.tool = tool;
+      chip.title = `${READ_NARRATION[tool]?.says ?? tool} — last at #${tally.lastSeq}. Show what it looked at.`;
+      const name = document.createElement('span');
+      name.className = 'ap-ev-tool';
+      name.textContent = tool;
+      chip.append(name);
+      if (tally.count > 1) {
+        const n = document.createElement('span');
+        n.className = 'ap-ev-n';
+        n.textContent = `×${tally.count}`;
+        chip.append(n);
+      }
+      chip.addEventListener('click', () => focusRead(tool));
+      chips.append(chip);
+    }
+    box.append(chips);
+  }
+
+  if (latestFinding) {
+    const said = document.createElement('p');
+    said.className = 'ap-ev-said';
+    said.dataset.testid = `evidence-said-${proposalSeq}`;
+    const k = document.createElement('span');
+    k.className = 'ap-ev-k';
+    k.textContent = 'It concluded';
+    said.append(k);
+    // the agent's own words, and its citations turned into somewhere to go
+    renderCitedText(said, latestFinding.summary);
+    box.append(said);
+  }
+  return box;
+}
+
 function addApprovalCard(e: Event): void {
   const d = e.data as {
     tool: string;
@@ -997,6 +1150,8 @@ function addApprovalCard(e: Event): void {
     </div>
   `;
   card.querySelector('.ap-diff')!.textContent = d.diffSummary;
+  // right under WHAT it wants, before WHETHER you may: the review order
+  card.querySelector('.ap-diff')!.after(buildEvidence(e.seq));
   // textContent, never innerHTML: this string is attacker-controlled
   const quote = card.querySelector('.ap-prov-quote');
   // the line carries its own quoting; wrapping it again collides with it
@@ -2246,8 +2401,15 @@ function renderEvents(events: Event[], w: World): void {
     } else if (e.kind === 'annotation.added' && e.actor === 'agent') {
       telestrate((e.data as { target: EntityRef }).target);
     }
-    if (e.kind === 'finding.recorded') renderFinding(e);
+    if (e.kind === 'finding.recorded') {
+      renderFinding(e);
+      const fd = e.data as { summary?: string };
+      if (fd.summary) latestFinding = { summary: fd.summary, seq: e.seq };
+    }
     if (e.actor === 'agent') {
+      // the tally has to be updated BEFORE the next proposal card is built,
+      // and it is: events are applied in log order
+      if (e.kind === 'tool.called') noteAgentRead(String((e.data as { tool?: unknown }).tool), e.seq);
       moveAgentCursor(agentTargetFor(e));
       showAgentAttention(e);
     }

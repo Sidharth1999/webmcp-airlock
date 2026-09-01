@@ -624,6 +624,74 @@ try {
   );
   await inj.close();
 
+  // ---- evidence assembly: the card says what the agent worked FROM -------
+  // The strip has two registers and they must not be confused: the chip row
+  // is read off the audit trail (uncounterfeitable), the sentence is the
+  // agent's own claim. These gates check the first is true to the log, that a
+  // citation actually lands, and that proposing with no reads is called out.
+  const ev = await browser.newPage();
+  ev.on('pageerror', (e) => pageErrors.push(e.message));
+  await ev.goto(URL + '?template=retry-storm&tick=120', { waitUntil: 'networkidle' });
+  await ev.getByTestId('sim-run').click();
+  await ev.waitForFunction(() => document.querySelectorAll('#log-stream .log-row').length > 6, null, {
+    timeout: 40_000,
+  });
+  await ev.getByTestId('mode-recovery').click();
+
+  // a proposal made with NO reads is the one an operator most needs flagged
+  const bare = JSON.parse(
+    await ev.evaluate(() => window.__airlock.invoke('propose_rate_limit', { route: 'r-checkout', rps: 150 }))
+  ).proposalSeq;
+  await ev.getByTestId(`evidence-${bare}`).waitFor({ timeout: 5_000 });
+  check(
+    'a proposal made without reading anything says so on the card',
+    await ev.getByTestId(`evidence-none-${bare}`).isVisible()
+  );
+  await ev.getByTestId(`reject-${bare}`).click();
+
+  const cite = await ev.evaluate(async () => {
+    for (const t of ['airlock_status', 'list_deploys', 'read_logs', 'read_logs', 'traffic_history']) {
+      await window.__airlock.invoke(t, {});
+    }
+    return [...document.querySelectorAll('#log-stream .log-row')].map((n) => Number(n.dataset.seq)).at(-2);
+  });
+  const worked = JSON.parse(
+    await ev.evaluate(async (seq) => {
+      await window.__airlock.invoke('record_finding', {
+        summary: `The load on /checkout is retries, not customers — contention already cleared (#${seq}).`,
+      });
+      return await window.__airlock.invoke('propose_rate_limit', { route: 'r-checkout', rps: 150 });
+    }, cite)
+  ).proposalSeq;
+  const strip = ev.getByTestId(`evidence-${worked}`);
+  await strip.waitFor({ timeout: 5_000 });
+  const chips = await ev.locator(`[data-testid="evidence-${worked}"] .ap-ev-chip`).evaluateAll((n) =>
+    n.map((c) => c.dataset.tool)
+  );
+  check(
+    `the strip names the reads the agent actually made (${chips.join(',')})`,
+    ['airlock_status', 'list_deploys', 'read_logs', 'traffic_history'].every((t) => chips.includes(t)) &&
+      !chips.includes('record_finding')
+  );
+  check(
+    'read_logs called twice is counted, not listed twice',
+    chips.filter((t) => t === 'read_logs').length === 1 &&
+      (await ev.locator(`[data-testid="evidence-${worked}"] .ap-ev-chip[data-tool="read_logs"] .ap-ev-n`).textContent()) === '×2'
+  );
+  check(
+    "the agent's own conclusion rides along, as a claim",
+    (await ev.getByTestId(`evidence-said-${worked}`).textContent()).includes('retries, not customers')
+  );
+  // the citation is the whole point: it has to LAND on the line it names
+  await ev.locator(`[data-testid="evidence-${worked}"] .ap-cite`).first().click();
+  check(
+    'clicking a citation opens the logs pane on that exact line',
+    (await ev.getByTestId('tab-logs').getAttribute('aria-selected')) === 'true' &&
+      (await ev.locator(`#log-stream li.log-cited[data-seq="${cite}"]`).count()) === 1
+  );
+  await ev.close();
+
+
   // ---- M3-07: unattended full-scenario agent driver (plumbing loop) ------
   const driver = spawnSync('node', ['tools/agent-driver.mjs', URL], {
     stdio: ['ignore', 'pipe', 'pipe'],

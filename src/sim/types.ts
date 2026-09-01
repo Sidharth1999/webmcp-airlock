@@ -25,6 +25,7 @@ export type EventKind =
   | 'tool.called'
   | 'mode.changed'
   | 'selection.changed'
+  | 'finding.recorded'
   // meta
   | 'scenario.seeded'
   | 'annotation.added';

@@ -19,6 +19,9 @@ import { getModelContext, type ModelContextLike, type ToolDescriptor } from './s
  */
 
 export type QueryRunner = (q: QueryRequest, viaTool?: string) => Promise<Record<string, unknown>>;
+/** Records the agent's own conclusion into the console's timeline. */
+export type RecordRunner = (data: Record<string, unknown>) => void;
+
 export type ProposeRunner = (
   tool: string,
   input: Record<string, unknown>
@@ -211,6 +214,7 @@ export interface AirlockTools {
 export function createAirlockTools(
   run: QueryRunner,
   propose: ProposeRunner,
+  recordFinding: RecordRunner,
   mc: ModelContextLike | null = getModelContext()
 ): AirlockTools {
   const descriptors = new Map<string, ToolDescriptor>();
@@ -245,6 +249,52 @@ export function createAirlockTools(
       },
     };
     descriptors.set(spec.name, tool);
+    registerWith(tool, false);
+  }
+
+  // THE AIRLOCK GATES ACTIONS, NOT SPEECH. This tool changes nothing in the
+  // world, so it needs no approval and is present in every mode — an agent
+  // that has worked something out should never have to wait for permission
+  // to say so. It exists because the most valuable thing an agent produced
+  // in our runs ("I did not roll back d-201: 43,857 rows are already in v2
+  // format and 1.9.x reads only v1") was invisible to the operator: WebMCP
+  // hands the page tool calls, never the model's reasoning.
+  {
+    const tool: ToolDescriptor = {
+      name: 'record_finding',
+      description:
+        'Write your current read of the incident into the console so the operator can see it: what you believe is happening and why. Use ruledOut to say what you considered and rejected — that is often the most useful thing you can tell them. Changes nothing and needs no approval.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          summary: {
+            type: 'string',
+            description: 'What you believe is happening, and the evidence for it.',
+          },
+          ruledOut: {
+            type: 'string',
+            description: 'An action you considered and rejected, and why.',
+          },
+        },
+        required: ['summary'],
+      },
+      annotations: { readOnlyHint: false },
+      execute: async (input) => {
+        const i = coerceInput(input) as { summary?: unknown; ruledOut?: unknown };
+        const summary = String(i.summary ?? '').slice(0, 400);
+        if (!summary) {
+          return {
+            content: [{ type: 'text', text: JSON.stringify({ status: 'rejected', reason: 'summary is required' }) }],
+          };
+        }
+        const ruledOut = i.ruledOut === undefined ? undefined : String(i.ruledOut).slice(0, 400);
+        recordFinding({ summary, ...(ruledOut ? { ruledOut } : {}) });
+        return {
+          content: [{ type: 'text', text: JSON.stringify({ status: 'recorded', note: 'The operator can see this in the console.' }) }],
+        };
+      },
+    };
+    descriptors.set(tool.name, tool);
     registerWith(tool, false);
   }
 
@@ -315,6 +365,8 @@ export function createAirlockTools(
         untrusted: s.untrusted ?? false,
         status: 'active' as const,
       }));
+      // present in every mode: recording a conclusion is not a world change
+      out.push({ name: 'record_finding', readOnly: false, untrusted: false, status: 'active' });
       for (const w of WRITE_TOOLS) {
         if (writes.has(w.name)) {
           out.push({ name: w.name, readOnly: false, untrusted: false, status: 'active' });

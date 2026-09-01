@@ -131,11 +131,22 @@ try {
   // ---- M3-01: read-tool surface over live sim state ----------------------
   // (sim is already running from the worker-stream check above)
   const rail = await page.locator('#tool-list li').count();
-  check('tool rail lists the read surface (6 tools incl. explain_surface)', rail === 6);
+  // 6 reads + record_finding, which is present in every mode: the airlock
+  // gates world-changing actions, not the agent stating what it concluded
+  check('tool rail lists the read surface + record_finding (7)', rail === 7);
+  check(
+    'record_finding is listed and is NOT read-only',
+    await page.evaluate(() => {
+      const t = window.__airlock.list().find((x) => x.name === 'record_finding');
+      return !!t && t.readOnly === false && t.status === 'active';
+    })
+  );
   await page.waitForFunction(() => window.__sim.stats.ticks > 3, null, { timeout: 10_000 });
   const toolProbe = await page.evaluate(async () => {
     const out = {};
-    for (const t of window.__airlock.list()) {
+    // READS only — record_finding is listed but is not a query and has no
+    // asOfSeq; invoking it with no summary is correctly rejected
+    for (const t of window.__airlock.list().filter((x) => x.readOnly)) {
       const text = await window.__airlock.invoke(t.name, {});
       const parsed = JSON.parse(text);
       out[t.name] = { bytes: text.length, asOfSeq: parsed.asOfSeq };
@@ -173,8 +184,8 @@ try {
   await page.getByTestId('mode-recovery').click();
   await page.locator('#tool-list li[data-tool="propose_rollback"][data-status="active"]').waitFor({ timeout: 5_000 });
   check(
-    'recovery registers the write set (11 active tools)',
-    (await page.locator('#tool-list li[data-status="active"]').count()) === 11
+    'recovery registers the write set (12 active tools: 6 reads + record_finding + 5 proposals)',
+    (await page.locator('#tool-list li[data-status="active"]').count()) === 12
   );
 
   const proposal = JSON.parse(
@@ -350,7 +361,7 @@ try {
   // (this page left recovery mode earlier, so ghosts would render pre-fix)
   await page.getByTestId('template-baseline').click();
   await page.waitForFunction(
-    () => document.querySelectorAll('#tool-list li[data-status="active"]').length === 6,
+    () => document.querySelectorAll('#tool-list li[data-status="active"]').length === 7,
     null,
     { timeout: 5_000 }
   );

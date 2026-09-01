@@ -1428,3 +1428,38 @@ body {
 }
 .sf-feed { text-align: center; color: oklch(50% 0.02 160); font-weight: 400; }
 #storefront[data-state='broken'] .sf-feed { color: oklch(48% 0.02 160); }
+
+/* --- the agent's findings: the rail's actual job ------------------------- */
+.findings { display: flex; flex-direction: column; gap: var(--sp-2); margin-bottom: var(--sp-3); }
+.finding {
+  border: 1px solid color-mix(in oklch, var(--actor-agent) 32%, var(--line));
+  border-left: 2px solid var(--actor-agent);
+  border-radius: var(--r-sm);
+  padding: var(--sp-3);
+  background: color-mix(in oklch, var(--actor-agent) 5%, transparent);
+  animation: doing-in 240ms cubic-bezier(.2,.7,.3,1) both;
+}
+.finding-summary {
+  margin: 0;
+  color: var(--ink);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+.finding-ruled {
+  margin: var(--sp-2) 0 0;
+  padding-top: var(--sp-2);
+  border-top: 1px solid var(--line);
+  color: var(--ink-dim);
+  font-size: var(--text-2xs);
+  line-height: 1.55;
+}
+.finding-k {
+  display: block;
+  color: var(--ink-ghost);
+  font-family: var(--font-instrument);
+  font-size: var(--text-2xs);
+  letter-spacing: .1em;
+  text-transform: uppercase;
+  margin-bottom: 2px;
+}
+@media (prefers-reduced-motion: reduce) { .finding { animation: none; } }

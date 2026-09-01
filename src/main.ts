@@ -237,6 +237,8 @@ app.innerHTML = `
 
         <p class="agent-doing" id="agent-doing" aria-live="polite" hidden></p>
 
+        <div class="findings" id="agent-findings" aria-live="polite"></div>
+
         <div class="agent-can" id="agent-can">
           <p class="can-line" id="can-read"></p>
           <p class="can-line" id="can-write"></p>
@@ -438,6 +440,8 @@ function summarize(e: Event): string {
     }
     case 'tool.called':
       return `${d.tool} · ${d.resultBytes}B`;
+    case 'finding.recorded':
+      return `agent recorded a finding: ${String(d.summary).slice(0, 80)}`;
     default:
       return JSON.stringify(d);
   }
@@ -793,6 +797,45 @@ function touchRegion(selector: string): void {
 }
 
 /** Called for every agent event: narrate it and touch what it touched. */
+/**
+ * The agent's own read of the incident, in the operator's console.
+ *
+ * This is the whole reason record_finding exists. WebMCP hands the page tool
+ * calls, never the model's reasoning — so the best thing our agent produced
+ * ("I did not roll back d-201: 43,857 rows are already in v2 and 1.9.x reads
+ * only v1") was invisible to the person who needed it most. What it RULED
+ * OUT is often worth more than what it did.
+ */
+function renderFinding(e: Event): void {
+  const host = document.querySelector<HTMLElement>('#agent-findings');
+  if (!host) return;
+  const d = e.data as { summary?: string; ruledOut?: string };
+  if (!d.summary) return;
+
+  const card = document.createElement('article');
+  card.className = 'finding';
+  card.dataset.seq = String(e.seq);
+
+  const head = document.createElement('p');
+  head.className = 'finding-summary';
+  head.textContent = d.summary;
+  card.append(head);
+
+  if (d.ruledOut) {
+    const ruled = document.createElement('p');
+    ruled.className = 'finding-ruled';
+    const k = document.createElement('span');
+    k.className = 'finding-k';
+    k.textContent = 'Ruled out';
+    ruled.append(k, document.createTextNode(d.ruledOut));
+    card.append(ruled);
+  }
+
+  host.prepend(card);
+  // the newest reading is the useful one; older ones stay in the audit trail
+  while (host.children.length > 3) host.lastElementChild!.remove();
+}
+
 function showAgentAttention(e: Event): void {
   const d = e.data as Record<string, unknown>;
   if (e.kind === 'tool.called') {
@@ -1363,6 +1406,7 @@ function renderEvents(events: Event[], w: World): void {
     } else if (e.kind === 'annotation.added' && e.actor === 'agent') {
       telestrate((e.data as { target: EntityRef }).target);
     }
+    if (e.kind === 'finding.recorded') renderFinding(e);
     if (e.actor === 'agent') {
       moveAgentCursor(agentTargetFor(e));
       showAgentAttention(e);
@@ -1442,12 +1486,16 @@ const HUMAN_WRITE: Record<string, string> = {
 
 function renderCapability(tools: AirlockTools): void {
   const active = tools.list().filter((t) => t.status === 'active');
-  const writes = active.filter((t) => !t.readOnly);
+  // record_finding writes to the console's timeline, not the world, so it
+  // never waits on approval — listing it here said "you approve before
+  // anything happens" about a tool that needs no approval.
+  const writes = active.filter((t) => !t.readOnly && t.name !== 'record_finding');
   const readEl = document.querySelector<HTMLElement>('#can-read')!;
   const writeEl = document.querySelector<HTMLElement>('#can-write')!;
   const countEl = document.querySelector<HTMLElement>('#tool-count')!;
 
-  readEl.textContent = `Can look at deploys, logs, traffic and what changed — ${active.length - writes.length} read-only checks.`;
+  const reads = active.filter((t) => t.readOnly).length;
+  readEl.textContent = `Can look at deploys, logs, traffic and what changed — ${reads} read-only checks — and write what it concludes into this console.`;
 
   if (writes.length === 0) {
     writeEl.textContent = 'Cannot change anything in this mode.';
@@ -1498,7 +1546,12 @@ function renderToolRail(tools: AirlockTools): void {
   renderCapability(tools);
 }
 
-const airlockTools = createAirlockTools(runWorkerQuery, proposeToWorker);
+/** The agent's own words, into the same log everything else lives in. */
+function recordFindingToWorker(data: Record<string, unknown>): void {
+  send({ type: 'record', kind: 'finding.recorded', actor: 'agent', data });
+}
+
+const airlockTools = createAirlockTools(runWorkerQuery, proposeToWorker, recordFindingToWorker);
 renderToolRail(airlockTools);
 
 // mode switching is the operator's ritual: swap the surface, record the

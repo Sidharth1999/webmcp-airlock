@@ -204,6 +204,8 @@ export function reduce(world: World, event: Event): World {
     case 'tool.called':
     case 'mode.changed':
     case 'selection.changed':
+    // the agent's own read of the situation: recorded, never world-changing
+    case 'finding.recorded':
     case 'scenario.seeded':
     case 'annotation.added':
       return world;

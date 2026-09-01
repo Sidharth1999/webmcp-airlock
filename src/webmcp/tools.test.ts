@@ -32,18 +32,30 @@ function fixture() {
       proposals.push({ tool, input });
       return { seq: 99, outcome: 'proposed' as const };
     },
+    () => {},
     mc
   );
   return { tools, registered, queries, proposals };
 }
 
 describe('mode-gated registration (M3-02)', () => {
-  it('triage registers the 6 read tools and no writes', () => {
+  it('triage registers the 6 reads + record_finding, and no world-changing writes', () => {
     const { tools, registered } = fixture();
-    expect(registered.size).toBe(6);
+    // 6 reads + record_finding, which is present in EVERY mode by design:
+    // the airlock gates actions, not the agent saying what it has worked out
+    expect(registered.size).toBe(7);
     expect([...registered.keys()]).toContain('explain_surface');
-    expect(tools.list().filter((t) => t.status === 'active')).toHaveLength(6);
-    for (const t of registered.values()) expect(t.annotations?.readOnlyHint).toBe(true);
+    expect(tools.list().filter((t) => t.status === 'active')).toHaveLength(7);
+    // STRONGER than the old blanket check: the six READS are read-only, and
+    // the only other tool in triage is record_finding — which writes to the
+    // console's timeline (so it is honestly not readOnly) but carries no
+    // world-changing verb. No way to mutate the world exists in this mode.
+    for (const spec of READ_TOOLS) {
+      expect(registered.get(spec.name)!.annotations?.readOnlyHint, spec.name).toBe(true);
+    }
+    const nonRead = [...registered.keys()].filter((n) => !READ_TOOLS.some((r) => r.name === n));
+    expect(nonRead).toEqual(['record_finding']);
+    expect(nonRead.some((n) => n.startsWith('propose_'))).toBe(false);
   });
 
   it('diagnosis adds the flag proposal; recovery adds the full write set', () => {
@@ -57,7 +69,7 @@ describe('mode-gated registration (M3-02)', () => {
       expect.arrayContaining(['propose_rollback', 'propose_rollforward', 'propose_env_change', 'propose_route_change'])
     );
     expect(r.removed).toEqual([]);
-    expect(registered.size).toBe(6 + 5);
+    expect(registered.size).toBe(7 + 5);
     expect(registered.get('propose_rollback')!.annotations?.readOnlyHint).toBe(false);
   });
 
@@ -65,7 +77,7 @@ describe('mode-gated registration (M3-02)', () => {
     const { tools, registered } = fixture();
     tools.setMode('recovery');
     tools.setMode('triage');
-    expect(registered.size).toBe(6); // abort really unregistered (fake honors signal)
+    expect(registered.size).toBe(7); // abort really unregistered (fake honors signal)
     const tombs = tools.list().filter((t) => t.status === 'tombstoned');
     expect(tombs).toHaveLength(5);
     expect(tombs[0]!.tombstone).toContain('left with recovery mode');
@@ -86,6 +98,7 @@ describe('mode-gated registration (M3-02)', () => {
     const tools = createAirlockTools(
       async () => ({ asOfSeq: 1 }),
       async () => ({ seq: 7, outcome: 'blocked' as const, reason: 'not-available-in-mode' }),
+      () => {},
       mc
     );
     const res = JSON.parse(await tools.invoke('propose_rollback', { deployId: 'd-201' }));
@@ -135,7 +148,7 @@ describe('reset (M3-close review): a fresh world gets a fresh rail', () => {
     tools.reset();
     expect(tools.mode()).toBe('triage');
     expect(tools.list().filter((t) => t.status === 'tombstoned')).toHaveLength(0);
-    expect(registered.size).toBe(6); // write registrations really aborted
+    expect(registered.size).toBe(7); // write registrations really aborted
   });
 });
 
@@ -215,6 +228,7 @@ describe('readOnlyHint audit — the six reads (M4)', () => {
         return result;
       },
       async () => ({ seq: 0, outcome: 'proposed' as const }),
+      () => {},
       mc
     );
 

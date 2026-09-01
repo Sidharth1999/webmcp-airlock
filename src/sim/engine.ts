@@ -14,6 +14,8 @@ const RECORDABLE: ReadonlySet<EventKind> = new Set([
   'mode.changed',
   'selection.changed',
   'annotation.added',
+  // the agent's own read of the incident: recorded, world untouched
+  'finding.recorded',
 ] as EventKind[]);
 
 export interface SimCtx {
@@ -99,7 +101,7 @@ export class Engine {
 
   /**
    * Record a meta/lifecycle event (tool.called, mode.changed,
-   * selection.changed, annotation.added) into the log. World is unaffected
+   * selection.changed, annotation.added, finding.recorded) into the log. World is unaffected
    * (reducer no-ops these); determinism rule matches act(): replay = same
    * schedule of external inputs.
    */

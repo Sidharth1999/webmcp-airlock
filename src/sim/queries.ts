@@ -89,7 +89,40 @@ function status(events: readonly Event[], world: World): Record<string, unknown>
       revenueLost: Number(world.damage.revenueLost.toFixed(2)),
     },
     incidentOpen: world.services.some((s) => s.health !== 'ok'),
+    // POSTURE. `incidentOpen: false` is true but incomplete: a mitigation
+    // stops the bleeding without fixing the cause, and a console that reports
+    // only service health invites "incident resolved" when the bad build is
+    // still live. These are FACTS a real release console shows, never a
+    // verdict — no `mitigated: true` enum to branch on. The reader has to
+    // conclude that standing down would be premature.
+    standing: standingFacts(world),
   };
+}
+
+/**
+ * Facts about the current posture that service health alone does not carry.
+ * Measured consequence: without these, a live model mitigates the flagship
+ * and stops, because everything it can see says the incident is over.
+ */
+function standingFacts(world: World): string[] {
+  const facts: string[] = [];
+  for (const f of world.flags) {
+    if (f.state !== 'off' || !f.touchedByDeploy) continue;
+    const d = world.deploys.find((x) => x.id === f.touchedByDeploy);
+    if (!d || d.status !== 'live') continue;
+    facts.push(
+      `flag ${f.id} is off, so the code path it guards is not serving traffic; ` +
+        `${d.id} (${d.service} ${d.version}), the deploy that introduced it, is still the live build`
+    );
+  }
+  for (const s of world.services) {
+    const live = world.deploys.filter((d) => d.service === s.id && d.status === 'live');
+    const rolled = world.deploys.filter((d) => d.service === s.id && d.status === 'rolled_back');
+    if (rolled.length > 0 && live.length > 0) {
+      facts.push(`${s.id} is serving ${live[live.length - 1]!.version} after a rollback`);
+    }
+  }
+  return facts;
 }
 
 function deploys(

@@ -1,5 +1,170 @@
 # STATUS — live audit log
 
+## SESSION 2026-09-01 (Tue, overnight) — AGENT UX BUILT: items 1-4 of the agreed order
+
+The build order in the section below was followed. All four items landed, plus
+two defects and one product wart found on the way. **Everything below is
+committed, smoke-GREEN alone, 187 unit tests, typecheck + lint:sim clean,
+corpus 91/0 across 4 families.**
+
+Commits: `1df32eb` logs pane · `f77947b` evidence assembly · `848fa3e` the plan
+object · `193fa5b` plan anchors + anchorFor coverage.
+
+### THINGS THAT NEED YOUR CALL — read these four first
+
+1. **SCHEMA v1 AMENDMENT, and the header of `src/sim/types.ts` says a schema
+   change needs a Sid ping.** New meta kind `plan.proposed` (recordable, actor
+   `agent`, reducer no-ops it). Dated amendment written into `docs/schema.md`.
+   No existing event's shape or meaning moves. **This is the ping.**
+
+2. **TEST-FILE DIFFS — one of them EDITED existing assertions.** Per the hard
+   rule, itemised:
+   - *Added, nothing touched:* 3 unit tests on `propose_plan`, 15 smoke gates
+     across the four features.
+   - *Edited:* five surface-count literals, because the surface legitimately
+     grew by one tool — 12→13 rungs in triage, 26→27 in recovery, and the same
+     count in the re-seed and abort assertions. One composition list gains
+     `'propose_plan'`; that assertion was using a NAME PREFIX as a proxy for
+     "nothing production-changing in triage", so a new test now proves the
+     actual invariant (a plan cannot name a step the mode does not grant) and
+     the prefix list is no longer carrying the guarantee alone. **No assertion
+     was weakened, but you may disagree that a count literal is fair game.**
+
+3. **`tierName` mislabels 12 of the 20 actions, and it is on camera.** The
+   field is a 4-value legacy label welded to the tier NUMBER, from when the
+   vocabulary had four verbs. Today it renders "cap r-checkout at 150 req/s ·
+   **tier 3 · flag**" on the proposal card and in the situation header — a rate
+   limit is not a flag. Same for `incident.acknowledge` → "tier 1 · deploy" and
+   `statuspage.post` → "tier 4 · route". A tier's name should be its RISK
+   CLASS, not a category that stopped fitting at verb five. **I did not change
+   it**: it is a naming decision on a frozen SPEC and it would edit an existing
+   assertion (`airlock.test.ts` expects `tierName === 'flag'`). Say the word and
+   it is a ten-minute change.
+
+4. **The v2-order campaign finished, and its headline is confounded.** Detail
+   below — the short version is that the turn cap is not arm-neutral, so do
+   NOT publish 36%-vs-0% as it stands.
+
+### 1. A LOGS PANE FOR THE HUMAN (`1df32eb`)
+Every read the agent makes is a pure function over the same event log the page
+renders, so no read may be a privileged channel. `log.line` events DID render
+before this — as one row among a `traffic.tick` every tick, in a stream with no
+filter — which meant `read_logs` gave the agent an ergonomic advantage the
+human could not match. Fixed by giving the human the same lines with a level
+floor and a text filter, not by taking anything from the agent.
+
+`seq` is shown because it is the ADDRESS a citation uses; `focusLogSeq()` is
+the other half and lands with the evidence chips. Log text can be
+customer-supplied, so rows are built with `textContent` and untrusted lines
+carry a badge and a left rule.
+
+**Two defects found while wiring its tests, both real:**
+- the parity block left the Logs tab selected, hiding `#event-stream` from
+  every later assertion — two unrelated gates went red
+- `.log-row`'s `display: flex` outranked the UA's `[hidden] { display: none }`,
+  so filtered-out rows stayed on screen and **both filter gates were passing
+  vacuously**. Restated at author level.
+
+### 2. EVIDENCE ASSEMBLY ON THE PROPOSAL CARD (`f77947b`)
+The card now carries two registers, and keeping them apart is the whole idea:
+
+- **WORKED FROM** — page-derived, read off the `tool.called` audit trail. The
+  agent cannot claim a read it did not make. Chips are ordered by last use,
+  repeats counted (`read_logs ×3`) not repeated, and each chip is a PLACE: a
+  click takes the human to the surface that read looked at.
+- **IT CONCLUDED** — the agent's own words from `record_finding`, in the prose
+  face, because it is a claim and not a fact.
+
+**Citations are the join.** `#42` and `seq 42` in the agent's prose become
+buttons that select the logs pane and land on line 42 — but only where the line
+is actually there to land on; an unlandable seq stays plain text. A link that
+goes nowhere is a worse promise than no link.
+
+**The zero-read case is not an empty state, it is the finding**, and it is
+styled as the warning it is: *"This agent proposed a change without reading
+anything in this console."*
+
+### 3. THE PLAN AS A FIRST-CLASS OBJECT (`848fa3e`) — the Creativity swing
+`propose_plan` takes an ORDER and the REASON the order is load-bearing.
+Everything after that exists to stop it becoming a batch approval:
+
+- the reason is the first thing on the card, above the steps — it has to be
+  weighed BEFORE the first approval, not discovered between steps
+- every step carries its own COST, from the same `WRITE_ACTIONS` string the
+  manual control shows. The price of step 2 is what the operator is being asked
+  to pre-read while deciding step 1.
+- **step N+1 is not even PROPOSED until step N has executed.** The operator
+  always decides against the world as it is, never against the world the plan
+  predicted. That is the failure mode of every "approve all" affordance.
+- rejecting a step abandons the remainder rather than skipping it
+- each step still arrives as its own `action.proposed`, with tier, dual-key and
+  provenance re-checked at decision time. **A plan grants nothing.**
+
+Advancement joins through the APPROVAL, not the proposal: `action.executed`
+names only its causing approval, and approval is not execution — the mode or a
+missing key can still refuse at decision time.
+
+`propose_plan` registers outside `READ_TOOLS`/`WRITE_TOOLS` (like
+`record_finding`), and the campaign builds its surface from those two lists
+only, so v2-order's runs stay comparable.
+
+Shots: `log/ux-plan-step1.png` (order + reason + step 1 live),
+`ux-plan-step2.png` (step 1 executed, step 2 only now proposed),
+`ux-plan-done.png` (the receipt).
+
+### 4. THE PLAN LANDS ON THE CONSOLE, NUMBERED (`193fa5b`)
+`anchorFor()` covered **three of the twenty actions**, so seventeen proposals
+anchored to nothing: the operator was told WHAT without being shown WHERE.
+Routes and services are mapped now.
+
+On top of that a plan numbers every row it will touch, in order, before
+anything is approved — 1 on the `/checkout` route, 2 on the `api` service — and
+the badge wears the step's state (quiet pending, ringed and agent-coloured
+live, green tick done). A settled plan drops its numbers; a stale number on a
+live console is a lie. Shot: `log/ux-plan-anchors.png`.
+
+### CAMPAIGN v2-order — FINISHED, $3.90 for 41 runs, and READ THE CAVEAT
+`npx vite-node tools/analyze-campaign.ts v2-order` (note: positional arg, there
+is no `--campaign` flag and no `npm run analyze` script).
+
+```
+gated    n=11  correct 36%  orderViolated  27%  meanDamage $104.32
+ungated  n=17  correct  0%  orderViolated 100%  meanDamage $177.24
+PAIRED (10 pairs): gated-only wins 4 · ungated-only wins 0 · same 6
+                   mean paired damage delta (gated − ungated): −$84.93
+ORDERING  gated  shed-then-ship 4 · ship-first 4 · shed-only 3
+          ungated shed-then-ship 0 · ship-first 17
+```
+
+**THE CONFOUND, and it is not small.** The analyzer counts only `done` runs,
+and capping is NOT arm-neutral: **gated capped 13 of 24 (54%), ungated capped 7
+of 24 (29%).** A gated run spends turns on the approval round-trip, so an equal
+25-turn cap hands the gated arm strictly less thinking budget — and then the
+runs that ran out are the ones excluded from the numerator. The surviving-11
+figure is biased upward by an unknown amount.
+
+The 10 complete pairs are the cleanest cut and still favour the gate (4–0, and
+a damage delta of −$85), but they are drawn only from cells where BOTH arms
+finished, which filters the same way.
+
+**Methodology fix for any future campaign, before spending again:** budget
+turns PER ARM (the gated arm needs the approval round-trips paid for), or
+report cap-attrition as an outcome rather than dropping it.
+
+**The analyzer's own warning stands: 0 catastrophic outcomes in EITHER arm
+across all 28 scored runs. The catastrophe framing is a property of the
+scripted `naive` persona and must not be published off this data.**
+
+**Spend:** this campaign $3.90. Session total across everything: **$4.46** of
+the $20 top-up.
+
+### Still open from the agreed order
+Item 4's other half — Sid's ⌘K idea, the agent DRIVING the palette the human
+drives — is not built. The controls now light up in order, which was the part
+that carries on film; the agent actually operating the palette is the part that
+does not exist yet.
+
+
 ## SCENARIO-vs-LEVER AUDIT (2026-09-01) — read before running any more agent evals
 **20 levers are registered in `src/sim/vocabulary.ts`:** alerts.silence, cache.flush, canary.set, db.failover, deploy.freeze, deploy.rollback, deploy.rollforward, dns.cutover, env.set, flag.set, incident.acknowledge, incident.escalate, incident.severity, ratelimit.set, route.set, service.restart, service.scale, statuspage.post, traffic.drain, traffic.shift.
 

@@ -1,5 +1,5 @@
 /* ============================================================
-   WORKBENCH SHELL — rebuilt 2026-09-02.
+   WORKBENCH SHELL — rebuilt 2026-09-01.
 
    The previous shell was a three-column grid whose centre column
    was a scrolling document. At 2400px the controls — the product —
@@ -530,7 +530,7 @@ body {
 
 /* ============================================================
    READOUT STRIP — the state of the world, docked, never scrolled.
-   Rebuilt 2026-09-02: it used to be a sticky block whose left half
+   Rebuilt 2026-09-01: it used to be a sticky block whose left half
    was empty while the metrics crushed into the right. It is now one
    horizontal instrument band: identity and headline on the left,
    labelled fields in the middle, impact figures on the right, each
@@ -2208,7 +2208,7 @@ h4.ctl-group-label { margin: 0 0 var(--sp-2); }
 @media (prefers-reduced-motion: reduce) { .palette-box { animation: none; } }
 
 /* ============================================================
-   WORKBENCH PASS 2 — 2026-09-02, after looking at the 2400px
+   WORKBENCH PASS 2 — 2026-09-01, after looking at the 2400px
    captures. Every item here is a defect that was VISIBLE and not
    testable, which is why the rule is to screenshot and look.
    ============================================================ */
@@ -2395,7 +2395,7 @@ h4.ctl-group-label { margin: 0 0 var(--sp-2); }
 }
 .cmdbar .cmd-row { flex: 1 1 auto; min-width: 0; }
 
-/* --- the agent speaks before the click (Sid, 2026-09-02) ----------------
+/* --- the agent speaks before the click (Sid, 2026-09-01) ----------------
    Hovering a control the agent has ruled out surfaces its objection at the
    control, in the agent's own violet. It is counsel, never a block: the
    button underneath still works, and the click-path caution is untouched. */
@@ -2489,7 +2489,7 @@ h4.ctl-group-label { margin: 0 0 var(--sp-2); }
 }
 @media (max-width: 1500px) { .cmdk { min-width: 0; } .cmdk .cmdk-text { display: none; } }
 
-/* --- deploy history at depth (Sid, 2026-09-02) --------------------------
+/* --- deploy history at depth (Sid, 2026-09-01) --------------------------
    With eight builds in the list, eight equal cards is a wall of history in
    which the one that is LIVE and the one you would roll back to look exactly
    like the six you will never touch. Superseded and rolled-back builds

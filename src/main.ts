@@ -57,7 +57,7 @@ app.innerHTML = `
     </div>
   </div>
 
-  <!-- WORKBENCH (2026-09-02). A fixed-viewport app shell, not a document:
+  <!-- WORKBENCH (2026-09-01). A fixed-viewport app shell, not a document:
        title bar / activity bar / centre / bottom panel group / docks /
        status bar, divided by hairlines and sashes. Nothing scrolls but the
        inside of one region. Replaces a three-column scrolling layout in
@@ -2167,7 +2167,7 @@ worker.onmessage = (e: MessageEvent<SimResponse>) => {
 const shellEl = document.querySelector<HTMLElement>('.shell')!;
 
 /* ============================================================
-   WORKBENCH REGIONS (2026-09-02)
+   WORKBENCH REGIONS (2026-09-01)
    Docks, tabs and sashes. One controller owns every region's
    visibility, so a closed region always has exactly one obvious
    way back — the activity bar button that closed it, still lit.

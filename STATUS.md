@@ -1,6 +1,6 @@
 # STATUS — live audit log
 
-## SCENARIO-vs-LEVER AUDIT (2026-09-02) — read before running any more agent evals
+## SCENARIO-vs-LEVER AUDIT (2026-09-01) — read before running any more agent evals
 **20 levers are registered in `src/sim/vocabulary.ts`:** alerts.silence, cache.flush, canary.set, db.failover, deploy.freeze, deploy.rollback, deploy.rollforward, dns.cutover, env.set, flag.set, incident.acknowledge, incident.escalate, incident.severity, ratelimit.set, route.set, service.restart, service.scale, statuspage.post, traffic.drain, traffic.shift.
 
 **Answer keys across all three scenario families use exactly FOUR of them:** `flag.set`, `deploy.rollback`, `deploy.rollforward`, `env.set` (`migration-trap.ts:53`, `innocent-deploy.ts:84,88`, `poisoned-runbook.ts:93`).
@@ -9,7 +9,7 @@
 
 **Consequence:** at least one scenario class whose CORRECT path requires sequencing costly levers — and where the wrong order is measurably worse — is a prerequisite for the next campaign, not a follow-up to it. The compiler already checks this mechanically and token-free (scripted vs null probe to the same horizon).
 
-## This session (2026-09-02) — UI REBUILT AS A FIXED-VIEWPORT WORKBENCH
+## This session (2026-09-01, overnight Mon→Tue) — UI REBUILT AS A FIXED-VIEWPORT WORKBENCH
 - **Boot:** `npm run smoke` GREEN run alone (65 assertions). M4 25.0% · M5 10.0% · overall 53.3% — unchanged, and should be: no features.json entry covers UI layout.
 - **Close:** smoke **GREEN** · **150 unit tests** · typecheck + lint:sim clean · **corpus 67 accepted / 0 rejected**. Commit `5ca3929`.
 - Method ran in the order the post-mortem demanded: `artifact-design` skill FIRST, then layout-system research (VS Code parts model, WAI-ARIA window-splitter + tabs, `100dvh` app shells, container queries, Radix 12-step / Geist ramps), then a 2400px capture BEFORE any CSS. Full write-up: `docs/ux-debt.md` § WORKBENCH REBUILD.
@@ -33,6 +33,12 @@
 - `npm run smoke` run ALONE, twice, GREEN both times. `npm test` 150/150. `npm run corpus` 67/67. `npm run typecheck`, `npm run lint:sim` clean.
 - `node tools/capture-ux.mjs` swept 7 states × 4 viewports (2400 / 1920 / 1440 / 1120) with zero console errors; every pass judged from the **ultra** PNGs. Baseline `log/ux-base-0902/`, final `log/ux-wb-16/`.
 - **NOT verified, and Sid grades it:** whether the layout now clears his bar. Screenshots are in `log/ux-wb-16/`; the storefront-open state is `*-03-incident-store`, the airlock is `*-05-approval-pending`, the agent's pre-click objection is `*-07-agent-counsel`.
+
+### Nits Sid raised during the pass, all fixed and committed
+- Row action menus stacked on top of each other (they are `<details>`). Now mutually exclusive, dismissable by outside click and Escape, and they flip upward rather than clip. Verified by driving 6 behaviours; commit `da3baed`.
+- Selection ring sat on the row's own text — **ux-debt #14, open since 08-30, now closed**. Commit `fcae672`.
+- The palette advertised itself only in the status bar's corner; a `⌘K` control now sits in the title bar. Same commit.
+- Deploy history at depth: measured with 8 builds, superseded ones each took a full card. They collapse to rows that keep their roll-back button; panel scroll 561 → 377. Same commit.
 
 ### Open / next
 - Sid's forward idea: **show the agent using Cmd+K** so it visibly operates the same surface the human does. Evidence-phase work, recorded in `docs/ux-debt.md`.

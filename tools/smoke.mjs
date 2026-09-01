@@ -124,7 +124,7 @@ try {
   check(`worker stream flowing (ticks=${stats.ticks}, events=${stats.events})`, stats.events > 5);
   // The activity trail is REFERENCE, not glance: it now arrives on demand,
   // so open it once, exactly as an operator would when they want the detail.
-  // 2026-09-02: the three evidence views are TABS in the workbench's bottom
+  // 2026-09-01: the three evidence views are TABS in the workbench's bottom
   // panel group, so the gesture that reveals the trail is selecting its tab.
   await page.getByTestId('tab-activity').click();
   check('console renders the stream', (await page.locator('#event-stream li').count()) > 3);

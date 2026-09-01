@@ -122,6 +122,9 @@ try {
   await page.waitForFunction(() => window.__sim.stats.events > 5, null, { timeout: 10_000 });
   const stats = await page.evaluate(() => window.__sim.stats);
   check(`worker stream flowing (ticks=${stats.ticks}, events=${stats.events})`, stats.events > 5);
+  // The activity trail is REFERENCE, not glance: it now arrives on demand,
+  // so open it once, exactly as an operator would when they want the detail.
+  await page.locator('#zone-activity > summary').click();
   check('console renders the stream', (await page.locator('#event-stream li').count()) > 3);
   check(
     'sim status line live',
@@ -410,6 +413,7 @@ try {
   const play = await browser.newPage();
   play.on('pageerror', (e) => pageErrors.push(e.message));
   await play.goto(URL + '?tick=50', { waitUntil: 'networkidle' });
+  await play.locator('#zone-activity > summary').click(); // trail is on demand now
 
   const healthIs = (p, state) =>
     p.waitForFunction((s) => document.documentElement.dataset.health === s, state, { timeout: 15_000 });

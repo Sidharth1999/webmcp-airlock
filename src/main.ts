@@ -53,7 +53,9 @@ app.innerHTML = `
       <span class="wordmark">Release Airlock</span>
       <span class="health-word" id="health-word">Nominal</span>
       <button type="button" id="site-toggle" data-testid="site-toggle" aria-pressed="false"
-              title="show what customers are seeing right now">Live site</button>
+              title="show what customers are seeing right now">Storefront</button>
+      <button type="button" id="rail-toggle" data-testid="restore-rail" data-restore="rail" aria-pressed="true"
+              title="show or hide the agent panel">Agent</button>
       <details class="scenario" id="scenario-pick">
         <summary aria-label="Choose scenario"><span class="sc-k">Scenario</span><span class="sc-v" id="scenario-current"></span></summary>
         <div class="sc-menu" id="template-pick" data-testid="template-pick" role="radiogroup" aria-label="Scenario">
@@ -106,7 +108,8 @@ app.innerHTML = `
 
           <!-- ZONE 1 — the situation, in a sentence. Everything below is
                evidence for it. Computed from the log, never hardcoded. -->
-          <section id="situation" data-testid="situation" data-phase="calm">
+          <div class="glance">
+<section id="situation" data-testid="situation" data-phase="calm">
             <div class="sit-bar">
               <span class="sit-state" id="sit-state">STANDBY</span>
               <span class="sit-clock" id="sit-clock">T+00:00</span>
@@ -114,6 +117,8 @@ app.innerHTML = `
             <p class="sit-head" id="sit-head">NO SCENARIO RUNNING</p>
             <dl class="sit-fields" id="sit-fields"></dl>
           </section>
+            <section class="stats" id="stats" data-testid="stats"></section>
+          </div>
 
           <!-- ACT: the console's primary job, immediately reachable.
                Previously these sat below a readout, four stat cards, a chart,
@@ -124,13 +129,21 @@ app.innerHTML = `
             <summary><span class="zone-title">Manual controls</span><span class="zone-meta">flags · services · topology</span></summary>
             <div class="zone-body">
               <div id="topology" data-testid="topology"></div>
-              <div class="ctl-group-label">Release</div>
-              <div id="flag-controls"></div>
-              <div id="service-controls"></div>
-              <div class="ctl-group-label">Traffic</div>
-              <div id="route-controls"></div>
-              <div class="ctl-group-label">Data &amp; DNS</div>
-              <div id="ops-controls"></div>
+              <div class="ctl-groups">
+                <section class="ctl-group">
+                  <h4 class="ctl-group-label">Release</h4>
+                  <div id="flag-controls"></div>
+                  <div id="service-controls"></div>
+                </section>
+                <section class="ctl-group">
+                  <h4 class="ctl-group-label">Traffic</h4>
+                  <div id="route-controls"></div>
+                </section>
+                <section class="ctl-group">
+                  <h4 class="ctl-group-label">Data &amp; DNS</h4>
+                  <div id="ops-controls"></div>
+                </section>
+              </div>
             </div>
           </details>
 
@@ -162,8 +175,6 @@ app.innerHTML = `
                instead of extending the scroll. -->
           <div class="evidence-region">
             <div class="evidence-col">
-          <section class="stats" id="stats" data-testid="stats"></section>
-
           <section class="chart" id="err-chart" data-testid="err-chart">
             <div class="chart-head">
               <span class="chart-k">Checkout error rate</span>
@@ -189,7 +200,7 @@ app.innerHTML = `
           </details>
             </div>
             <div class="evidence-col">
-          <details class="zone" id="zone-activity" data-testid="zone-activity" open>
+          <details class="zone" id="zone-activity" data-testid="zone-activity">
             <summary>
               <span class="zone-title">Activity</span>
               <button type="button" id="audit-toggle" data-testid="audit-toggle" aria-pressed="false" title="filter the stream to who did what">Audit trail</button>
@@ -207,7 +218,6 @@ app.innerHTML = `
       </div>
     </section>
 
-    <button type="button" class="pane-restore" data-restore="site" data-testid="restore-site" aria-label="Show the storefront"><span>Storefront</span></button>
     <section class="pane" id="site-pane" aria-label="Site pane">
       <header>Storefront<span class="pane-sub">aperture supply co.</span>
         <button type="button" class="pane-min" data-min="site" data-testid="min-site" aria-label="Minimise the storefront" title="Minimise">&minus;</button>
@@ -256,7 +266,6 @@ app.innerHTML = `
       <span class="ac-dot"></span><span class="ac-label">agent</span>
     </div>
 
-    <button type="button" class="pane-restore" data-restore="rail" data-testid="restore-rail" aria-label="Show the agent panel"><span>Agent</span></button>
     <section class="pane" id="tool-rail" aria-label="Agent">
       <header>
         Agent
@@ -546,18 +555,21 @@ function renderDeployCard(deploy: Deploy, canRollback: boolean): void {
         <span class="dc-id"></span>
         <span class="dc-status"></span>
       </div>
-      <div class="dc-meta">
-        ${
-          deploy.containsMigration
-            ? `<span class="dc-badge dc-badge-migration">migration · ${
-                deploy.migrationReversible ? 'reversible' : 'irreversible'
-              }</span>`
-            : ''
-        }
-        ${deploy.flagsTouched.length ? `<span class="dc-badge">flags: ${deploy.flagsTouched.join(', ')}</span>` : ''}
-        <span class="dc-badge">${canary}</span>
-        <span class="dc-badge">${deploy.diffstat.files} files +${deploy.diffstat.plus} −${deploy.diffstat.minus}</span>
-      </div>
+      ${
+        deploy.containsMigration
+          ? `<div class="dc-flag"><span class="dc-badge dc-badge-migration">migration · ${
+              deploy.migrationReversible ? 'reversible' : 'irreversible'
+            }</span></div>`
+          : ''
+      }
+      <details class="dc-details">
+        <summary data-testid="details-${deploy.id}">Details</summary>
+        <div class="dc-meta">
+          ${deploy.flagsTouched.length ? `<span class="dc-badge">flags: ${deploy.flagsTouched.join(', ')}</span>` : ''}
+          <span class="dc-badge">${canary}</span>
+          <span class="dc-badge">${deploy.diffstat.files} files +${deploy.diffstat.plus} −${deploy.diffstat.minus}</span>
+        </div>
+      </details>
       <div class="dc-actions">
         <button type="button" class="ctl-btn dc-rollback" data-act="rollback" data-deploy="${deploy.id}" data-testid="rollback-${deploy.id}">Roll back</button>
       </div>
@@ -2002,7 +2014,13 @@ document.addEventListener('click', (e) => {
     return;
   }
   const restore = (e.target as HTMLElement).closest<HTMLElement>('[data-restore]');
-  if (restore) setPane(restore.dataset.restore as 'site' | 'rail', true);
+  if (restore) {
+    const which = restore.dataset.restore as 'site' | 'rail';
+    const open = which === 'site' ? shellEl.dataset.site !== 'on' : shellEl.dataset.rail !== 'off';
+    // the masthead button toggles; the pane's own minus only ever closes
+    setPane(which, which === 'site' ? open : shellEl.dataset.rail === 'off');
+    restore.setAttribute('aria-pressed', String(which === 'site' ? open : shellEl.dataset.rail !== 'off'));
+  }
 });
 
 runBtn.addEventListener('click', () => {

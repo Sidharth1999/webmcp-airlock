@@ -1632,13 +1632,10 @@ body {
   padding: var(--sp-3) 0;
 }
 .pane-restore:hover { color: var(--ink); background: var(--panel); }
-.shell[data-site='off'] .pane-restore[data-restore='site'] { display: block; grid-area: site; }
-.shell[data-rail='off'] .pane-restore[data-restore='rail'] { display: block; grid-area: rail; }
 .shell[data-rail='off'] #tool-rail { display: none; }
-.shell[data-rail='off'] { grid-template-columns: minmax(340px, 29%) 1fr 34px; }
-.shell[data-rail='off'][data-site='off'] { grid-template-columns: 1fr 34px 34px; }
-.shell[data-site='off'] .pane-restore[data-restore='site'] { grid-area: site; }
-.shell[data-site='off'] { grid-template-columns: 1fr 34px minmax(310px, 23%); }
+.shell[data-rail='off'] { grid-template-columns: minmax(340px, 29%) 1fr 0px; }
+.shell[data-rail='off'][data-site='off'] { grid-template-columns: 1fr 0px 0px; }
+.shell[data-site='off'] { grid-template-columns: 1fr 0px minmax(310px, 23%); }
 
 /* --- the lever panel: controls that state their price --------------------
    Rule from Vercel Firewall (read live): every control names its blast
@@ -1766,7 +1763,18 @@ body {
 }
 .ctl-row .ctl-kind { grid-column: 1; }
 .ctl-row .ctl-name { grid-column: 2; white-space: nowrap; }
-.ctl-row .ctl-state { grid-column: 3; justify-self: end; text-align: right; white-space: nowrap; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+/* `justify-self: end` lets a too-wide box extend LEFT past its track start,
+   which printed the state over the service name ("ap0.0 · degraded").
+   Stretch to the track and right-align the text so clipping actually works. */
+.ctl-row .ctl-state {
+  grid-column: 3;
+  justify-self: stretch;
+  text-align: right;
+  white-space: nowrap;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
 /* column 4 is the optional primary verb; column 5 is always the menu */
 .ctl-row > .ctl-btn:not(.lever) { grid-column: 4; justify-self: stretch; }
 .ctl-row > .actions-menu { grid-column: 5; justify-self: stretch; }
@@ -1839,3 +1847,78 @@ body {
 /* the controls surface is the biggest thing here, and should look it */
 #zone-controls { border-color: color-mix(in oklch, var(--ink-ghost) 22%, var(--line)); }
 #zone-controls > summary .zone-title { font-size: var(--text-md, 16px); }
+
+/* --- SPACE PLANNING -------------------------------------------------------
+   Three tiers, and a panel earns its footprint by what it says at a glance.
+
+   GLANCE (no interaction): is something wrong, how bad, how long, and what
+   can I do right now. State and health metrics belong together at the top;
+   putting the metrics below the actions buried the answer to "how bad".
+   REACH (one interaction): why — what changed, the shape of it, what I have
+   already done.
+   DIG: the full activity trail.
+
+   A panel with nothing to say does not reserve space. */
+
+/* GLANCE: state and the numbers, one band, side by side when there is room */
+.glance { display: grid; grid-template-columns: 1fr; gap: var(--sp-3); }
+@container console (min-width: 720px) {
+  .glance { grid-template-columns: minmax(0, 1.35fr) minmax(300px, 1fr); align-items: start; }
+}
+.glance #stats {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--sp-2);
+  align-content: start;
+}
+
+/* ACT: the control groups sit side by side instead of one narrow column
+   with dead space to its right — Sid: "a lot of empty space in the middle" */
+.ctl-groups { display: grid; grid-template-columns: 1fr; gap: var(--sp-4) var(--sp-6); }
+@container console (min-width: 720px) {
+  .ctl-groups { grid-template-columns: repeat(2, minmax(0, 1fr)); }
+  /* Release carries the most rows, so let it take the full first row */
+  .ctl-groups > .ctl-group:first-child { grid-column: 1 / -1; }
+}
+.ctl-group { min-width: 0; display: flex; flex-direction: column; }
+h4.ctl-group-label { margin: 0 0 var(--sp-2); }
+
+/* A panel with nothing to say should not claim a panel's worth of space. */
+#zone-holding:not(:has(.holding)) { display: none; }
+
+/* --- a closed panel leaves NO rail ---------------------------------------
+   The vertical writing-mode restore strip read as a stray artifact. The
+   masthead already owns "is this panel showing" for the storefront, so the
+   agent panel joins it there and closed panes simply collapse to zero. */
+.pane-restore { display: none !important; }
+
+/* --- deploy cards: a summary you can read, detail on demand --------------
+   Sid, several times: "the text is so compressed in those cards, and
+   clicking doesn't do much". Six badges crammed under a two-line title is
+   not a card, it is a paragraph. The card now states what shipped and
+   whether it is live; the diffstat, canary and flags arrive on click, which
+   also gives clicking a purpose. */
+.deploy-card .dc-title { line-height: 1.4; margin-bottom: 4px; }
+.deploy-card .dc-head { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: baseline; }
+.dc-flag { margin-top: var(--sp-2); }
+.dc-details { margin-top: var(--sp-2); }
+.dc-details > summary {
+  list-style: none; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 5px;
+  font-family: var(--font-instrument);
+  font-size: var(--text-2xs);
+  color: var(--ink-ghost);
+}
+.dc-details > summary::-webkit-details-marker { display: none; }
+.dc-details > summary::before {
+  content: ''; width: 0; height: 0;
+  border-left: 4px solid currentColor;
+  border-top: 3.5px solid transparent; border-bottom: 3.5px solid transparent;
+  transition: transform 120ms ease;
+}
+.dc-details[open] > summary::before { transform: rotate(90deg); }
+.dc-details > summary:hover { color: var(--ink-dim); }
+.dc-details .dc-meta { margin-top: var(--sp-2); display: flex; flex-wrap: wrap; gap: var(--sp-2); }
+
+/* the activity trail is reference, not glance: it arrives when asked for */
+#zone-activity:not([open]) > summary { color: var(--ink-dim); }

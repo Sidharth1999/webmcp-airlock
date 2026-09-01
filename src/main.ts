@@ -175,7 +175,7 @@ app.innerHTML = `
         <div id="control-deck" data-testid="control-deck">
           <section class="zone" id="zone-controls" data-testid="zone-controls">
             <div class="zone-head">
-              <h2 class="zone-title">Manual controls</h2>
+              <h2 class="zone-title">Response controls</h2>
               <div id="topology" data-testid="topology"></div>
             </div>
             <div class="ctl-groups">
@@ -358,9 +358,9 @@ app.innerHTML = `
     <section class="wb-dock" id="tool-rail" aria-label="Agent">
       <header class="dock-head">
         <span class="dock-title">Agent</span>
-        <span class="pane-sub" id="rail-sub">standing by</span>
+        <kbd class="dock-kbd">⌘J</kbd>
         <button type="button" class="dock-close" data-toggle="rail" data-min="rail" data-testid="min-rail"
-                aria-label="Close the agent panel" title="Close">&times;</button>
+                aria-label="Hide the agent panel" title="Hide  ⌘J">&times;</button>
       </header>
       <div class="rail-modes">
         <span class="rail-modes-label">Response stage</span>
@@ -389,7 +389,6 @@ app.innerHTML = `
           <span class="ap-dot" aria-hidden="true"></span>
           <span class="ap-text">
             <span id="agent-conn" data-testid="agent-conn" data-state="off">No agent connected</span>
-            <span class="ap-sub ap-sub-off">WebMCP on this page: <span id="webmcp-status">…</span>. Assistance is optional — every control in this console works without one.</span>
             <span class="ap-sub ap-sub-on">Working through this page's tools — every write still needs your approval.</span>
           </span>
         </div>
@@ -409,13 +408,12 @@ app.innerHTML = `
           </p>
         </section>
 
-        <!-- 27 rows of capability is REFERENCE, not glance. It is collapsible
-             so an operator mid-decision can put it away — but it stays OPEN by
-             default, because "what this page lets the agent do" is the single
-             most legible thing about the mechanism and hiding it by default
-             would be hiding the point. Density is bought back in the type,
-             not by concealing the surface. -->
-        <details class="ladder" id="tool-surface" open aria-label="What the agent can reach">
+        <!-- 27 rows of capability is REFERENCE, not glance, and it was eating
+             the dock by default (Sid, 2026-09-01: "useful for sure but needs to
+             be opt-in"). The count stays on the summary, so the fact that the
+             surface is bounded — and by how much — is still visible closed;
+             the rows themselves are one click away. -->
+        <details class="ladder" id="tool-surface" aria-label="What the agent can reach">
           <summary class="ladder-head">
             <span class="ladder-title">What this page lets the agent do</span>
             <span class="ts-count" id="tool-count"></span>
@@ -433,6 +431,7 @@ app.innerHTML = `
       <span class="wbs-item" id="sim-status" data-testid="sim-status">seeded · paused</span>
       <span class="spacer"></span>
       <span class="wbs-item wbs-hint"><kbd>⌘K</kbd> commands</span>
+      <span class="wbs-item wbs-hint"><kbd>⌘J</kbd> agent</span>
       <span class="wbs-item" id="wbs-webmcp">WebMCP …</span>
     </footer>
   </div>
@@ -457,9 +456,6 @@ document.querySelector('#health-demo')?.addEventListener('click', (e) => {
   if (btn) setHealth(btn.dataset.healthSet as Health);
 });
 
-document.querySelector('#webmcp-status')!.textContent = hasWebMCP()
-  ? 'detected'
-  : 'not detected (plain browser — page fully usable without an agent)';
 document.querySelector('#wbs-webmcp')!.textContent = hasWebMCP()
   ? 'WebMCP ready'
   : 'WebMCP not detected';
@@ -1568,8 +1564,8 @@ function addApprovalCard(e: Event): void {
         : ''
     }
     <div class="ap-actions">
-      <button type="button" class="ctl-btn primary ap-approve" data-act="approve" data-seq="${e.seq}" data-testid="approve-${e.seq}" ${dualKey ? 'disabled' : ''}>Approve</button>
-      <button type="button" class="ctl-btn ap-reject" data-act="reject" data-seq="${e.seq}" data-testid="reject-${e.seq}">Reject</button>
+      <button type="button" class="ctl-btn primary ap-approve" data-act="approve" data-seq="${e.seq}" data-testid="approve-${e.seq}" ${dualKey ? 'disabled' : ''}>Approve<kbd class="ap-kbd">⌘ enter</kbd></button>
+      <button type="button" class="ctl-btn ap-reject" data-act="reject" data-seq="${e.seq}" data-testid="reject-${e.seq}">Reject<kbd class="ap-kbd">⌘ del</kbd></button>
     </div>
   `;
   card.querySelector('.ap-diff')!.textContent = d.diffSummary;
@@ -3355,7 +3351,47 @@ function runPalette(i: number): void {
   send({ type: 'act', tool: c.tool, input: c.input });
 }
 
+/**
+ * THE AGENT IS A REGION, SO IT GETS A REGION'S SHORTCUT.
+ *
+ * ⌘J brings the agent up or puts it away — that is all it does. It is the
+ * sibling of ⌘K and is advertised next to it in the status bar, because a
+ * shortcut nobody can see is a shortcut nobody has.
+ *
+ * ⌘⏎ / ⌘⌫ decide the ask that is waiting. Both are CHORDS on purpose: the
+ * gate is the product, and a bare key that approves a production write on a
+ * mis-hit would be the console undoing its own thesis. They also refuse to
+ * bypass the second key — on a dual-key card the chord takes you to the key
+ * and stops, which is the same answer the button gives.
+ */
+function liveDecision(): { card: HTMLElement } | undefined {
+  return [...pendingCards.values()][0];
+}
+
 document.addEventListener('keydown', (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'j') {
+    e.preventDefault();
+    setRegion('rail', !regionOpen('rail'));
+    return;
+  }
+  if ((e.metaKey || e.ctrlKey) && (e.key === 'Enter' || e.key === 'Backspace')) {
+    const entry = liveDecision();
+    if (!entry) return;
+    e.preventDefault();
+    if (!regionOpen('rail')) setRegion('rail', true);
+    const btn = entry.card.querySelector<HTMLButtonElement>(
+      e.key === 'Enter' ? '.ap-approve' : '.ap-reject'
+    );
+    if (!btn) return;
+    if (btn.disabled) {
+      // the key is not engaged: show them the thing that is stopping them
+      entry.card.scrollIntoView({ block: 'nearest' });
+      entry.card.querySelector<HTMLElement>('.ap-key-toggle')?.focus();
+      return;
+    }
+    btn.click();
+    return;
+  }
   if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
     e.preventDefault();
     paletteEl.hidden ? openPalette() : closePalette();
@@ -3424,11 +3460,6 @@ function renderCapability(tools: AirlockTools): void {
   const fc = document.querySelector<HTMLElement>('#finding-count');
   const n = document.querySelectorAll('#agent-findings .finding').length;
   if (fc) fc.textContent = n ? String(n) : '';
-  const sub = document.querySelector<HTMLElement>('#rail-sub');
-  if (sub) {
-    sub.textContent =
-      writes.length === 0 ? 'can look, cannot change' : `can ask for ${writes.length} changes`;
-  }
 }
 
 /**

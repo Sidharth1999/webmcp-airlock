@@ -235,7 +235,9 @@ function banner(scene: Scene, state: 'running' | 'ready' | 'failed', detail = ''
         <span class="rv-state"></span>
       </div>
       <ul class="rv-try"></ul>
-      <nav class="rv-scenes" aria-label="Review scenes"></nav>
+      <nav class="rv-scenes" aria-label="Review scenes">
+        <span class="rv-scenes-label">Other things to look at</span>
+      </nav>
     `;
     // ONE reserved area for anything agent- or review-related: this belongs
     // inside the agent dock, at the top of it, not floating in a corner
@@ -250,6 +252,7 @@ function banner(scene: Scene, state: 'running' | 'ready' | 'failed', detail = ''
       a.textContent = sc.id;
       a.dataset.testid = `review-scene-${sc.id}`;
       a.title = sc.title;
+      a.setAttribute('aria-label', `${sc.id} — ${sc.title}`);
       if (sc.id === scene.id) a.setAttribute('aria-current', 'true');
       nav.append(a);
     }
@@ -298,7 +301,7 @@ async function watchForYourDecision(
   const list = el.querySelector<HTMLElement>('.rv-try')!;
   list.innerHTML = '';
   const li = document.createElement('li');
-  li.textContent = 'Sim resumed so you can see what your decision did.';
+  li.textContent = 'The console is moving again — watch what your decision did.';
   list.append(li);
 }
 
@@ -319,7 +322,7 @@ export async function run(opts: {
   const { air, isRunning, toggleRun } = opts;
   const id = new URLSearchParams(location.search).get('review') ?? '';
   const scene = SCENES.find((s) => s.id === id) ?? SCENES[0]!;
-  banner(scene, 'running', 'starting the sim');
+  banner(scene, 'running', 'setting the scene');
 
   // Each scene names the scenario it needs. Re-seeding here rather than at
   // boot keeps main.ts from having to know anything about scenes.

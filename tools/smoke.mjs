@@ -196,6 +196,38 @@ try {
       await page.locator('#tool-list li[data-status="active"]').first().textContent()
     )
   );
+  // ---- the dock is opt-in, and reachable from the keyboard --------------
+  // 27 rows of capability was eating the dock by default. It is closed now,
+  // but the COUNT stays on the summary: that the surface is bounded, and by
+  // how much, is the reassuring half and must survive the collapse.
+  check(
+    'the capability ladder is opt-in, and still says how many rungs when closed',
+    (await page.evaluate(() => document.querySelector('#tool-surface').open)) === false &&
+      (await page.getByTestId('tool-list').isVisible()) === false &&
+      /\d/.test(await page.locator('#tool-count').textContent())
+  );
+  check(
+    'opening it is one click, and it is the same ladder',
+    await page.evaluate(async () => {
+      document.querySelector('#tool-surface summary').click();
+      const open = document.querySelector('#tool-surface').open;
+      const rows = document.querySelectorAll('#tool-list li').length;
+      document.querySelector('#tool-surface summary').click();
+      return open && rows > 10 && !document.querySelector('#tool-surface').open;
+    })
+  );
+  // ⌘J is the region's shortcut, advertised in the status bar and on the dock
+  await page.keyboard.press('Control+j');
+  const railHidden = await page.evaluate(() => document.querySelector('.wb').dataset.rail);
+  await page.keyboard.press('Control+j');
+  check(
+    '⌘J hides and restores the agent dock, and says so on screen',
+    railHidden === 'off' &&
+      (await page.evaluate(() => document.querySelector('.wb').dataset.rail)) === 'on' &&
+      /⌘J/.test(await page.locator('.wb-status').textContent()) &&
+      /⌘J/.test(await page.locator('#tool-rail .dock-head').textContent())
+  );
+
   check(
     'record_finding is listed and is NOT read-only',
     await page.evaluate(() => {
@@ -244,6 +276,13 @@ try {
   );
 
   await page.getByTestId('mode-recovery').click();
+  // The ladder is opt-in now, so the rung a human would go and LOOK at is
+  // behind one click. The gate below still demands the rung be VISIBLE —
+  // that assertion is untouched; this is the gesture the UI now requires.
+  await page.evaluate(() => {
+    const d = document.querySelector('#tool-surface');
+    if (!d.open) d.querySelector('summary').click();
+  });
   await page.locator('#tool-list li[data-tool="propose_rollback"][data-status="active"]').waitFor({ timeout: 5_000 });
   check(
     'recovery registers the full surface (27: 6 reads + record_finding + propose_plan + 19 proposals)',
@@ -387,6 +426,22 @@ try {
     /needs your key/.test(await page.locator('.pa-item .pa-meta').textContent())
   );
   await page.keyboard.press('Escape');
+
+  // ⌘ enter decides the ask that is waiting — but it is not a way PAST the
+  // gate. On a two-key card it takes you to the key and stops, which is the
+  // same answer the disabled button gives.
+  await page.keyboard.press('Control+Enter');
+  await page.waitForTimeout(300);
+  check(
+    'the approve chord refuses to bypass the second key',
+    (await page.locator(`[data-testid="approval-${routeProp.proposalSeq}"]`).count()) === 1 &&
+      (await page.evaluate(() => document.activeElement?.className)).includes('ap-key-toggle')
+  );
+  check(
+    'the card advertises the chords on the buttons that fire them',
+    /⌘ enter/.test(await page.getByTestId(`approve-${routeProp.proposalSeq}`).textContent()) &&
+      /⌘ del/.test(await page.getByTestId(`reject-${routeProp.proposalSeq}`).textContent())
+  );
 
   await page.getByTestId(`key-${routeProp.proposalSeq}`).check();
   check(

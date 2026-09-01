@@ -39,7 +39,7 @@ Everything the six reads return is a pure function over the SAME event log the p
 **These do not compete with the film — they ARE the film's content.** Building them first makes Wednesday's shoot shorter and better.
 
 ### Campaign state at handoff — RESUMABLE, do not restart from scratch
-`v2-order`: **16 of 48 runs done, $1.56 spent.** The runner skips anything already `status:'done'`, so re-issuing the identical command continues it:
+`v2-order`: **19 of 48 runs done at handoff.** It is **RUNNING DETACHED** — relaunched under `nohup` and reparented to launchd (PID 1), verified NOT to be a descendant of the Claude CLI, so it survives the session ending. Live output: `tail -f log/v2-order.log`. Stop with `pkill -f run-campaign`. The runner skips anything already `status:'done'`, so if it dies, re-issuing the identical command continues it:
 
 ```
 npm run campaign -- --campaign v2-order --family retry-storm --phrasings neutral --arms gated,ungated

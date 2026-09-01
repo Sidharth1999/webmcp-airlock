@@ -10,3 +10,4 @@ study/campaign/dry-*/
 .env
 .env.*
 !.env.example
+log/v2-order.log

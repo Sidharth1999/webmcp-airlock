@@ -963,7 +963,9 @@ body {
    without this the off-viewport hide silently does nothing. */
 #agent-cursor[hidden] { display: none; }
 #agent-cursor[data-state='active'] { opacity: 1; }
-#agent-cursor[data-state='idle'] { opacity: 0.35; }
+/* idle means it stopped looking, so it goes away — a label parked on a
+   region the agent is no longer reading is a claim that is not true any more */
+#agent-cursor[data-state='idle'] { opacity: 0; pointer-events: none; }
 #agent-cursor .ac-dot {
   width: 9px; height: 9px;
   border-radius: 50%;
@@ -2947,3 +2949,69 @@ h4.ctl-group-label { margin: 0 0 var(--sp-2); }
   to   { background: oklch(76% 0.13 310 / 0.12); }
 }
 @media (prefers-reduced-motion: reduce) { .log-row.log-cited { animation: none; } }
+
+
+/* ======================================================================
+   CALM BY DEFAULT, DETAIL ON DEMAND (Sid, 2026-09-01: "way too dense and
+   intimidating ... opt-in more for extra details/context").
+
+   The rule: at the moment of decision a person needs WHAT WILL HAPPEN, WHAT
+   IT COSTS, and the two buttons. Everything that explains the AGENT — the
+   reads it made, what it concluded, the whole capability inventory — is what
+   you reach for when those three do not settle it. So it collapses, and the
+   summary keeps the number, because the count is the glance and the contents
+   are the audit.
+
+   What never collapses: a cost, a warning, and a decision.
+   ====================================================================== */
+details.ap-evidence > summary,
+details.ladder > summary {
+  cursor: pointer;
+  list-style: none;
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+}
+details.ap-evidence > summary::-webkit-details-marker,
+details.ladder > summary::-webkit-details-marker { display: none; }
+details.ap-evidence > summary::after,
+details.ladder > summary::after {
+  content: '';
+  margin-left: auto;
+  width: 5px;
+  height: 5px;
+  border-right: 1px solid currentColor;
+  border-bottom: 1px solid currentColor;
+  transform: rotate(-45deg) translate(-1px, -1px);
+  opacity: 0.75;
+  transition: transform var(--dur-quick, 120ms) ease;
+}
+details[open].ap-evidence > summary::after,
+details[open].ladder > summary::after { transform: rotate(45deg); }
+details.ap-evidence > summary:hover,
+details.ladder > summary:hover { color: var(--ink); }
+details.ap-evidence > summary:focus-visible,
+details.ladder > summary:focus-visible { outline: 2px solid var(--actor-agent); outline-offset: 2px; }
+details.ap-evidence > *:not(summary) { margin-top: var(--sp-2); }
+
+/* the reason a plan gives for its order is the point of the plan, so it
+   stays — but three lines of it at rest is a wall. Clamp, and let it open. */
+.pl-why-t {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+  cursor: pointer;
+}
+.pl-why-t[data-expanded='true'] { display: block; -webkit-line-clamp: none; }
+
+/* hierarchy inside a step: WHAT is the thing being decided, the price and the
+   agent's aside are support and are set as support */
+.pl-what { font-size: var(--text-sm); color: var(--ink); }
+.pl-cost,
+.pl-because { color: var(--ink-faint); }
+
+/* the capability list stays open, so it pays for its space in type instead:
+   tighter rows, quieter default state, the verb still legible */
+#tool-list li { line-height: 1.35; }
+.ladder-foot { line-height: 1.4; }

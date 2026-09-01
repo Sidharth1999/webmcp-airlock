@@ -638,7 +638,7 @@ try {
   );
   check(
     'a tier-1 write is promoted to the key rung by provenance alone',
-    /tier 1 · deploy · dual-key/.test(injText) &&
+    /a deploy · needs your key/.test(injText) &&
       (await inj.getByTestId(`approve-${injSeq}`).isDisabled())
   );
   await inj.getByTestId(`key-${injSeq}`).check();
@@ -689,6 +689,16 @@ try {
   ).proposalSeq;
   const strip = ev.getByTestId(`evidence-${worked}`);
   await strip.waitFor({ timeout: 5_000 });
+  // The strip is a DISCLOSURE now: the count is the glance, the chips are
+  // the audit. Assert the summary carries the number, then open it the way
+  // a reviewer does before checking what is inside.
+  check(
+    'the reads are summarised, and the detail is opt-in',
+    (await strip.evaluate((d) => d.tagName)) === 'DETAILS' &&
+      (await strip.evaluate((d) => d.open)) === false &&
+      /Worked from \d+ reads/.test(await strip.locator('summary').textContent())
+  );
+  await strip.locator('summary').click();
   const chips = await ev.locator(`[data-testid="evidence-${worked}"] .ap-ev-chip`).evaluateAll((n) =>
     n.map((c) => c.dataset.tool)
   );

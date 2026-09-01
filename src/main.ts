@@ -400,14 +400,20 @@ app.innerHTML = `
           </p>
         </section>
 
-        <section class="ladder" id="tool-surface" aria-label="What the agent can reach">
-          <div class="ladder-head">
+        <!-- 27 rows of capability is REFERENCE, not glance. It is collapsible
+             so an operator mid-decision can put it away — but it stays OPEN by
+             default, because "what this page lets the agent do" is the single
+             most legible thing about the mechanism and hiding it by default
+             would be hiding the point. Density is bought back in the type,
+             not by concealing the surface. -->
+        <details class="ladder" id="tool-surface" open aria-label="What the agent can reach">
+          <summary class="ladder-head">
             <span class="ladder-title">What this page lets the agent do</span>
             <span class="ts-count" id="tool-count"></span>
-          </div>
+          </summary>
           <ul id="tool-list" data-testid="tool-list"></ul>
           <p class="ladder-foot" id="ladder-foot"></p>
-        </section>
+        </details>
       </div>
     </section>
 
@@ -1093,18 +1099,30 @@ function renderCitedText(host: HTMLElement, text: string): void {
 }
 
 /** The provenance strip for one proposal, built fresh so it snapshots NOW. */
+/**
+ * PROGRESSIVE DISCLOSURE, and which way round it goes.
+ *
+ * At the moment of decision a person needs three things: what will happen,
+ * what it costs, and the two buttons. Everything that EXPLAINS the agent —
+ * which reads it made, what it concluded — is what you reach for when the
+ * first three do not settle it, so it collapses behind a summary that still
+ * carries the number ("Worked from 5 reads · 7 calls"). The count is the
+ * part you glance at; the chips are the part you audit.
+ *
+ * The zero-read case NEVER collapses. It is not detail, it is the finding.
+ */
 function buildEvidence(proposalSeq: number): HTMLElement {
-  const box = document.createElement('div');
+  const bare = agentReads.size === 0;
+  const box = document.createElement(bare ? 'div' : 'details');
   box.className = 'ap-evidence';
   box.dataset.testid = `evidence-${proposalSeq}`;
 
-  const head = document.createElement('span');
+  const head = document.createElement(bare ? 'span' : 'summary');
   head.className = 'ap-ev-head';
   const calls = [...agentReads.values()].reduce((n, t) => n + t.count, 0);
-  head.textContent =
-    agentReads.size === 0
-      ? 'Worked from nothing'
-      : `Worked from ${agentReads.size} read${agentReads.size === 1 ? '' : 's'} · ${calls} call${calls === 1 ? '' : 's'}`;
+  head.textContent = bare
+    ? 'Worked from nothing'
+    : `Worked from ${agentReads.size} read${agentReads.size === 1 ? '' : 's'} · ${calls} call${calls === 1 ? '' : 's'}`;
   box.append(head);
 
   if (agentReads.size === 0) {
@@ -1325,6 +1343,13 @@ function renderPlan(e: Event): void {
   k.textContent = 'Why this order';
   const body = document.createElement('p');
   body.className = 'pl-why-t';
+  body.tabIndex = 0;
+  body.title = 'Show the whole reason';
+  // clamped to two lines at rest; the reason for an ORDER is worth reading in
+  // full, but not worth three lines of wall before you have decided to
+  body.addEventListener('click', () => {
+    body.dataset.expanded = body.dataset.expanded === 'true' ? 'false' : 'true';
+  });
   renderCitedText(body, String(d.reason ?? ''));
   why.append(k, body);
   el.append(why);
@@ -1404,6 +1429,28 @@ function resetPlans(): void {
   approvalToProposal.clear();
 }
 
+/**
+ * "tier 3 · route" told a first-time operator nothing: `tier` is this
+ * codebase's internal risk ladder and the number is meaningless without it.
+ * The card says what the change TOUCHES, in words anyone on call already
+ * uses, and names the only consequence of the ladder they can act on —
+ * whether it needs the second key. The tier number stays in the event log,
+ * where it belongs, for the audit trail and the engine's own checks.
+ */
+const WHAT_IT_TOUCHES: Record<string, string> = {
+  deploy: 'a deploy',
+  env: 'an environment value',
+  flag: 'a feature flag',
+  route: 'traffic routing',
+  dns: 'DNS',
+  service: 'a service',
+  data: 'the database',
+  cache: 'a cache',
+  alerting: 'alerting',
+  incident: 'this incident',
+  comms: 'what customers are told',
+};
+
 function addApprovalCard(e: Event): void {
   const d = e.data as {
     tool: string;
@@ -1425,7 +1472,7 @@ function addApprovalCard(e: Event): void {
   card.innerHTML = `
     <div class="ap-head">
       <span class="ap-actor">agent proposes</span>
-      <span class="ap-tier">tier ${d.tier} · ${d.tierName}${dualKey ? ' · dual-key' : ''}</span>
+      <span class="ap-tier">${WHAT_IT_TOUCHES[d.tierName] ?? d.tierName}${dualKey ? ' · needs your key' : ''}</span>
     </div>
     <div class="ap-diff"></div>
     ${
@@ -1494,11 +1541,15 @@ const airlockCards = document.querySelector<HTMLElement>('#airlock-cards')!;
  * to vanish the instant the final card resolved.
  */
 function syncAirlock(): void {
-  const pending = pendingCards.size + plans.size;
-  airlockEl.dataset.pending = String(pending);
-  // the agent region rises OVER the page while it needs an answer; the
-  // console underneath does not move, so there is only ever one layout
-  document.querySelector<HTMLElement>('.wb')!.dataset.decision = pending ? 'pending' : 'none';
+  // the region STAYS while a finished plan's receipt is on screen...
+  airlockEl.dataset.pending = String(pendingCards.size + plans.size);
+  // ...but the region only ELEVATES while something is actually undecided.
+  // Keying elevation off the same count left the dock covering the page for
+  // the rest of the session once a plan completed, because its receipt is
+  // deliberately kept. Elevation answers "are you waiting on me", nothing else.
+  document.querySelector<HTMLElement>('.wb')!.dataset.decision = pendingCards.size
+    ? 'pending'
+    : 'none';
 }
 
 function resolveApprovalCard(proposalSeq: number): void {
@@ -1571,13 +1622,19 @@ function moveAgentCursor(target: Element | null): void {
   // the first ~9px of a full-width row (it was landing on the db service
   // line); clamp so a target near the top of the viewport keeps the label
   // on screen. Caught by screenshot, like the Approve-button overlap before.
+  // A burst of reads against the same region used to re-place the cursor on
+  // every one of them, which is the twitch. Staying put IS the signal that
+  // it is still looking there.
+  if (target !== lastAgentTarget) placeAgentCursor(target);
   lastAgentTarget = target;
-  placeAgentCursor(target);
   agentCursor.dataset.state = 'active';
   setPresence('live', 'Agent is working');
   window.clearTimeout(agentIdleTimer);
   agentIdleTimer = window.setTimeout(() => {
+    // it fades out rather than parking: a label left on a region the agent
+    // stopped reading is a claim that is no longer true
     agentCursor.dataset.state = 'idle';
+    lastAgentTarget = null;
     setPresence('idle', 'Agent connected, waiting');
   }, 4000);
 }
@@ -1854,17 +1911,31 @@ function showAgentAttention(e: Event): void {
   }
 }
 
+/**
+ * WHERE THE AGENT IS LOOKING — on the console, never in its own rail.
+ *
+ * This used to point at the agent's tool-list ROW for a read, and at the
+ * approval card for a proposal. Both live in the agent dock, and the cursor
+ * refuses to draw inside the dock (it lands on the labels it would explain),
+ * so it went idle and sat wherever it happened to be — motion with no
+ * meaning, which is exactly how it read.
+ *
+ * A read now points at the console region that read is ABOUT, and a proposal
+ * at the row it would change. The path tells the story on its own:
+ * status → what shipped → the logs → the route it wants to cap.
+ */
 function agentTargetFor(e: Event): Element | null {
   const d = e.data as Record<string, unknown>;
   switch (e.kind) {
-    case 'tool.called':
-      return document.querySelector(`#tool-list li[data-tool="${d.tool}"]`);
+    case 'tool.called': {
+      const region = READ_NARRATION[String(d.tool)]?.region;
+      return region ? document.querySelector(region) : null;
+    }
     case 'action.proposed':
-      return document.querySelector(`[data-testid="approval-${e.seq}"]`);
-    case 'action.blocked':
-      return document.querySelector('#tool-list');
     case 'action.executed':
       return anchorFor(String(d.tool), (d.input ?? {}) as Record<string, unknown>);
+    case 'action.blocked':
+      return null; // nothing on the console changed; the rail says it, better
     default:
       return null;
   }
@@ -2445,7 +2516,7 @@ function renderSituation(w: World, worst: Health): void {
     head.textContent = 'OPERATOR DECISION REQUIRED';
     put([
       ['ACTION', diff],
-      ['TIER', tier.replace(/\s+/g, ' ').trim() || '—'],
+      ['TOUCHES', tier.replace(/\s+/g, ' ').trim() || '—'],
       ['APPLIED', 'nothing — airlock holding', 'hold'],
     ]);
     return;

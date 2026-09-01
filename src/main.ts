@@ -84,6 +84,12 @@ app.innerHTML = `
         </div>
       </details>
       <button type="button" id="sim-run" data-testid="sim-run" aria-pressed="false">Run sim</button>
+      <button type="button" class="cmdk" id="cmdk-open" data-testid="cmdk-open"
+              aria-label="Run a command">
+        <svg viewBox="0 0 20 20" aria-hidden="true"><circle cx="9" cy="9" r="5.5"/><path d="M13 13l4 4"/></svg>
+        <span class="cmdk-text">Run a command…</span>
+        <kbd>⌘K</kbd>
+      </button>
       <span class="spacer"></span>
       <div class="tele" id="tele" data-testid="tele">
         ${(['rps', 'err', 'p95'] as const)
@@ -2296,6 +2302,7 @@ for (const handle of document.querySelectorAll<HTMLElement>('.wb-sash')) {
 }
 
 document.querySelector('#act-palette')!.addEventListener('click', () => openPalette());
+document.querySelector('#cmdk-open')!.addEventListener('click', () => openPalette());
 
 /* ---- row action menus: one at a time --------------------------------------
    These are <details>, so every one the operator opened stayed open and the

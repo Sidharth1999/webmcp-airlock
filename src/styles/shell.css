@@ -942,7 +942,14 @@ body {
   outline: 1px solid var(--actor-human);
   outline-offset: 2px;
 }
-.ctl-row[data-selected='true'] { outline-offset: 0; border-radius: var(--r-sm); }
+.ctl-row {
+  padding-inline: var(--sp-2);
+  margin-inline: calc(var(--sp-2) * -1);
+  border-radius: var(--r-sm);
+}
+.ctl-row[data-selected='true'] { outline-offset: 0; }
+.topo-node[data-selected='true'] { outline-offset: 3px; }
+.deploy-card[data-selected='true'] { outline-offset: 3px; border-radius: var(--r-sm); }
 #control-deck .deck-label {
   font-family: var(--font-prose);
   letter-spacing: 0;
@@ -2445,3 +2452,100 @@ h4.ctl-group-label { margin: 0 0 var(--sp-2); }
 
 /* a menu that would open past the bottom of its scroll container opens up */
 .actions-menu[data-drop='up'] > .am-list { top: auto; bottom: calc(100% + 5px); }
+
+/* --- the command palette says it exists ---------------------------------
+   A 2xs "⌘K commands" in the status bar's far corner is where you look last.
+   This is the convention every ops tool uses: a search-shaped control in the
+   top bar carrying its own shortcut. */
+.cmdk {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-width: 210px;
+  padding: 4px var(--sp-2) 4px var(--sp-3);
+  background: var(--s-well);
+  border: 1px solid var(--line-strong);
+  border-radius: var(--r-sm);
+  color: var(--ink-faint);
+  font-family: var(--font-prose);
+  font-size: var(--text-xs);
+  cursor: pointer;
+  white-space: nowrap;
+  transition: color var(--dur-snap) var(--ease-snap),
+              border-color var(--dur-snap) var(--ease-snap);
+}
+.cmdk:hover { color: var(--ink); border-color: var(--ink-ghost); }
+.cmdk:focus-visible { outline: 2px solid var(--actor-human); outline-offset: 1px; }
+.cmdk svg { width: 13px; height: 13px; fill: none; stroke: currentColor; stroke-width: 1.6; stroke-linecap: round; }
+.cmdk .cmdk-text { margin-right: auto; }
+.cmdk kbd {
+  font-family: var(--font-instrument);
+  font-size: var(--text-2xs);
+  color: var(--ink-faint);
+  background: oklch(100% 0 0 / 0.06);
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 1px 5px;
+}
+@media (max-width: 1500px) { .cmdk { min-width: 0; } .cmdk .cmdk-text { display: none; } }
+
+/* --- deploy history at depth (Sid, 2026-09-02) --------------------------
+   With eight builds in the list, eight equal cards is a wall of history in
+   which the one that is LIVE and the one you would roll back to look exactly
+   like the six you will never touch. Superseded and rolled-back builds
+   collapse to a single row — still selectable, still carrying their roll-back
+   button, just no longer shaped like the thing that needs attention. This is
+   the grouped-hierarchy rule from Grafana/Argo applied to our own list. */
+#deploy-controls {
+  grid-auto-rows: min-content;
+  align-content: start;
+}
+.deploy-card[data-deploy-status='superseded'],
+.deploy-card[data-deploy-status='rolled_back'] {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: baseline;
+  column-gap: var(--sp-3);
+  row-gap: 0;
+  padding: var(--sp-2) var(--sp-3);
+  opacity: 1;                     /* legibility is not the same as emphasis */
+}
+.deploy-card[data-deploy-status='superseded'] .dc-title,
+.deploy-card[data-deploy-status='rolled_back'] .dc-title {
+  grid-column: 1;
+  font-weight: 400;
+  font-size: var(--text-xs);
+  color: var(--ink-dim);
+  margin-bottom: 0;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.deploy-card[data-deploy-status='superseded'] .dc-head,
+.deploy-card[data-deploy-status='rolled_back'] .dc-head {
+  grid-column: 2;
+  gap: var(--sp-2);
+  font-size: var(--text-2xs);
+  flex-wrap: nowrap;
+}
+.deploy-card[data-deploy-status='superseded'] .dc-target,
+.deploy-card[data-deploy-status='rolled_back'] .dc-target { display: none; }
+.deploy-card[data-deploy-status='superseded'] .dc-status,
+.deploy-card[data-deploy-status='rolled_back'] .dc-status { margin-left: 0; }
+.deploy-card[data-deploy-status='superseded'] .dc-details,
+.deploy-card[data-deploy-status='rolled_back'] .dc-details,
+.deploy-card[data-deploy-status='superseded'] .dc-flag,
+.deploy-card[data-deploy-status='rolled_back'] .dc-flag { display: none; }
+.deploy-card[data-deploy-status='superseded'] .dc-actions,
+.deploy-card[data-deploy-status='rolled_back'] .dc-actions {
+  grid-column: 3;
+  margin-top: 0;
+}
+/* the roll-back target is the reason this row is still here: it stays a real
+   control, and only announces itself when the row is reached for */
+.deploy-card[data-deploy-status='superseded'] .dc-rollback { opacity: 0.55; }
+.deploy-card[data-deploy-status='superseded']:hover .dc-rollback,
+.deploy-card[data-deploy-status='superseded']:focus-within .dc-rollback { opacity: 1; }
+
+/* the live build is the one thing in this list that should dominate */
+.deploy-card[data-deploy-status='live'] { grid-column: 1 / -1; }

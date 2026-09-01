@@ -47,6 +47,10 @@ export interface Service {
   deps: string[];
   health: HealthStatus;
   version: string;
+  /** instances serving (service.scale); new ones start cold */
+  replicas?: number;
+  /** tick of the last restart — in-flight requests were dropped */
+  restartedAtTick?: number;
 }
 
 export interface Deploy {

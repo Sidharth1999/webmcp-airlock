@@ -1,6 +1,7 @@
 import './styles/tokens.css';
 import './styles/shell.css';
 import { actionKey } from './harness/metrics';
+import { WRITE_ACTIONS } from './sim/vocabulary';
 import { Engine } from './sim/engine';
 import { MODES, MODE_WRITE_TOOLS, type Mode } from './sim/modes';
 import type { EntityRef, QueryRequest } from './sim/queries';
@@ -159,8 +160,13 @@ app.innerHTML = `
             <summary><span class="zone-title">Manual controls</span><span class="zone-meta">flags · services · topology</span></summary>
             <div class="zone-body">
               <div id="topology" data-testid="topology"></div>
+              <div class="ctl-group-label">Release</div>
               <div id="flag-controls"></div>
               <div id="service-controls"></div>
+              <div class="ctl-group-label">Traffic</div>
+              <div id="route-controls"></div>
+              <div class="ctl-group-label">Data &amp; DNS</div>
+              <div id="ops-controls"></div>
             </div>
           </details>
 
@@ -436,21 +442,14 @@ function summarize(e: Event): string {
     case 'scenario.seeded':
       return `${d.templateId} seed=${d.seed}`;
     case 'action.executed': {
-      const input = d.input as Record<string, unknown>;
-      switch (d.tool) {
-        case 'flag.set':
-          return `flag.set ${input.id} → ${input.state}`;
-        case 'deploy.rollback':
-          return `deploy.rollback ${input.deployId}`;
-        case 'deploy.rollforward':
-          return `deploy.rollforward ${input.service}`;
-        case 'env.set':
-          return `env.set ${input.key}`;
-        case 'route.set':
-          return `route.set ${input.id} → ${input.target}`;
-        default:
-          return `${d.tool} ${JSON.stringify(input)}`;
-      }
+      const input = (d.input ?? {}) as Record<string, unknown>;
+      // one registry: the same describe() the approval card and the agent's
+      // proposal use. The old hand-written switch fell through to raw JSON
+      // for anything new, which is how `traffic.drain {"route":"checkout"}`
+      // ended up on the surface.
+      const spec = WRITE_ACTIONS[String(d.tool)];
+      if (spec && world) return spec.describe(input, world);
+      return `${d.tool} ${JSON.stringify(input)}`;
     }
     case 'migration.applied':
       return `${d.id} by ${d.appliedByDeploy} · ${d.reversible ? 'reversible' : 'IRREVERSIBLE'}`;
@@ -555,6 +554,87 @@ function renderDeployCard(deploy: Deploy, canRollback: boolean): void {
   card.querySelector<HTMLButtonElement>('.dc-rollback')!.disabled = !canRollback;
 }
 
+/**
+ * One control, with its price on it.
+ *
+ * A lever whose cost you cannot see is a trap, and a console full of
+ * consequence-free buttons is why the old three-verb deck had no ordering
+ * problem for anyone — human or agent — to solve. The cost text is the same
+ * string the agent receives in a proposal, from src/sim/vocabulary.ts, so
+ * both sides of the airlock are told the same thing.
+ */
+function lever(
+  tool: string,
+  input: Record<string, unknown>,
+  label: string,
+  testid: string
+): string {
+  const spec = WRITE_ACTIONS[tool];
+  const cost = spec ? spec.cost : '';
+  return `<button type="button" class="ctl-btn lever" data-act="lever" data-tool="${tool}"
+    data-input='${JSON.stringify(input)}' data-testid="${testid}"
+    title="${cost.replace(/"/g, '&quot;')}">${label}<span class="lever-cost">${cost}</span></button>`;
+}
+
+const routeControls = document.querySelector<HTMLDivElement>('#route-controls')!;
+const opsControls = document.querySelector<HTMLDivElement>('#ops-controls')!;
+
+function renderRouteRow(r: World['routes'][number]): void {
+  let row = routeControls.querySelector<HTMLDivElement>(`[data-route-id="${r.id}"]`);
+  if (!row) {
+    row = document.createElement('div');
+    row.className = 'ctl-row';
+    row.dataset.routeId = r.id;
+    row.innerHTML = `
+      <span class="ctl-kind">route</span>
+      <span class="ctl-name"></span>
+      <span class="ctl-state"></span>
+      ${lever('traffic.shift', { route: r.id, percent: 50, target: 'secondary' }, 'Shift 50%', `shift-${r.id}`)}
+      ${lever('traffic.drain', { route: r.id }, 'Drain', `drain-${r.id}`)}
+      ${lever('ratelimit.set', { route: r.id, rps: 100 }, 'Limit 100/s', `limit-${r.id}`)}
+    `;
+    row.querySelector('.ctl-name')!.textContent = r.path;
+    routeControls.append(row);
+  }
+  const bits = [`→ ${r.target}`];
+  if (r.splitPercent !== undefined) bits.push(`${r.splitPercent}% split`);
+  if (r.rateLimitRps !== undefined) bits.push(`≤${r.rateLimitRps}/s`);
+  if (r.drained) bits.push('drained');
+  row.querySelector('.ctl-state')!.textContent = bits.join(' · ');
+  row.dataset.drained = String(Boolean(r.drained));
+}
+
+function renderOpsRows(w: World): void {
+  if (opsControls.childElementCount > 0) {
+    const dbState = opsControls.querySelector('[data-ops="db"] .ctl-state');
+    if (dbState) dbState.textContent = w.dbPrimary ? `primary: ${w.dbPrimary}` : 'primary: db';
+    const dnsState = opsControls.querySelector('[data-ops="dns"] .ctl-state');
+    if (dnsState) {
+      dnsState.textContent = w.dns.length
+        ? w.dns.map((d) => `${d.hostname} → ${d.target}`).join(' · ')
+        : 'shop.example → edge';
+    }
+    return;
+  }
+  opsControls.innerHTML = `
+    <div class="ctl-row" data-ops="cache">
+      <span class="ctl-kind">cache</span><span class="ctl-name">session cache</span>
+      <span class="ctl-state">warm</span>
+      ${lever('cache.flush', { scope: 'session' }, 'Flush', 'flush-session')}
+    </div>
+    <div class="ctl-row" data-ops="db">
+      <span class="ctl-kind">db</span><span class="ctl-name">orders-db</span>
+      <span class="ctl-state">primary: db</span>
+      ${lever('db.failover', { service: 'db' }, 'Fail over', 'failover-db')}
+    </div>
+    <div class="ctl-row" data-ops="dns">
+      <span class="ctl-kind">dns</span><span class="ctl-name">shop.example</span>
+      <span class="ctl-state">shop.example → edge</span>
+      ${lever('dns.cutover', { hostname: 'shop.example', target: 'edge-secondary' }, 'Cut over', 'dns-cutover')}
+    </div>
+  `;
+}
+
 const serviceControls = document.querySelector<HTMLDivElement>('#service-controls')!;
 
 function renderServiceRow(svc: World['services'][number]): void {
@@ -568,6 +648,8 @@ function renderServiceRow(svc: World['services'][number]): void {
       <span class="ctl-name"></span>
       <span class="ctl-state"></span>
       <button type="button" class="ctl-btn" data-act="rollforward" data-service="${svc.id}" data-testid="rollforward-${svc.id}" title="ship the next build of ${svc.id}">Roll forward</button>
+      ${lever('service.restart', { service: svc.id }, 'Restart', `restart-${svc.id}`)}
+      ${lever('service.scale', { service: svc.id, replicas: 4 }, 'Scale to 4', `scale-${svc.id}`)}
     `;
     row.querySelector('.ctl-name')!.textContent = svc.id;
     serviceControls.append(row);
@@ -580,6 +662,8 @@ function renderDeck(w: World): void {
   renderTopology(w);
   for (const flag of w.flags) renderFlagRow(flag);
   for (const svc of w.services) renderServiceRow(svc);
+  for (const r of w.routes) renderRouteRow(r);
+  renderOpsRows(w);
   for (const deploy of w.deploys.slice(-MAX_DEPLOY_CARDS)) {
     // rollback is only a real affordance when the world can honor it:
     // the deploy is live AND a superseded predecessor exists to revert to
@@ -1124,6 +1208,13 @@ document.querySelector('#control-deck')!.addEventListener('click', (e) => {
       send({ type: 'act', tool: 'deploy.rollback', input });
       break;
     }
+    case 'lever': {
+      const tool = String(btn.dataset.tool);
+      const input = JSON.parse(String(btn.dataset.input)) as Record<string, unknown>;
+      if (cautionFor(btn, humanActionKey(tool, input))) return;
+      send({ type: 'act', tool, input });
+      break;
+    }
     case 'undo-holding': {
       const tool = String(btn.dataset.tool);
       const input = JSON.parse(String(btn.dataset.input)) as Record<string, unknown>;
@@ -1549,44 +1640,80 @@ interface Holding {
 
 function holdingsFrom(events: readonly Event[], w: World): Holding[] {
   const held = new Map<string, Holding>();
+  const put = (key: string, what: string, e: Event, undo?: Holding['undo']): void => {
+    held.set(key, { key, what, by: e.actor, atMs: e.t, ...(undo ? { undo } : {}) });
+  };
+
   for (const e of events) {
     if (e.kind !== 'action.executed') continue;
+    // scenario setup is not a mitigation anyone has to unwind
+    if (e.actor !== 'human' && e.actor !== 'agent') continue;
     const { tool, input } = e.data as { tool: string; input: Record<string, unknown> };
-    if (tool === 'flag.set') {
-      const id = String(input.id);
-      const state = String(input.state);
-      const key = `flag:${id}`;
-      if (state === 'off') {
-        held.set(key, {
-          key,
-          what: `Feature flag ${id} held off`,
-          by: e.actor,
-          atMs: e.t,
-          undo: { tool: 'flag.set', input: { id, state: 'on' }, label: 'Turn back on' },
-        });
-      } else {
-        held.delete(key);
+
+    switch (tool) {
+      case 'flag.set': {
+        const id = String(input.id);
+        if (String(input.state) === 'off') {
+          put(`flag:${id}`, `Feature flag ${id} held off`, e, {
+            tool: 'flag.set',
+            input: { id, state: 'on' },
+            label: 'Turn back on',
+          });
+        } else held.delete(`flag:${id}`);
+        break;
       }
-    } else if (tool === 'env.set') {
-      const k = String(input.key);
-      held.set(`env:${k}`, { key: `env:${k}`, what: `${k} changed`, by: e.actor, atMs: e.t });
-    } else if (tool === 'route.set') {
-      const id = String(input.id);
-      held.set(`route:${id}`, {
-        key: `route:${id}`,
-        what: `Route ${id} pointed at ${String(input.target)}`,
-        by: e.actor,
-        atMs: e.t,
-      });
-    } else if (tool === 'deploy.rollback') {
-      const id = String(input.deployId);
-      held.set(`rb:${id}`, { key: `rb:${id}`, what: `${id} rolled back`, by: e.actor, atMs: e.t });
+      case 'traffic.drain':
+        put(`drain:${String(input.route)}`, `${String(input.route)} drained — serving nobody`, e, {
+          tool: 'traffic.shift',
+          input: { route: String(input.route), percent: 100, target: 'api' },
+          label: 'Restore traffic',
+        });
+        break;
+      case 'traffic.shift':
+        held.delete(`drain:${String(input.route)}`);
+        put(
+          `shift:${String(input.route)}`,
+          `${String(input.percent)}% of ${String(input.route)} sent to ${String(input.target ?? 'secondary')}`,
+          e
+        );
+        break;
+      case 'ratelimit.set':
+        put(`rl:${String(input.route)}`, `${String(input.route)} capped at ${String(input.rps)} req/s`, e, {
+          tool: 'ratelimit.set',
+          input: { route: String(input.route), rps: 0 },
+          label: 'Remove cap',
+        });
+        break;
+      case 'canary.set':
+        put(`canary:${String(input.deployId)}`, `${String(input.deployId)} serving ${String(input.percent)}% of traffic`, e);
+        break;
+      case 'service.scale':
+        put(`scale:${String(input.service)}`, `${String(input.service)} scaled to ${String(input.replicas)} replicas`, e);
+        break;
+      case 'db.failover':
+        put(`failover:${String(input.service)}`, `${String(input.service)} running on the promoted replica`, e);
+        break;
+      case 'dns.cutover':
+        put(`dns:${String(input.hostname)}`, `${String(input.hostname)} pointed at ${String(input.target)}`, e);
+        break;
+      case 'env.set':
+        put(`env:${String(input.key)}`, `${String(input.key)} changed`, e);
+        break;
+      case 'route.set':
+        put(`route:${String(input.id)}`, `Route ${String(input.id)} pointed at ${String(input.target)}`, e);
+        break;
+      case 'deploy.rollback':
+        put(`rb:${String(input.deployId)}`, `${String(input.deployId)} rolled back`, e);
+        break;
+      // service.restart and cache.flush are MOMENTS, not standing state:
+      // there is nothing left in force afterwards to unwind
+      default:
+        break;
     }
   }
+
   // a roll-forward supersedes the rollback it replaced
-  for (const d of w.deploys) {
-    if (d.status === 'live') held.delete(`rb:${d.id}`);
-  }
+  for (const d of w.deploys) if (d.status === 'live') held.delete(`rb:${d.id}`);
   return [...held.values()].sort((a, b) => a.atMs - b.atMs);
 }
 
@@ -1615,6 +1742,7 @@ function renderHoldings(events: readonly Event[], w: World): void {
     const meta2 = document.createElement('span');
     meta2.className = 'holding-meta';
     meta2.textContent = `by ${WHO[h.by] ?? h.by} · ${Math.max(0, Math.round((simNowMs - h.atMs) / 1000))}s ago`;
+    what.append(document.createTextNode(' '));
     t.append(what, meta2);
     row.append(t);
     if (h.undo) {

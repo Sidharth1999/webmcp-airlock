@@ -1648,3 +1648,39 @@ body {
 .shell[data-rail='off'][data-site='off'] { grid-template-columns: 1fr 34px 34px; }
 .shell[data-site='off'] .pane-restore[data-restore='site'] { grid-area: site; }
 .shell[data-site='off'] { grid-template-columns: 1fr 34px minmax(310px, 23%); }
+
+/* --- the lever panel: controls that state their price --------------------
+   Rule from Vercel Firewall (read live): every control names its blast
+   radius. A console of consequence-free buttons gives nobody — human or
+   agent — an ordering problem worth solving. */
+.ctl-group-label {
+  font-family: var(--font-instrument);
+  font-size: var(--text-2xs);
+  letter-spacing: .12em; text-transform: uppercase;
+  color: var(--ink-ghost);
+  margin: var(--sp-4) 0 var(--sp-2);
+  padding-bottom: 4px;
+  border-bottom: 1px solid var(--line);
+}
+.ctl-group-label:first-child { margin-top: 0; }
+
+.ctl-btn.lever { position: relative; }
+.lever-cost {
+  display: none;
+  position: absolute; bottom: calc(100% + 7px); right: 0; z-index: 70;
+  width: max-content; max-width: 34ch;
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--panel); color: var(--ink);
+  border: 1px solid var(--line-strong, var(--line));
+  border-left: 2px solid var(--warn);
+  border-radius: var(--r-sm);
+  font-size: var(--text-2xs); font-weight: 400; line-height: 1.5;
+  text-transform: none; letter-spacing: 0;
+  white-space: normal; text-align: left;
+  box-shadow: 0 10px 26px oklch(0% 0 0 / 0.5);
+  pointer-events: none;
+}
+.ctl-btn.lever:hover .lever-cost,
+.ctl-btn.lever:focus-visible .lever-cost { display: block; }
+
+.ctl-row[data-drained='true'] .ctl-state { color: var(--warn); }

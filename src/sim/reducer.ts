@@ -24,6 +24,7 @@ export function initialWorld(): World {
     envVars: [],
     routes: [],
     migrations: [],
+    dns: [],
     traffic: { rps: 0, errRate: 0, p95: 0, byRoute: {} },
     damage: { usersErrored: 0, ticketsOpened: 0, revenueLost: 0 },
   };
@@ -134,6 +135,88 @@ export function reduce(world: World, event: Event): World {
               : [...world.flags, next],
           };
         }
+        // ---- traffic -------------------------------------------------
+        case 'traffic.shift': {
+          const i = input as { route: string; percent: number; target?: string };
+          return {
+            ...world,
+            routes: world.routes.map((r) =>
+              r.id === i.route
+                ? { ...r, splitPercent: i.percent, ...(i.target ? { target: i.target } : {}) }
+                : r
+            ),
+          };
+        }
+        case 'traffic.drain': {
+          const i = input as { route: string };
+          return {
+            ...world,
+            routes: world.routes.map((r) => (r.id === i.route ? { ...r, drained: true } : r)),
+          };
+        }
+        case 'ratelimit.set': {
+          const i = input as { route: string; rps: number };
+          return {
+            ...world,
+            routes: world.routes.map((r) => (r.id === i.route ? { ...r, rateLimitRps: i.rps } : r)),
+          };
+        }
+        case 'canary.set': {
+          const i = input as { deployId: string; percent: number };
+          return {
+            ...world,
+            deploys: world.deploys.map((d) =>
+              d.id === i.deployId ? { ...d, canaryPct: i.percent } : d
+            ),
+          };
+        }
+
+        // ---- compute -------------------------------------------------
+        case 'service.scale': {
+          const i = input as { service: string; replicas: number };
+          return {
+            ...world,
+            services: world.services.map((s) =>
+              s.id === i.service ? { ...s, replicas: i.replicas } : s
+            ),
+          };
+        }
+        case 'service.restart': {
+          const i = input as { service: string };
+          // the restart itself is instantaneous in the world; the COST (dropped
+          // in-flight requests, cold caches) is applied by the template's
+          // onAction, which owns consequences
+          return {
+            ...world,
+            services: world.services.map((s) =>
+              s.id === i.service ? { ...s, restartedAtTick: (s.restartedAtTick ?? 0) + 1 } : s
+            ),
+          };
+        }
+
+        // ---- data ----------------------------------------------------
+        case 'db.failover': {
+          const i = input as { service: string };
+          return { ...world, dbPrimary: `${i.service}-replica` };
+        }
+        case 'cache.flush':
+          // no persistent world state — the consequence is a refill storm,
+          // which the template applies
+          return world;
+
+        // ---- dns -----------------------------------------------------
+        case 'dns.cutover': {
+          const i = input as { hostname: string; target: string };
+          const existing = world.dns.find((d) => d.hostname === i.hostname);
+          const rec = { hostname: i.hostname, target: i.target };
+          return {
+            ...world,
+            dns: existing
+              ? world.dns.map((d) => (d.hostname === i.hostname ? rec : d))
+              : [...world.dns, rec],
+          };
+        }
+
         case 'env.set': {
           const i = input as { key: string; value: string };
           const redacted =

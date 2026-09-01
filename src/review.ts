@@ -270,6 +270,39 @@ function banner(scene: Scene, state: 'running' | 'ready' | 'failed', detail = ''
 }
 
 /**
+ * HOLD STILL WHILE A DECISION IS PENDING; MOVE AGAIN ONCE IT IS MADE.
+ *
+ * A scene pauses the sim so the reviewer can read the card in front of them
+ * without the world sliding underneath. But that meant approving both steps
+ * of a plan and watching nothing happen — the recovery a correct answer earns
+ * needs ticks to arrive in. So once the airlock empties, the sim resumes and
+ * the reviewer sees what their own decision did.
+ */
+async function watchForYourDecision(
+  scene: Scene,
+  isRunning: () => boolean,
+  toggleRun: () => void
+): Promise<void> {
+  // NOT the airlock's pending count: a finished plan keeps its card on screen
+  // as the receipt, so that number never returns to zero. What matters is
+  // whether anything is still WAITING on them — an undecided approval card.
+  const awaiting = () => document.querySelector('.approval-card') !== null;
+  if (!awaiting()) return; // nothing was put to them; leave the world alone
+  await waitFor(() => !awaiting(), 'your decision', 15 * 60_000).catch(() => undefined);
+  if (awaiting()) return;
+  if (!isRunning()) toggleRun();
+  const el = document.querySelector<HTMLElement>('#review-banner');
+  if (!el) return;
+  el.dataset.state = 'running';
+  el.querySelector('.rv-state')!.textContent = 'running — watch the console';
+  const list = el.querySelector<HTMLElement>('.rv-try')!;
+  list.innerHTML = '';
+  const li = document.createElement('li');
+  li.textContent = 'Sim resumed so you can see what your decision did.';
+  list.append(li);
+}
+
+/**
  * Play one scene, then stop. `air` is the live tool surface; `pause` puts the
  * sim back in the state the reviewer expects to find it in — paused, so the
  * world holds still while they read the card in front of them.
@@ -320,6 +353,7 @@ export async function run(opts: {
     await scene.run(ctx);
     await sleep(250);
     banner(scene, 'ready');
+    void watchForYourDecision(scene, isRunning, toggleRun);
   } catch (err) {
     banner(scene, 'failed', String((err as Error).message ?? err));
     throw err;

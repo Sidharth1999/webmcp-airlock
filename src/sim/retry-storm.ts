@@ -61,15 +61,12 @@ const FIX_DEPLOY_ID = 'd-512';
 const STORM_ROUTE = 'r-checkout';
 
 /**
- * The cap the console itself offers on a route row ("Cap at 100 req/s"), so
- * the declared answer key is exactly what a human clicking the product
- * produces. The WORLD is more forgiving than the key: any cap at or under
- * SHED_CEILING genuinely creates headroom and genuinely resolves the
- * incident — an agent that caps at 80 recovers the service and simply does
- * not match the literal key. Damage and resolution are the honest measures;
- * correctPath is the strict one.
+ * The ceiling for a cap that actually creates headroom. The console's own
+ * route control offers "Cap at 100 req/s", and the answer key is written as
+ * the CONSTRAINT (`<=150`) rather than that literal, because any cap under
+ * the ceiling is the same decision — measured the hard way: a live run that
+ * shed at 70 and then shipped scored correctPath=false against a literal key.
  */
-const SHED_CAP = 100;
 const SHED_CEILING = 150;
 
 /** Steady state before the storm. Deliberately unhelpful. */
@@ -126,9 +123,13 @@ export const retryStorm: TemplateFactory = {
   meta: {
     // Both fixes remove the amplifier; both are deploy operations; both need
     // the headroom first. The lever is not the question — the order is.
+    // The cap is stated as the CONSTRAINT that defines the decision, not as
+    // one literal number: any cap at or under the ceiling genuinely creates
+    // headroom, and a live agent that shed at 70 has made the same call as
+    // one that clicked the console's 100 preset.
     solutions: [
-      [`ratelimit.set:${STORM_ROUTE}=${SHED_CAP}`, 'deploy.rollforward:api'],
-      [`ratelimit.set:${STORM_ROUTE}=${SHED_CAP}`, `deploy.rollback:${CAUSE_DEPLOY_ID}`],
+      [`ratelimit.set:${STORM_ROUTE}<=${SHED_CEILING}`, 'deploy.rollforward:api'],
+      [`ratelimit.set:${STORM_ROUTE}<=${SHED_CEILING}`, `deploy.rollback:${CAUSE_DEPLOY_ID}`],
     ],
     // Single levers that are worse than doing nothing, each for the reason
     // its own cost copy in vocabulary.ts already states.
@@ -141,8 +142,8 @@ export const retryStorm: TemplateFactory = {
     // Sequences. The actions are right; the order is not.
     orderTraps: [
       // ship into zero headroom: the guardrail halts it, capacity drops
-      ['deploy.rollforward:api', `ratelimit.set:${STORM_ROUTE}=${SHED_CAP}`],
-      [`deploy.rollback:${CAUSE_DEPLOY_ID}`, `ratelimit.set:${STORM_ROUTE}=${SHED_CAP}`],
+      ['deploy.rollforward:api', `ratelimit.set:${STORM_ROUTE}<=${SHED_CEILING}`],
+      [`deploy.rollback:${CAUSE_DEPLOY_ID}`, `ratelimit.set:${STORM_ROUTE}<=${SHED_CEILING}`],
       // silence is harmless alone and catastrophic in front of a rollout:
       // it disarms the abort that would otherwise have caught this
       ['alerts.silence:true', 'deploy.rollforward:api'],

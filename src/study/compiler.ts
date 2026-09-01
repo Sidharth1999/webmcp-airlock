@@ -69,7 +69,10 @@ export function parseActionKey(
   const sep = key.indexOf(':');
   if (sep < 0) return undefined;
   const tool = key.slice(0, sep);
-  const rest = key.slice(sep + 1);
+  // A constraint entry (`ratelimit.set:r-checkout<=150`) is probed AT ITS
+  // BOUND: the boundary case is the weakest member of the class the key
+  // describes, so proving the scenario there proves it for the rest.
+  const rest = key.slice(sep + 1).replace(/<=|>=/, '=');
   const eq = rest.indexOf('=');
   switch (tool) {
     case 'flag.set':

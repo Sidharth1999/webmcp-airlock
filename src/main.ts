@@ -1849,7 +1849,7 @@ function renderSituation(w: World, worst: Health): void {
     put([
       ['ERR', `${pct(checkoutErr)} /checkout`, 'bad'],
       ['SVC', bad.map((s) => `${s.id} ${s.health}`).join(' · '), 'bad'],
-      ['CAUSE', live ? `${live.id} ${live.note ?? live.version}` : 'unknown'],
+      ['LIVE BUILD', live ? `${live.id} ${live.note ?? live.version}` : 'unknown'],
       ['IMPACT', `${w.damage.usersErrored} users · $${w.damage.revenueLost.toFixed(2)}`, 'bad'],
     ]);
     return;
@@ -1858,11 +1858,15 @@ function renderSituation(w: World, worst: Health): void {
   if (worst === 'degraded') {
     zone.dataset.phase = 'incident';
     state.textContent = 'INCIDENT ACTIVE';
-    head.textContent = 'CHECKOUT FAILING';
+    // DERIVED, never asserted. This read 'CHECKOUT FAILING' for every
+    // scenario, which is a verdict the console has no business making — and
+    // in the family whose errors are spread across all routes it was simply
+    // false. Name what is degraded; the ERR row carries the route detail.
+    head.textContent = `${bad.map((sv) => sv.name.toUpperCase()).join(' / ') || 'SERVICE'} DEGRADED`;
     put([
       ['ERR', `${pct(checkoutErr)} /checkout`, 'warn'],
       ['SVC', bad.map((s) => `${s.id} ${s.health}`).join(' · ') || '—', 'warn'],
-      ['CAUSE', live ? `${live.id} ${live.note ?? live.version}` : 'unknown'],
+      ['LIVE BUILD', live ? `${live.id} ${live.note ?? live.version}` : 'unknown'],
       ['IMPACT', `${w.damage.usersErrored} users · $${w.damage.revenueLost.toFixed(2)}`, 'warn'],
     ]);
     return;

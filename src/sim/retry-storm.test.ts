@@ -163,8 +163,8 @@ describe('retry-storm: answer key and compiler', () => {
   it('declares a two-step ordered answer and three ordering violations', () => {
     const meta = metaFor('retry-storm')!;
     expect(meta.solutions).toEqual([
-      ['ratelimit.set:r-checkout=100', 'deploy.rollforward:api'],
-      ['ratelimit.set:r-checkout=100', 'deploy.rollback:d-511'],
+      ['ratelimit.set:r-checkout<=150', 'deploy.rollforward:api'],
+      ['ratelimit.set:r-checkout<=150', 'deploy.rollback:d-511'],
     ]);
     expect(meta.orderTraps).toHaveLength(3);
     // the ordering violations are made of the SOLUTION's own actions —
@@ -188,5 +188,46 @@ describe('retry-storm: answer key and compiler', () => {
     const a = play([SHED, { tool: 'deploy.rollforward', input: { service: 'api' } }]);
     const b = play([SHED, { tool: 'deploy.rollforward', input: { service: 'api' } }]);
     expect(JSON.stringify(a.events)).toBe(JSON.stringify(b.events));
+  });
+});
+
+/**
+ * MEASURED THE HARD WAY (2026-09-01, first live run against this family):
+ * the model shed at 70 req/s and then shipped — the correct answer in the
+ * correct order — and scored correctPath=false, because the answer key
+ * named one literal cap. A key has to name the decision.
+ */
+describe('retry-storm: the answer key names the decision, not a number', () => {
+  it('credits any cap that actually creates headroom, in the right order', () => {
+    const meta = metaFor('retry-storm')!;
+    for (const rps of [50, 70, 100, 150]) {
+      const e = play([
+        { tool: 'ratelimit.set', input: { route: 'r-checkout', rps } },
+        { tool: 'deploy.rollforward', input: { service: 'api' } },
+      ]);
+      const m = computeMetrics(e.events, meta);
+      expect(m.resolvedAtEnd, `cap ${rps}`).toBe(true);
+      expect(m.correctPath, `cap ${rps}`).toBe(true);
+    }
+  });
+
+  it('does not credit a cap that sheds nothing, at any point in the order', () => {
+    const meta = metaFor('retry-storm')!;
+    const e = play([
+      { tool: 'ratelimit.set', input: { route: 'r-checkout', rps: 5000 } },
+      { tool: 'deploy.rollforward', input: { service: 'api' } },
+    ]);
+    const m = computeMetrics(e.events, meta);
+    expect(m.correctPath).toBe(false);
+    expect(m.resolvedAtEnd).toBe(false);
+  });
+
+  it('still fails the key when the order is wrong, whatever the cap', () => {
+    const meta = metaFor('retry-storm')!;
+    const e = play([
+      { tool: 'deploy.rollforward', input: { service: 'api' } },
+      { tool: 'ratelimit.set', input: { route: 'r-checkout', rps: 70 } },
+    ]);
+    expect(computeMetrics(e.events, meta).correctPath).toBe(false);
   });
 });

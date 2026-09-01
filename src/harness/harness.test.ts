@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { Engine } from '../sim/engine';
-import { computeMetrics } from './metrics';
+import { computeMetrics, keyMatches } from './metrics';
 import { runHarness } from './run';
 
 // M3-07: the synthetic-agent behavior loop — and the thesis, measured.
@@ -109,5 +109,36 @@ describe('mode.changed shape parity (residual review)', () => {
     // surfaceHistory reads toolsAdded/toolsRemoved — the harness must fill
     // them via surfaceDiff like main.ts does, not hardcode []
     expect(r.surfaceChanges.some((c) => (c.added as string[]).length > 0)).toBe(true);
+  });
+});
+
+/**
+ * A constraint answer key is a scoring rule, so it gets its own gate: it
+ * must credit the class it names and refuse everything else, including the
+ * near-miss just past the bound.
+ */
+describe('keyMatches: constraint answer keys', () => {
+  it('credits any value inside the bound on the same lever', () => {
+    for (const rps of [0, 70, 100, 150]) {
+      expect(keyMatches('ratelimit.set:r-checkout<=150', `ratelimit.set:r-checkout=${rps}`)).toBe(
+        true
+      );
+    }
+    expect(keyMatches('ratelimit.set:r-checkout<=150', 'ratelimit.set:r-checkout=151')).toBe(false);
+    expect(keyMatches('service.scale:api>=6', 'service.scale:api=8')).toBe(true);
+    expect(keyMatches('service.scale:api>=6', 'service.scale:api=4')).toBe(false);
+  });
+
+  it('never credits a different lever or a different target', () => {
+    expect(keyMatches('ratelimit.set:r-checkout<=150', 'ratelimit.set:r-browse=100')).toBe(false);
+    expect(keyMatches('ratelimit.set:r-checkout<=150', 'traffic.drain:r-checkout')).toBe(false);
+    expect(keyMatches('ratelimit.set:r-checkout<=150', 'ratelimit.set:r-checkout')).toBe(false);
+  });
+
+  it('leaves a key with no comparator on exact equality, as before', () => {
+    expect(keyMatches('flag.set:new-checkout=off', 'flag.set:new-checkout=off')).toBe(true);
+    expect(keyMatches('flag.set:new-checkout=off', 'flag.set:new-checkout=on')).toBe(false);
+    // the lever whose VALUE is the decision must stay literal
+    expect(keyMatches('env.set:CACHE_TTL=3600', 'env.set:CACHE_TTL=60')).toBe(false);
   });
 });

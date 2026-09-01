@@ -2297,6 +2297,56 @@ for (const handle of document.querySelectorAll<HTMLElement>('.wb-sash')) {
 
 document.querySelector('#act-palette')!.addEventListener('click', () => openPalette());
 
+/* ---- row action menus: one at a time --------------------------------------
+   These are <details>, so every one the operator opened stayed open and the
+   popups stacked on top of each other. A menu is a menu: opening one closes
+   the rest, clicking away or pressing Escape closes them all, and a menu that
+   would open past the bottom of its scroll container flips upward instead of
+   being clipped. `toggle` does not bubble, so this listens in the capture
+   phase — which also means it keeps working across re-renders. */
+
+function closeMenus(except?: Element): void {
+  document.querySelectorAll<HTMLDetailsElement>('details.actions-menu[open]').forEach((d) => {
+    if (d !== except) d.open = false;
+  });
+  const sc = document.querySelector<HTMLDetailsElement>('#scenario-pick');
+  if (sc && sc !== except) sc.open = false;
+}
+
+/** Open upward when there is no room below inside the scrolling region. */
+function placeMenu(menu: HTMLDetailsElement): void {
+  const list = menu.querySelector<HTMLElement>('.am-list');
+  const scroller = menu.closest<HTMLElement>('.wb-centre-body, .tabpane, .dock-body');
+  if (!list || !scroller) return;
+  delete menu.dataset.drop;
+  const room = scroller.getBoundingClientRect().bottom - menu.getBoundingClientRect().bottom;
+  if (list.getBoundingClientRect().height + 12 > room) menu.dataset.drop = 'up';
+}
+
+document.addEventListener(
+  'toggle',
+  (e) => {
+    const d = e.target as HTMLElement;
+    if (!(d instanceof HTMLDetailsElement) || !d.open) return;
+    if (!d.classList.contains('actions-menu') && d.id !== 'scenario-pick') return;
+    closeMenus(d);
+    if (d.classList.contains('actions-menu')) placeMenu(d);
+  },
+  true
+);
+
+document.addEventListener('pointerdown', (e) => {
+  const inside = (e.target as HTMLElement).closest('details.actions-menu, #scenario-pick');
+  if (!inside) closeMenus();
+});
+
+document.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape') return;
+  if (document.querySelector('details.actions-menu[open], #scenario-pick[open]')) {
+    closeMenus();
+  }
+});
+
 /**
  * COMMAND PALETTE (Cmd/Ctrl+K).
  *

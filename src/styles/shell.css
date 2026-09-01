@@ -2442,3 +2442,6 @@ h4.ctl-group-label { margin: 0 0 var(--sp-2); }
   }
   .ctl-row:not(:has(> .ctl-btn:not(.lever))) > .actions-menu { grid-column: 4; }
 }
+
+/* a menu that would open past the bottom of its scroll container opens up */
+.actions-menu[data-drop='up'] > .am-list { top: auto; bottom: calc(100% + 5px); }

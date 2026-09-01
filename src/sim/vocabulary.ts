@@ -223,3 +223,69 @@ WRITE_ACTIONS['dns.cutover'] = {
   validate: (i) => needString(i, 'hostname') ?? needString(i, 'target'),
   describe: (i) => `point ${String(i.hostname)} at ${String(i.target)}`,
 };
+
+// ---- incident management ---------------------------------------------
+// The half of on-call that is not infrastructure: ownership, severity,
+// paging, and what customers are told.
+
+WRITE_ACTIONS['incident.acknowledge'] = {
+  tool: 'incident.acknowledge',
+  tier: 1,
+  tierName: 'deploy',
+  cost: 'Claims the incident. Whoever else was paged stops looking at it, so only take it if you are actually driving.',
+  validate: (i) => needString(i, 'by'),
+  describe: (i) => `${String(i.by)} takes ownership of the incident`,
+};
+
+WRITE_ACTIONS['incident.severity'] = {
+  tool: 'incident.severity',
+  tier: 2,
+  tierName: 'env',
+  cost: 'Severity drives who gets woken up and what customers expect. Raising it pages people; lowering it stands them down.',
+  validate: (i) =>
+    ['sev1', 'sev2', 'sev3'].includes(String(i.level)) ? null : 'level must be sev1, sev2 or sev3',
+  describe: (i) => `set the incident to ${String(i.level).toUpperCase()}`,
+};
+
+WRITE_ACTIONS['incident.escalate'] = {
+  tool: 'incident.escalate',
+  tier: 2,
+  tierName: 'env',
+  cost: 'Pages a human, most likely out of hours. Real cost to a real person, so it needs to be worth it.',
+  validate: (i) => needString(i, 'team'),
+  describe: (i) => `page ${String(i.team)}`,
+};
+
+WRITE_ACTIONS['statuspage.post'] = {
+  // TOP RUNG ON PURPOSE. This is the only action here that leaves the
+  // building. A wrong infrastructure change can be rolled back; a wrong
+  // sentence to every customer cannot be unsaid, and an agent must never
+  // put words in the company's mouth unsupervised.
+  tool: 'statuspage.post',
+  tier: 4,
+  tierName: 'route',
+  cost: 'Publishes to every customer watching the status page. It cannot be unsaid, only corrected.',
+  validate: (i) =>
+    (['investigating', 'identified', 'monitoring', 'resolved'].includes(String(i.state))
+      ? null
+      : 'state must be investigating, identified, monitoring or resolved') ?? needString(i, 'text'),
+  describe: (i) => `tell customers: "${String(i.text).slice(0, 90)}" (${String(i.state)})`,
+};
+
+WRITE_ACTIONS['alerts.silence'] = {
+  tool: 'alerts.silence',
+  tier: 3,
+  tierName: 'flag',
+  cost: 'Stops the noise so you can think — and hides a genuinely new alert if one fires while it is on.',
+  validate: (i) => (typeof i.silenced === 'boolean' ? null : 'silenced (boolean) is required'),
+  describe: (i) => (i.silenced ? 'silence alerting while you work' : 'turn alerting back on'),
+};
+
+WRITE_ACTIONS['deploy.freeze'] = {
+  tool: 'deploy.freeze',
+  tier: 3,
+  tierName: 'flag',
+  cost: 'Stops anyone shipping into an active incident — including the fix you are about to ship.',
+  validate: (i) => (typeof i.frozen === 'boolean' ? null : 'frozen (boolean) is required'),
+  describe: (i) => (i.frozen ? 'freeze deploys across all services' : 'lift the deploy freeze'),
+};

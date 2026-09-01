@@ -1684,3 +1684,51 @@ body {
 .ctl-btn.lever:focus-visible .lever-cost { display: block; }
 
 .ctl-row[data-drained='true'] .ctl-state { color: var(--warn); }
+
+/* --- incident command ----------------------------------------------------
+   The first five minutes of on-call are ownership, severity, paging and
+   what customers are told — not infrastructure. */
+.cmd-row { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
+.cmd-state {
+  font-size: var(--text-2xs);
+  color: var(--health-bright);
+  border: 1px solid color-mix(in oklch, var(--health-bright) 35%, var(--line));
+  border-radius: var(--r-sm);
+  padding: 5px var(--sp-3);
+  white-space: nowrap;
+}
+
+/* the status page is the one surface customers can read; it looks like it */
+.statuspage {
+  margin-top: var(--sp-4);
+  border: 1px solid var(--line);
+  border-radius: var(--r-sm);
+  overflow: hidden;
+}
+.sp-head {
+  display: flex; align-items: baseline; gap: var(--sp-2);
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--panel-inset);
+  border-bottom: 1px solid var(--line);
+}
+.sp-title { font-size: var(--text-2xs); font-weight: 600; color: var(--ink-dim); }
+.sp-note {
+  margin-left: auto;
+  font-family: var(--font-instrument);
+  font-size: var(--text-2xs);
+  color: var(--warn);
+}
+.sp-posts { display: flex; flex-direction: column; }
+.sp-post { padding: var(--sp-3); border-bottom: 1px solid var(--line); }
+.sp-post:last-child { border-bottom: none; }
+.sp-state {
+  display: inline-block;
+  font-family: var(--font-instrument);
+  font-size: var(--text-2xs);
+  letter-spacing: .08em; text-transform: uppercase;
+  color: var(--ink-ghost);
+  margin-bottom: 3px;
+}
+.sp-post[data-state='resolved'] .sp-state { color: var(--health-bright); }
+.sp-text { margin: 0; font-size: var(--text-sm); line-height: 1.5; color: var(--ink); }
+.statuspage .empty { padding: var(--sp-3); margin: 0; }

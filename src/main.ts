@@ -138,6 +138,21 @@ app.innerHTML = `
             <div class="chart-axis"><span>60 ticks ago</span><span>now</span></div>
           </section>
 
+          <details class="zone" id="zone-command" data-testid="zone-command" open>
+            <summary><span class="zone-title">Incident command</span><span class="zone-meta" id="command-meta"></span></summary>
+            <div class="zone-body">
+              <div class="cmd-row" id="cmd-row"></div>
+              <div class="statuspage" id="statuspage">
+                <div class="sp-head">
+                  <span class="sp-title">Status page</span>
+                  <span class="sp-note">customers can read this</span>
+                </div>
+                <div class="sp-posts" id="sp-posts"></div>
+                <p class="empty" id="sp-empty">Nothing published. Customers have not been told anything.</p>
+              </div>
+            </div>
+          </details>
+
           <details class="zone" id="zone-holding" data-testid="zone-holding" open>
             <summary><span class="zone-title">Holding the incident</span><span class="zone-meta" id="holding-meta"></span></summary>
             <div class="zone-body">
@@ -576,6 +591,69 @@ function lever(
     title="${cost.replace(/"/g, '&quot;')}">${label}<span class="lever-cost">${cost}</span></button>`;
 }
 
+/**
+ * Incident command — the half of on-call that is not infrastructure.
+ * incident.io splits its product exactly this way (On-call / Response /
+ * Status Pages), and a console with only infra levers is missing the part
+ * an on-call engineer actually spends the first five minutes on.
+ */
+function renderCommand(w: World): void {
+  const row = document.querySelector<HTMLElement>('#cmd-row');
+  const meta = document.querySelector<HTMLElement>('#command-meta');
+  if (!row || !meta) return;
+  const inc = w.incident;
+
+  meta.textContent = [
+    inc.severity ? inc.severity.toUpperCase() : 'severity unset',
+    inc.acknowledgedBy ? `owned by ${inc.acknowledgedBy}` : 'unowned',
+  ].join(' · ');
+
+  row.innerHTML = `
+    ${
+      inc.acknowledgedBy
+        ? `<span class="cmd-state">Acknowledged by ${inc.acknowledgedBy}</span>`
+        : lever('incident.acknowledge', { by: 'you' }, 'Acknowledge', 'ack-incident')
+    }
+    ${lever('incident.severity', { level: 'sev1' }, 'Declare SEV1', 'sev1')}
+    ${lever('incident.escalate', { team: 'database on-call' }, 'Page database on-call', 'escalate')}
+    ${
+      inc.alertsSilenced
+        ? lever('alerts.silence', { silenced: false }, 'Unsilence alerts', 'silence')
+        : lever('alerts.silence', { silenced: true }, 'Silence alerts', 'silence')
+    }
+    ${
+      inc.deploysFrozen
+        ? lever('deploy.freeze', { frozen: false }, 'Lift deploy freeze', 'freeze')
+        : lever('deploy.freeze', { frozen: true }, 'Freeze deploys', 'freeze')
+    }
+    ${lever(
+      'statuspage.post',
+      { state: 'investigating', text: 'We are investigating elevated checkout failures.' },
+      'Post update',
+      'statuspage-post'
+    )}
+  `;
+
+  const posts = document.querySelector<HTMLElement>('#sp-posts');
+  const empty = document.querySelector<HTMLElement>('#sp-empty');
+  if (!posts || !empty) return;
+  empty.hidden = inc.statusPosts.length > 0;
+  posts.innerHTML = '';
+  for (const post of inc.statusPosts) {
+    const el = document.createElement('div');
+    el.className = 'sp-post';
+    el.dataset.state = post.state;
+    const st = document.createElement('span');
+    st.className = 'sp-state';
+    st.textContent = post.state;
+    const tx = document.createElement('p');
+    tx.className = 'sp-text';
+    tx.textContent = post.text;
+    el.append(st, tx);
+    posts.append(el);
+  }
+}
+
 const routeControls = document.querySelector<HTMLDivElement>('#route-controls')!;
 const opsControls = document.querySelector<HTMLDivElement>('#ops-controls')!;
 
@@ -663,6 +741,7 @@ function renderDeck(w: World): void {
   for (const flag of w.flags) renderFlagRow(flag);
   for (const svc of w.services) renderServiceRow(svc);
   for (const r of w.routes) renderRouteRow(r);
+  renderCommand(w);
   renderOpsRows(w);
   for (const deploy of w.deploys.slice(-MAX_DEPLOY_CARDS)) {
     // rollback is only a real affordance when the world can honor it:
@@ -1695,6 +1774,24 @@ function holdingsFrom(events: readonly Event[], w: World): Holding[] {
         break;
       case 'dns.cutover':
         put(`dns:${String(input.hostname)}`, `${String(input.hostname)} pointed at ${String(input.target)}`, e);
+        break;
+      case 'deploy.freeze':
+        if (input.frozen === true) {
+          put('freeze', 'Deploys frozen across all services', e, {
+            tool: 'deploy.freeze',
+            input: { frozen: false },
+            label: 'Lift freeze',
+          });
+        } else held.delete('freeze');
+        break;
+      case 'alerts.silence':
+        if (input.silenced === true) {
+          put('silence', 'Alerting silenced', e, {
+            tool: 'alerts.silence',
+            input: { silenced: false },
+            label: 'Unsilence',
+          });
+        } else held.delete('silence');
         break;
       case 'env.set':
         put(`env:${String(input.key)}`, `${String(input.key)} changed`, e);

@@ -25,6 +25,7 @@ export function initialWorld(): World {
     routes: [],
     migrations: [],
     dns: [],
+    incident: { statusPosts: [] },
     traffic: { rps: 0, errRate: 0, p95: 0, byRoute: {} },
     damage: { usersErrored: 0, ticketsOpened: 0, revenueLost: 0 },
   };
@@ -135,6 +136,38 @@ export function reduce(world: World, event: Event): World {
               : [...world.flags, next],
           };
         }
+        // ---- incident management -------------------------------------
+        case 'incident.acknowledge': {
+          const i = input as { by: string };
+          return { ...world, incident: { ...world.incident, acknowledgedBy: i.by } };
+        }
+        case 'incident.severity': {
+          const i = input as { level: 'sev1' | 'sev2' | 'sev3' };
+          return { ...world, incident: { ...world.incident, severity: i.level } };
+        }
+        case 'incident.escalate': {
+          const i = input as { team: string };
+          return { ...world, incident: { ...world.incident, escalatedTo: i.team } };
+        }
+        case 'statuspage.post': {
+          const i = input as { state: 'investigating' | 'identified' | 'monitoring' | 'resolved'; text: string };
+          return {
+            ...world,
+            incident: {
+              ...world.incident,
+              statusPosts: [...world.incident.statusPosts, { state: i.state, text: i.text, at: event.t }],
+            },
+          };
+        }
+        case 'alerts.silence': {
+          const i = input as { silenced: boolean };
+          return { ...world, incident: { ...world.incident, alertsSilenced: i.silenced } };
+        }
+        case 'deploy.freeze': {
+          const i = input as { frozen: boolean };
+          return { ...world, incident: { ...world.incident, deploysFrozen: i.frozen } };
+        }
+
         // ---- traffic -------------------------------------------------
         case 'traffic.shift': {
           const i = input as { route: string; percent: number; target?: string };

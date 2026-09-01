@@ -139,7 +139,24 @@ export interface DnsRecord {
   effectiveAtTick?: number;
 }
 
+/**
+ * The incident-management half of on-call, which every real tool leads with
+ * (incident.io splits its product exactly this way: On-call / Response /
+ * Status Pages). Infrastructure levers are only half the job — the other
+ * half is who owns it, how bad it is, and what customers are told.
+ */
+export interface IncidentState {
+  acknowledgedBy?: string;
+  severity?: 'sev1' | 'sev2' | 'sev3';
+  /** customer-facing updates, newest last — these left the building */
+  statusPosts: { state: 'investigating' | 'identified' | 'monitoring' | 'resolved'; text: string; at: number }[];
+  alertsSilenced?: boolean;
+  deploysFrozen?: boolean;
+  escalatedTo?: string;
+}
+
 export interface World {
+  incident: IncidentState;
   services: Service[];
   deploys: Deploy[];
   flags: Flag[];

@@ -210,23 +210,14 @@ body {
   transition: color var(--dur-snap) var(--ease-snap), border-color var(--dur-snap) var(--ease-snap);
 }
 #site-toggle:hover { color: var(--ink); }
-/* with the store closed the console is very wide: put the trail beside the
-   evidence rather than leaving half the pane empty */
-@media (min-width: 1180px) {
-  .shell[data-site='off'] #control-deck {
-    display: grid;
-    grid-template-columns: minmax(400px, 1.1fr) minmax(330px, 1fr);
-    grid-template-rows: auto auto auto auto auto 1fr;
-    column-gap: var(--sp-6);
-    align-items: start;
-  }
-  .shell[data-site='off'] #situation     { grid-column: 1 / -1; grid-row: 1; }
-  .shell[data-site='off'] #stats         { grid-column: 1 / -1; grid-row: 2; }
-  .shell[data-site='off'] #err-chart     { grid-column: 1 / -1; grid-row: 3; }
-  .shell[data-site='off'] #zone-changed  { grid-column: 1; grid-row: 4; }
-  .shell[data-site='off'] #zone-controls { grid-column: 1; grid-row: 5; }
-  .shell[data-site='off'] #zone-activity { grid-column: 2; grid-row: 4 / span 3; }
-}
+/* SUPERSEDED 2026-09-01. This turned #control-deck into a two-column grid
+   and placed each zone by id. Those ids now live inside .act-region and
+   .evidence-region, so the placements stopped matching and the two wrappers
+   were auto-placed as columns with zero height — the console body rendered
+   EMPTY when the storefront was closed.
+   .evidence-region now owns its own columns via a container query, which is
+   better: it responds to the console's actual width rather than to whether
+   the storefront happens to be open. */
 #site-toggle[aria-pressed='true'] { color: var(--ink); border-color: var(--ink-faint); background: oklch(100% 0 0 / 0.06); }
 
 #console   { grid-area: console; border-right: 1px solid var(--line-strong); }
@@ -1740,15 +1731,42 @@ body {
 /* Every control row has the SAME five columns, so trailing controls line up
    down the whole surface even when a row has no primary action. Rows used to
    be flex with differently-sized buttons, which cannot align by construction. */
+/* NARROW FIRST. With the storefront open the console is ~420px, and five
+   fixed columns ate 240px of it — names truncated to "ne... ch...". At this
+   width a control is two lines: what it is, then what you can do to it. */
 .ctl-row {
   display: grid;
-  grid-template-columns: 40px minmax(0, 1fr) auto 108px 92px;
+  /* the NAME is the identity and must never be the thing that collapses;
+     the state text truncates instead. `api 2.0.0 · degraded` is wider than
+     `web 3.1.0 · ok`, and an auto state column ate the name entirely. */
+  grid-template-columns: 40px auto minmax(0, 1fr);
+  grid-template-areas:
+    'kind name state'
+    '.    act  act';
   align-items: center;
-  gap: var(--sp-3);
+  gap: var(--sp-2) var(--sp-3);
+}
+.ctl-row > .ctl-btn:not(.lever),
+.ctl-row > .actions-menu { grid-area: act; justify-self: start; }
+.ctl-row > .ctl-btn:not(.lever) ~ .actions-menu { justify-self: end; }
+.ctl-row:has(> .ctl-btn:not(.lever)) { grid-template-areas: 'kind name state' '.  act act'; }
+.ctl-row:has(> .ctl-btn:not(.lever)) > .ctl-btn:not(.lever) { justify-self: start; }
+
+/* Wide enough to earn one line per control: the aligned five-column grid. */
+@container console (min-width: 640px) {
+  .ctl-row {
+    grid-template-columns: 40px auto minmax(0, 1fr) 108px 92px;
+    grid-template-areas: none;
+  }
+  /* `grid-area: auto` RESETS grid-column, so it must come first — declared
+     after, it silently undid the placement and any row without a primary
+     button auto-placed its menu one track early (12px, one gap, adrift). */
+  .ctl-row > .ctl-btn:not(.lever) { grid-area: auto; grid-column: 4; justify-self: stretch; }
+  .ctl-row > .actions-menu { grid-area: auto; grid-column: 5; justify-self: stretch; }
 }
 .ctl-row .ctl-kind { grid-column: 1; }
-.ctl-row .ctl-name { grid-column: 2; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
-.ctl-row .ctl-state { grid-column: 3; justify-self: end; text-align: right; white-space: nowrap; }
+.ctl-row .ctl-name { grid-column: 2; white-space: nowrap; }
+.ctl-row .ctl-state { grid-column: 3; justify-self: end; text-align: right; white-space: nowrap; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
 /* column 4 is the optional primary verb; column 5 is always the menu */
 .ctl-row > .ctl-btn:not(.lever) { grid-column: 4; justify-self: stretch; }
 .ctl-row > .actions-menu { grid-column: 5; justify-self: stretch; }
@@ -1789,3 +1807,35 @@ body {
 .am-label { font-size: var(--text-sm); }
 /* the cost gets room to be read, instead of a tooltip on a cramped button */
 .am-cost { font-size: var(--text-2xs); color: var(--ink-ghost); line-height: 1.45; }
+
+/* --- ACT first, EVIDENCE second -----------------------------------------
+   The console's job is to act. Telemetry supports that; it does not lead.
+   Evidence sits in two columns so supporting detail uses the width instead
+   of extending the scroll the operator has to travel to reach a control. */
+.act-region { display: flex; flex-direction: column; gap: var(--sp-3); }
+
+.evidence-region {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--sp-3);
+  margin-top: var(--sp-4);
+  padding-top: var(--sp-4);
+  border-top: 1px solid var(--line);
+}
+.evidence-col { display: flex; flex-direction: column; gap: var(--sp-3); min-width: 0; }
+
+/* two columns as soon as the console is wide enough to earn them */
+@container console (min-width: 760px) {
+  .evidence-region { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); }
+}
+@supports not (container-type: inline-size) {
+  @media (min-width: 1180px) { .evidence-region { grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); } }
+}
+#console > .body { container-type: inline-size; container-name: console; }
+
+/* the four stat tiles were four tall cards; one compact row instead */
+#stats { display: grid; grid-template-columns: repeat(auto-fit, minmax(132px, 1fr)); gap: var(--sp-2); }
+
+/* the controls surface is the biggest thing here, and should look it */
+#zone-controls { border-color: color-mix(in oklch, var(--ink-ghost) 22%, var(--line)); }
+#zone-controls > summary .zone-title { font-size: var(--text-md, 16px); }

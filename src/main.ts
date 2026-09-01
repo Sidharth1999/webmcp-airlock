@@ -115,28 +115,24 @@ app.innerHTML = `
             <dl class="sit-fields" id="sit-fields"></dl>
           </section>
 
-          <!-- IMPACT — big numbers with their unit and trend, Vercel-style
-               card anatomy: label, value, context. Fills the pane honestly
-               because every figure is live. -->
-          <section class="stats" id="stats" data-testid="stats"></section>
-
-          <!-- the incident has a SHAPE. A console that only shows "now" hides
-               when it started and whether it is recovering. -->
-          <section class="chart" id="err-chart" data-testid="err-chart">
-            <div class="chart-head">
-              <span class="chart-k">Checkout error rate</span>
-              <span class="chart-max" id="chart-max">—</span>
+          <!-- ACT: the console's primary job, immediately reachable.
+               Previously these sat below a readout, four stat cards, a chart,
+               the deploy list and the activity feed — a dashboard's ordering
+               carrying a control centre's content. -->
+          <div class="act-region">
+          <details class="zone" id="zone-controls" data-testid="zone-controls" open>
+            <summary><span class="zone-title">Manual controls</span><span class="zone-meta">flags · services · topology</span></summary>
+            <div class="zone-body">
+              <div id="topology" data-testid="topology"></div>
+              <div class="ctl-group-label">Release</div>
+              <div id="flag-controls"></div>
+              <div id="service-controls"></div>
+              <div class="ctl-group-label">Traffic</div>
+              <div id="route-controls"></div>
+              <div class="ctl-group-label">Data &amp; DNS</div>
+              <div id="ops-controls"></div>
             </div>
-            <div class="chart-plot">
-              <svg viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true">
-                <path class="chart-area" d="" />
-                <path class="chart-line" d="" vector-effect="non-scaling-stroke" />
-              </svg>
-              <span class="chart-slo" id="chart-slo" title="1% error budget"></span>
-              <p class="chart-empty">Nothing plotted yet — start the scenario and the error rate builds here, so you can see when it began and whether it is recovering.</p>
-            </div>
-            <div class="chart-axis"><span>60 ticks ago</span><span>now</span></div>
-          </section>
+          </details>
 
           <details class="zone" id="zone-command" data-testid="zone-command" open>
             <summary><span class="zone-title">Incident command</span><span class="zone-meta" id="command-meta"></span></summary>
@@ -160,8 +156,30 @@ app.innerHTML = `
               <p class="empty" id="holding-empty">Nothing is being held. No mitigations are in force.</p>
             </div>
           </details>
+          </div>
 
-          <!-- ZONE 2 — what changed. Open while it matters. -->
+          <!-- EVIDENCE: supporting detail, two columns so it uses the width
+               instead of extending the scroll. -->
+          <div class="evidence-region">
+            <div class="evidence-col">
+          <section class="stats" id="stats" data-testid="stats"></section>
+
+          <section class="chart" id="err-chart" data-testid="err-chart">
+            <div class="chart-head">
+              <span class="chart-k">Checkout error rate</span>
+              <span class="chart-max" id="chart-max">—</span>
+            </div>
+            <div class="chart-plot">
+              <svg viewBox="0 0 300 100" preserveAspectRatio="none" aria-hidden="true">
+                <path class="chart-area" d="" />
+                <path class="chart-line" d="" vector-effect="non-scaling-stroke" />
+              </svg>
+              <span class="chart-slo" id="chart-slo" title="1% error budget"></span>
+              <p class="chart-empty">Nothing plotted yet — start the scenario and the error rate builds here, so you can see when it began and whether it is recovering.</p>
+            </div>
+            <div class="chart-axis"><span>60 ticks ago</span><span>now</span></div>
+          </section>
+
           <details class="zone" id="zone-changed" data-testid="zone-changed" open>
             <summary><span class="zone-title">What changed</span><span class="zone-meta" id="zone-changed-meta"></span></summary>
             <div class="zone-body">
@@ -169,23 +187,8 @@ app.innerHTML = `
               <p class="empty" id="deploys-empty">No deploys in this scenario yet.</p>
             </div>
           </details>
-
-          <!-- ZONE 3 — the human's own hands. Closed until there's a reason. -->
-          <details class="zone" id="zone-controls" data-testid="zone-controls" open>
-            <summary><span class="zone-title">Manual controls</span><span class="zone-meta">flags · services · topology</span></summary>
-            <div class="zone-body">
-              <div id="topology" data-testid="topology"></div>
-              <div class="ctl-group-label">Release</div>
-              <div id="flag-controls"></div>
-              <div id="service-controls"></div>
-              <div class="ctl-group-label">Traffic</div>
-              <div id="route-controls"></div>
-              <div class="ctl-group-label">Data &amp; DNS</div>
-              <div id="ops-controls"></div>
             </div>
-          </details>
-
-          <!-- ZONE 4 — the raw trail. Present for the audit story, not in the way. -->
+            <div class="evidence-col">
           <details class="zone" id="zone-activity" data-testid="zone-activity" open>
             <summary>
               <span class="zone-title">Activity</span>
@@ -197,6 +200,8 @@ app.innerHTML = `
               <p class="empty" id="stream-empty">Nothing has happened yet. Start the scenario to bring the store online.</p>
             </div>
           </details>
+            </div>
+          </div>
 
         </div>
       </div>

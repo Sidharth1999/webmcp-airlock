@@ -243,7 +243,7 @@ app.innerHTML = `
           <span class="spacer"></span>
           <button type="button" id="audit-toggle" data-testid="audit-toggle" aria-pressed="false"
                   title="filter the stream to who did what">Audit trail</button>
-          <button type="button" class="panel-close" data-toggle="panel" aria-label="Close the evidence panel" title="Close">&times;</button>
+          <button type="button" class="panel-close" data-toggle="panel" data-testid="close-panel" aria-label="Close the evidence panel" title="Close">&times;</button>
         </div>
 
         <div class="panel-body">
@@ -522,6 +522,10 @@ document.addEventListener('visibilitychange', syncPacer);
 // Full reset: a re-seed swaps worlds, so every piece of rendered state from
 // the old scenario (pacer, deck rows, header health, storefront) goes too.
 function seed(templateId: string): void {
+  // the chip is part of the reset, not part of the click that caused it —
+  // it only ever updated from the picker's handler, so any programmatic
+  // re-seed left the masthead naming the previous scenario
+  markTemplate(templateId);
   running = false;
   syncPacer();
   streamEl.innerHTML = '';
@@ -539,6 +543,10 @@ function seed(templateId: string): void {
   pendingCards.clear();
   flagControls.innerHTML = '';
   serviceControls.innerHTML = '';
+  // routes were NOT cleared here, so switching scenario left the previous
+  // world's routes on the console beside the new one's — ghost controls,
+  // which is exactly what the tombstone discipline exists to prevent
+  routeControls.innerHTML = '';
   deployControls.innerHTML = '';
   topologyEl.innerHTML = '';
   delete topologyEl.dataset.key;
@@ -932,6 +940,23 @@ function renderDeck(w: World): void {
   const keep = new Set(w.deploys.slice(-MAX_DEPLOY_CARDS).map((d) => d.id));
   deployControls.querySelectorAll<HTMLDivElement>('[data-deploy-id]').forEach((c) => {
     if (!keep.has(c.dataset.deployId!)) c.remove();
+  });
+  // GHOST CONTROLS. Rows are created per entity and nothing ever removed
+  // them, so anything the previous world had and this one does not stayed on
+  // the deck — after a scenario switch the console showed a route that no
+  // longer exists, with working buttons on it. The deploy cards above already
+  // prune; every other row type now does too, on the same rule. Found by the
+  // review harness re-seeding faster than a human can click.
+  prune(flagControls, 'data-flag-id', w.flags.map((f) => f.id));
+  prune(serviceControls, 'data-service-id', w.services.map((svc) => svc.id));
+  prune(routeControls, 'data-route-id', w.routes.map((r) => r.id));
+}
+
+/** Remove rows in `host` whose id attribute names something the world lost. */
+function prune(host: HTMLElement, attr: string, ids: readonly string[]): void {
+  const alive = new Set(ids);
+  host.querySelectorAll<HTMLElement>(`[${attr}]`).forEach((row) => {
+    if (!alive.has(row.getAttribute(attr)!)) row.remove();
   });
 }
 
@@ -3311,6 +3336,25 @@ declare global {
   }
 }
 window.__airlock = airlockTools;
+
+// ---- review harness (?review=<scene>) — DEV BUILD ONLY -------------------
+// The agent-side half of this console cannot be reached by clicking: to see
+// an evidence strip or a plan you have to BE an agent, which meant reviewing
+// them from a devtools console. Each scene puts the page into one situation
+// through the real tool path and then stops, handing the human half back.
+// Guarded by import.meta.env.DEV so it is never in the production bundle a
+// judge loads — this is a workbench for reviewing the product, not part of it.
+if (import.meta.env.DEV && params.has('review')) {
+  void import('./review').then((review) =>
+    review.run({
+      air: airlockTools,
+      isRunning: () => running,
+      toggleRun: () => runBtn.click(),
+      template: TEMPLATE_ID,
+      seedTemplate: (id) => seed(id),
+    })
+  );
+}
 window.__sim = {
   digest(seed, ticks) {
     const engine = new Engine({ templateId: 'baseline', seed });

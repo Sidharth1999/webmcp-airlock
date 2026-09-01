@@ -432,6 +432,27 @@ try {
     'template re-seed exorcises ghost tombstones from the rail',
     (await page.locator('#tool-list li[data-status="tombstoned"]').count()) === 0
   );
+  // ...and the same must be true of the DECK. Rows are created per entity and
+  // nothing removed them, so a scenario switch left the previous world's
+  // routes on the console with working buttons on them. baseline has no
+  // routes at all, which makes it the sharpest probe available.
+  check(
+    'a scenario switch leaves no ghost controls on the deck',
+    (await page.evaluate(() => {
+      const w = { routes: 0, flags: 0, services: 0 };
+      w.routes = document.querySelectorAll('#route-controls [data-route-id]').length;
+      w.flags = document.querySelectorAll('#flag-controls [data-flag-id]').length;
+      w.services = document.querySelectorAll('#service-controls [data-service-id]').length;
+      return JSON.stringify(w);
+    })) === JSON.stringify({ routes: 0, flags: 0, services: 3 })
+  );
+  // the review harness is a DEV affordance and must not reach a judge: this
+  // page is the production build, so its chrome must be absent entirely
+  check(
+    'the review harness is not in the production build',
+    (await page.evaluate(() => document.querySelector('#review-banner') !== null)) === false &&
+      !(await page.content()).includes('review-banner')
+  );
 
   // ---- M2-05: human resolves the flagship scenario via UI clicks only ----
   // (fast pacing via ?tick= so the run is seconds, not minutes; every state

@@ -13,6 +13,20 @@ import type { World } from './types';
 
 export type WriteTier = 1 | 2 | 3 | 4;
 
+/** What a lever is attached to — orthogonal to how dangerous it is. */
+export type WriteDomain =
+  | 'deploy'
+  | 'env'
+  | 'flag'
+  | 'route'
+  | 'dns'
+  | 'service'
+  | 'data'
+  | 'cache'
+  | 'alerting'
+  | 'incident'
+  | 'comms';
+
 /**
  * EVERY CONTROL COSTS SOMETHING. That is the whole point of a control
  * surface: an incident is not "find the button", it is "which lever, in
@@ -27,7 +41,18 @@ export interface WriteAction {
   /** The action.executed `tool` string — the vocabulary key. */
   tool: string;
   tier: WriteTier;
-  tierName: 'deploy' | 'env' | 'flag' | 'route';
+  /**
+   * The DOMAIN this action touches, shown beside the tier on the proposal
+   * card and in the situation header ("tier 3 · route").
+   *
+   * It used to be a four-value label welded to the tier NUMBER, from when the
+   * vocabulary had four verbs and tier 3 simply WAS the flag tier. With
+   * twenty verbs the two came apart and the label started lying: capping a
+   * route read as "tier 3 · flag", acknowledging an incident as "tier 1 ·
+   * deploy". The tier number carries the risk ladder; this carries what the
+   * lever is attached to, and the two are now independent.
+   */
+  tierName: WriteDomain;
   /** One-line human diff for proposals/audit ("what would change"). */
   describe(input: Record<string, unknown>, world: World): string;
   /** What this lever costs when you pull it. Never omitted. */
@@ -154,7 +179,7 @@ WRITE_ACTIONS['traffic.drain'] = {
 WRITE_ACTIONS['ratelimit.set'] = {
   tool: 'ratelimit.set',
   tier: 3,
-  tierName: 'flag',
+  tierName: 'route',
   cost: 'Sheds load by rejecting real customers. Buys time; does not fix a cause.',
   validate: (i) =>
     needString(i, 'route') ?? (typeof i.rps === 'number' && i.rps >= 0 ? null : 'rps (number) is required'),
@@ -178,7 +203,7 @@ WRITE_ACTIONS['canary.set'] = {
 WRITE_ACTIONS['service.restart'] = {
   tool: 'service.restart',
   tier: 2,
-  tierName: 'env',
+  tierName: 'service',
   cost: 'Drops every in-flight request and empties warm caches and pools. Brief spike before it settles.',
   validate: (i) => needString(i, 'service'),
   describe: (i) => `restart ${String(i.service)} — in-flight requests are lost`,
@@ -187,7 +212,7 @@ WRITE_ACTIONS['service.restart'] = {
 WRITE_ACTIONS['service.scale'] = {
   tool: 'service.scale',
   tier: 2,
-  tierName: 'env',
+  tierName: 'service',
   cost: 'New instances start cold. Capacity arrives after they warm, not immediately.',
   validate: (i) =>
     needString(i, 'service') ??
@@ -199,7 +224,7 @@ WRITE_ACTIONS['service.scale'] = {
 WRITE_ACTIONS['db.failover'] = {
   tool: 'db.failover',
   tier: 4,
-  tierName: 'route',
+  tierName: 'data',
   cost: 'Writes are refused during promotion, and any replica lag is lost. You cannot put it back.',
   validate: (i) => needString(i, 'service'),
   describe: (i) => `promote the ${String(i.service)} replica to primary`,
@@ -208,7 +233,7 @@ WRITE_ACTIONS['db.failover'] = {
 WRITE_ACTIONS['cache.flush'] = {
   tool: 'cache.flush',
   tier: 2,
-  tierName: 'env',
+  tierName: 'cache',
   cost: 'Every key refills at once. On a saturated backend this is a thundering herd and makes things worse.',
   validate: (i) => needString(i, 'scope'),
   describe: (i) => `flush the ${String(i.scope)} cache`,
@@ -218,7 +243,7 @@ WRITE_ACTIONS['cache.flush'] = {
 WRITE_ACTIONS['dns.cutover'] = {
   tool: 'dns.cutover',
   tier: 4,
-  tierName: 'route',
+  tierName: 'dns',
   cost: 'Propagation takes minutes and resolvers cache. Wrong tool for an incident you are trying to end now.',
   validate: (i) => needString(i, 'hostname') ?? needString(i, 'target'),
   describe: (i) => `point ${String(i.hostname)} at ${String(i.target)}`,
@@ -231,7 +256,7 @@ WRITE_ACTIONS['dns.cutover'] = {
 WRITE_ACTIONS['incident.acknowledge'] = {
   tool: 'incident.acknowledge',
   tier: 1,
-  tierName: 'deploy',
+  tierName: 'incident',
   cost: 'Claims the incident. Whoever else was paged stops looking at it, so only take it if you are actually driving.',
   validate: (i) => needString(i, 'by'),
   describe: (i) => `${String(i.by)} takes ownership of the incident`,
@@ -240,7 +265,7 @@ WRITE_ACTIONS['incident.acknowledge'] = {
 WRITE_ACTIONS['incident.severity'] = {
   tool: 'incident.severity',
   tier: 2,
-  tierName: 'env',
+  tierName: 'incident',
   cost: 'Severity drives who gets woken up and what customers expect. Raising it pages people; lowering it stands them down.',
   validate: (i) =>
     ['sev1', 'sev2', 'sev3'].includes(String(i.level)) ? null : 'level must be sev1, sev2 or sev3',
@@ -250,7 +275,7 @@ WRITE_ACTIONS['incident.severity'] = {
 WRITE_ACTIONS['incident.escalate'] = {
   tool: 'incident.escalate',
   tier: 2,
-  tierName: 'env',
+  tierName: 'incident',
   cost: 'Pages a human, most likely out of hours. Real cost to a real person, so it needs to be worth it.',
   validate: (i) => needString(i, 'team'),
   describe: (i) => `page ${String(i.team)}`,
@@ -263,7 +288,7 @@ WRITE_ACTIONS['statuspage.post'] = {
   // put words in the company's mouth unsupervised.
   tool: 'statuspage.post',
   tier: 4,
-  tierName: 'route',
+  tierName: 'comms',
   cost: 'Publishes to every customer watching the status page. It cannot be unsaid, only corrected.',
   validate: (i) =>
     (['investigating', 'identified', 'monitoring', 'resolved'].includes(String(i.state))
@@ -275,7 +300,7 @@ WRITE_ACTIONS['statuspage.post'] = {
 WRITE_ACTIONS['alerts.silence'] = {
   tool: 'alerts.silence',
   tier: 3,
-  tierName: 'flag',
+  tierName: 'alerting',
   cost: 'Stops the noise so you can think — and hides a genuinely new alert if one fires while it is on.',
   validate: (i) => (typeof i.silenced === 'boolean' ? null : 'silenced (boolean) is required'),
   describe: (i) => (i.silenced ? 'silence alerting while you work' : 'turn alerting back on'),
@@ -284,7 +309,7 @@ WRITE_ACTIONS['alerts.silence'] = {
 WRITE_ACTIONS['deploy.freeze'] = {
   tool: 'deploy.freeze',
   tier: 3,
-  tierName: 'flag',
+  tierName: 'deploy',
   cost: 'Stops anyone shipping into an active incident — including the fix you are about to ship.',
   validate: (i) => (typeof i.frozen === 'boolean' ? null : 'frozen (boolean) is required'),
   describe: (i) => (i.frozen ? 'freeze deploys across all services' : 'lift the deploy freeze'),

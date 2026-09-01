@@ -1,0 +1,72 @@
+/* ======================================================================
+   REVIEW HARNESS (?review=<scene>) — DEV BUILD ONLY.
+   Deliberately NOT in the product's visual language: it must never be
+   mistaken for part of the console. Neutral chrome, a loud tag, and a
+   permanent line saying a script is calling the tools rather than a model.
+   ====================================================================== */
+#review-banner {
+  position: fixed;
+  right: var(--sp-3);
+  bottom: 34px;
+  z-index: 60;
+  width: min(420px, 34vw);
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-3);
+  border: 1px solid oklch(70% 0.16 95);
+  border-radius: var(--r-sm);
+  background: oklch(18% 0.03 95 / 0.97);
+  backdrop-filter: blur(6px);
+  box-shadow: 0 10px 30px oklch(0% 0 0 / 0.45);
+  font-family: var(--font-instrument);
+  font-size: var(--text-2xs);
+  color: var(--ink-dim);
+}
+#review-banner .rv-head { display: flex; align-items: baseline; gap: var(--sp-2); flex-wrap: wrap; }
+#review-banner .rv-tag {
+  flex: none;
+  padding: 1px var(--sp-2);
+  background: oklch(70% 0.16 95);
+  color: oklch(18% 0.03 95);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+}
+#review-banner .rv-title {
+  color: var(--ink);
+  font-family: var(--font-prose);
+  font-size: var(--text-sm);
+  font-weight: 600;
+}
+#review-banner .rv-state {
+  margin-left: auto;
+  color: oklch(70% 0.16 95);
+  font-variant-numeric: tabular-nums;
+}
+#review-banner[data-state='ready'] .rv-state { color: var(--good); }
+#review-banner[data-state='failed'] .rv-state { color: var(--bad); }
+#review-banner .rv-try {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--font-prose);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+}
+#review-banner .rv-try:empty { display: none; }
+#review-banner .rv-scenes { display: flex; flex-wrap: wrap; gap: 1px; }
+#review-banner .rv-scene {
+  padding: 2px var(--sp-2);
+  border: 1px solid var(--line);
+  background: var(--panel-inset);
+  color: var(--ink-faint);
+  text-decoration: none;
+}
+#review-banner .rv-scene:hover { color: var(--ink); border-color: oklch(70% 0.16 95); }
+#review-banner .rv-scene[aria-current='true'] {
+  color: oklch(18% 0.03 95);
+  background: oklch(70% 0.16 95);
+  border-color: oklch(70% 0.16 95);
+}
+#review-banner .rv-foot { margin: 0; color: var(--ink-ghost); line-height: 1.5; }
+#review-banner .rv-foot code { color: var(--ink-faint); }

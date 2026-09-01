@@ -1,51 +1,49 @@
 # STATUS — live audit log
 
-## HOW TO REVIEW THE AGENT UX — start here (2026-09-01)
+## HOW TO REVIEW THE AGENT UX — start here (2026-09-01, revised after Sid's review)
 
 **Dev server 8917 is always up. Open one link, look, click. No console, no
-agent, no setup.**
+agent, no setup.** Scene links are in the agent column so you can hop between
+them. Full detail + the feedback ledger: `_handoff/2026-09-01-agent-ux-review.md`.
 
-| link | what you are looking at | what to do |
-| --- | --- | --- |
-| [`?review=plan`](http://localhost:8917/?review=plan) | **the Creativity swing** — two levers in one order, each priced, the reason for the order stated first | read the reason, then approve step 1 and watch step 2 get proposed only *after* it executes. Note the numbered rings: **1** on /checkout, **2** on api |
-| [`?review=abandon`](http://localhost:8917/?review=abandon) | the same plan | **reject** step 1 — the rest is abandoned, not skipped, and the ring numbers clear |
-| [`?review=evidence`](http://localhost:8917/?review=evidence) | what the agent worked FROM | click a `#citation` in its conclusion — it lands you on that exact log line |
-| [`?review=bare`](http://localhost:8917/?review=bare) | the same proposal from an agent that read nothing | compare with the one above |
-| [`?review=provenance`](http://localhost:8917/?review=provenance) | a tier-1 rollback on the two-key rung, because the deploy id came from a customer-supplied line the page served | try Approve before the key |
-| [`?review=counsel`](http://localhost:8917/?review=counsel) | the agent's objection | click **Roll back** on the d-201 card — it counsels, it does not block |
-| [`?review=logs`](http://localhost:8917/?review=logs) | the human's `read_logs` | level floor + text filter; the count says what is hidden |
+| link | what you are looking at |
+| --- | --- |
+| [`?review=plan`](http://localhost:8917/?review=plan) | **the Creativity swing** — two levers in one order, priced. Approve step 1, watch step 2 arrive only after it runs, then watch the incident end |
+| [`?review=abandon`](http://localhost:8917/?review=abandon) | reject step 1 — the rest is abandoned, not skipped |
+| [`?review=evidence`](http://localhost:8917/?review=evidence) | what the agent worked FROM; click a `#citation` |
+| [`?review=bare`](http://localhost:8917/?review=bare) | the same proposal from an agent that read nothing |
+| [`?review=provenance`](http://localhost:8917/?review=provenance) | a rollback on the two-key rung because the page served the evidence |
+| [`?review=counsel`](http://localhost:8917/?review=counsel) | the agent's objection — it counsels, it never blocks |
+| [`?review=logs`](http://localhost:8917/?review=logs) | the human's `read_logs` |
 
-Scene links are also in the banner, bottom right, so you can hop between them.
+**Is it mock data? No.** Every scene drives the page through `window.__airlock`,
+the same execute path a real WebMCP host uses. Real events, real proposals,
+every gate applying as it would to a model. Only the CALLER is a script, and
+the banner says so permanently. DEV ONLY — a smoke gate asserts the production
+bundle has no trace of it.
 
-**Is it mock data? No.** Every scene drives the page through `window.__airlock`
-— the same execute path a real WebMCP host uses. Real events, real proposals,
-every gate applying exactly as it would to a model. **The only thing that is
-scripted is WHO is calling** — a script, not a model — and the banner says so
-permanently on screen so a scene can never be mistaken for a model reasoning.
-For a model actually doing it: `npm run driver` plays both stories unattended,
-or connect ChatGPT desktop to 8917.
+### What changed in the review rounds (all committed, smoke GREEN)
+- **ONE reserved area for anything agent-related.** The airlock left the centre
+  column and lives in the agent dock with presence, findings, capability and the
+  review chrome.
+- **The z axis instead of a second layout.** A pending decision makes that dock
+  leave the grid and rise over the page. Nothing underneath moves, so there is
+  one console layout rather than one per agent state.
+- **The centre has a floor and the docks yield** — no breakpoint. The earlier
+  `max-width: 1500px` rule never fired on Sid's own 1512px window.
+- **"tier 3" is gone.** The card says what a change TOUCHES, and "needs your key".
+- **Calm by default**: the evidence strip is a disclosure whose summary keeps the
+  count; a plan's reason clamps to two lines. Cost, warnings and decisions never
+  collapse.
+- **A settled state exists**: the finished plan collapses to a receipt, the label
+  stops saying "waiting on you", and the console says *the incident is over*.
+- **The deploy list is uniform** and the tab is called **Deploys**.
+- **A bug that would have shipped**: approve/reject were delegated from
+  `#console`, so cards rendered anywhere else silently did nothing.
 
-**It is DEV ONLY.** `import.meta.env.DEV` plus its own stylesheet, so neither
-the JS nor the CSS reaches a production bundle. A smoke gate asserts the built
-page a judge loads has no trace of it.
-
-### Building it found four real bugs, all pre-existing, all now fixed
-1. **`tierName` lied on 12 of 20 actions** — your call, taken. It was welded to
-   the tier NUMBER from when the vocabulary had four verbs. "cap r-checkout at
-   150 req/s · tier 3 · **flag**" now reads **· route**; acknowledging an
-   incident no longer reads "tier 1 · deploy". Eleven domains, independent of
-   the risk ladder. No existing assertion moved.
-2. **Ghost controls.** Switching scenario left the previous world's routes on
-   the deck **with working buttons on them** — rows were created per entity and
-   nothing ever removed them. Every row type prunes now; smoke gates it.
-3. **The masthead scenario chip** only updated from the picker's click handler,
-   so any programmatic re-seed left it naming the previous scenario.
-4. **An unbounded airlock** pushed the very controls a plan numbers off the
-   bottom of the screen — the sequence was lighting up the console invisibly.
-
-Commit `0bffbe7`. CLAUDE.md's verification counts were three milestones stale
-(56 gates / 146 tests / 67 corpus) — corrected to **87 / 187 / 91**.
-
+**OPEN, needs Sid:** should the agent visibly use the ⌘K palette? The capability
+already exists (incident command is granted in Triage); what does not exist is
+the agent visibly operating it. Three options in the handoff file.
 
 ## SESSION 2026-09-01 (Tue, overnight) — AGENT UX BUILT: items 1-4 of the agreed order
 

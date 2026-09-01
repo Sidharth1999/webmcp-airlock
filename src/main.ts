@@ -2,7 +2,7 @@ import './styles/tokens.css';
 import './styles/shell.css';
 import { actionKey } from './harness/metrics';
 import { Engine } from './sim/engine';
-import { MODES, type Mode } from './sim/modes';
+import { MODES, MODE_WRITE_TOOLS, type Mode } from './sim/modes';
 import type { EntityRef, QueryRequest } from './sim/queries';
 import { templateIds } from './sim/templates';
 import type { SimRequest, SimResponse } from './sim/worker';
@@ -219,6 +219,7 @@ app.innerHTML = `
         <span class="pane-sub" id="rail-sub">standing by</span>
       </header>
       <div class="rail-modes">
+        <span class="rail-modes-label">Response stage</span>
         <div class="mode-switch" id="mode-switch" data-testid="mode-switch">
           ${MODES.map(
             (m) =>
@@ -240,15 +241,14 @@ app.innerHTML = `
 
         <div class="findings" id="agent-findings" aria-live="polite"></div>
 
-        <div class="agent-can" id="agent-can">
-          <p class="can-line" id="can-read"></p>
-          <p class="can-line" id="can-write"></p>
-        </div>
-
-        <details class="tool-surface" id="tool-surface" open>
-          <summary><span class="ts-label">Tool surface</span><span class="ts-count" id="tool-count"></span></summary>
+        <section class="ladder" id="tool-surface" aria-label="What the agent can reach">
+          <div class="ladder-head">
+            <span class="ladder-title">What this page lets the agent do</span>
+            <span class="ts-count" id="tool-count"></span>
+          </div>
           <ul id="tool-list" data-testid="tool-list"></ul>
-        </details>
+          <p class="ladder-foot" id="ladder-foot"></p>
+        </section>
 
         <div class="agent-empty" id="agent-empty">
           <p class="ae-head">No agent connected</p>
@@ -1556,36 +1556,54 @@ const HUMAN_WRITE: Record<string, string> = {
 
 function renderCapability(tools: AirlockTools): void {
   const active = tools.list().filter((t) => t.status === 'active');
-  // record_finding writes to the console's timeline, not the world, so it
-  // never waits on approval — listing it here said "you approve before
-  // anything happens" about a tool that needs no approval.
   const writes = active.filter((t) => !t.readOnly && t.name !== 'record_finding');
-  const readEl = document.querySelector<HTMLElement>('#can-read')!;
-  const writeEl = document.querySelector<HTMLElement>('#can-write')!;
-  const countEl = document.querySelector<HTMLElement>('#tool-count')!;
-
-  const reads = active.filter((t) => t.readOnly).length;
-  readEl.textContent = `Can look at deploys, logs, traffic and what changed — ${reads} read-only checks — and write what it concludes into this console.`;
-
-  if (writes.length === 0) {
-    writeEl.textContent = 'Cannot change anything in this mode.';
-    writeEl.dataset.tone = 'none';
-  } else {
-    const phrases = writes.map((w) => HUMAN_WRITE[w.name] ?? w.name);
-    const last = phrases.pop();
-    writeEl.textContent = `Can ask you to ${phrases.length ? `${phrases.join(', ')} or ${last}` : last}. You approve before anything happens.`;
-    writeEl.dataset.tone = 'write';
-  }
-  countEl.textContent = String(active.length);
-
+  const countEl = document.querySelector<HTMLElement>('#tool-count');
+  if (countEl) countEl.textContent = String(active.length);
   const sub = document.querySelector<HTMLElement>('#rail-sub');
-  if (sub) sub.textContent = writes.length === 0 ? 'read-only' : `${writes.length} actions need you`;
+  if (sub) {
+    sub.textContent =
+      writes.length === 0 ? 'can look, cannot change' : `can ask for ${writes.length} changes`;
+  }
+}
+
+/**
+ * THE CAPABILITY LADDER.
+ *
+ * A list of function names is an inventory; it tells an operator nothing.
+ * What they need is: what can this thing reach RIGHT NOW, and what is still
+ * shut. So the rail shows the whole ladder — granted rungs as plain
+ * sentences, and locked rungs with the stage that would open them.
+ *
+ * The thesis made visible rather than argued: the PAGE decides what the
+ * agent may attempt, and you can see the decision. Raw tool names stay one
+ * hover away, for whoever actually wants them.
+ */
+const RUNG_LABEL: Record<string, string> = {
+  airlock_status: 'Check service health and impact',
+  list_deploys: 'Review what shipped recently',
+  read_logs: 'Read service logs',
+  list_changes: 'Check flags, env and routes',
+  traffic_history: 'Look at the error-rate history',
+  explain_surface: 'Ask why its own tools changed',
+  record_finding: 'Write what it concludes into this console',
+  propose_flag_change: 'Ask you to turn a feature flag on or off',
+  propose_rollback: 'Ask you to roll a deploy back',
+  propose_rollforward: 'Ask you to ship a fixed build forward',
+  propose_env_change: 'Ask you to change an environment value',
+  propose_route_change: 'Ask you to move traffic elsewhere',
+};
+
+/** Which stage first grants each proposal, for the locked rungs. */
+function grantingStage(tool: string): Mode | undefined {
+  return MODES.find((m) => MODE_WRITE_TOOLS[m].includes(tool));
 }
 
 function renderToolRail(tools: AirlockTools): void {
   const list = document.querySelector<HTMLUListElement>('#tool-list')!;
   list.innerHTML = '';
+  const shown = new Set<string>();
   for (const t of tools.list()) {
+    shown.add(t.name);
     const li = document.createElement('li');
     li.dataset.tool = t.name;
     li.dataset.status = t.status;
@@ -1597,7 +1615,8 @@ function renderToolRail(tools: AirlockTools): void {
         ${t.untrusted ? '<span class="tool-badge tool-badge-untrusted">untrusted content</span>' : ''}
       </span>
     `;
-    li.querySelector('.tool-name')!.textContent = t.name;
+    li.querySelector('.tool-name')!.textContent = RUNG_LABEL[t.name] ?? t.name;
+    li.title = t.name; // the raw tool name stays one hover away
     if (t.status === 'tombstoned') {
       // The vanishing is the point, and it has to read in one glance — the
       // full reason ("left with recovery mode") wrapped to two ragged lines.
@@ -1610,9 +1629,33 @@ function renderToolRail(tools: AirlockTools): void {
     }
     list.append(li);
   }
+  // the rungs this page has NOT granted yet — shown, not hidden, because
+  // "what it cannot do" is the more reassuring half
+  for (const name of Object.keys(RUNG_LABEL)) {
+    if (shown.has(name)) continue;
+    const stage = grantingStage(name);
+    if (!stage) continue;
+    const li = document.createElement('li');
+    li.dataset.tool = name;
+    li.dataset.status = 'locked';
+    li.title = name;
+    li.innerHTML = `<span class="tool-name"></span><span class="tool-badges"><span class="tool-badge tool-badge-locked"></span></span>`;
+    li.querySelector('.tool-name')!.textContent = RUNG_LABEL[name]!;
+    li.querySelector('.tool-badge-locked')!.textContent =
+      `needs ${stage.charAt(0).toUpperCase()}${stage.slice(1)}`;
+    list.append(li);
+  }
+
   document.querySelectorAll<HTMLButtonElement>('#mode-switch [data-mode]').forEach((b) => {
     b.setAttribute('aria-pressed', String(b.dataset.mode === tools.mode()));
   });
+  const foot = document.querySelector<HTMLElement>('#ladder-foot');
+  if (foot) {
+    const locked = list.querySelectorAll('li[data-status="locked"]').length;
+    foot.textContent = locked
+      ? `${locked} more become available as you move the response stage on.`
+      : 'Every action on this page is available to the agent as a proposal.';
+  }
   renderCapability(tools);
 }
 

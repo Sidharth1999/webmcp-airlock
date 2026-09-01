@@ -1495,3 +1495,73 @@ body {
 .caution-foot { margin: var(--sp-2) 0 0; font-size: var(--text-2xs); color: var(--ink-ghost); }
 [data-caution='pending'] { box-shadow: 0 0 0 1px var(--actor-agent); }
 @media (prefers-reduced-motion: reduce) { .agent-caution { animation: none; } }
+
+/* --- the capability ladder ----------------------------------------------
+   Granted rungs read as plain sentences; locked rungs stay visible and say
+   what would open them. Function names live on hover, not on the surface. */
+.ladder { margin-bottom: var(--sp-3); }
+.ladder-head {
+  display: flex; align-items: baseline; gap: var(--sp-2);
+  padding-bottom: var(--sp-2);
+  border-bottom: 1px solid var(--line);
+}
+.ladder-title {
+  font-size: var(--text-2xs);
+  font-family: var(--font-instrument);
+  letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-ghost);
+}
+.ladder .ts-count { margin-left: auto; font-variant-numeric: tabular-nums;
+  font-family: var(--font-instrument); font-size: var(--text-2xs); color: var(--ink-ghost); }
+.ladder-foot {
+  margin: var(--sp-2) 0 0;
+  font-size: var(--text-2xs); line-height: 1.55; color: var(--ink-ghost);
+}
+
+/* granted rungs: a sentence, not an identifier */
+#tool-list li { white-space: normal; align-items: flex-start; padding: 7px var(--sp-2); }
+#tool-list .tool-name {
+  font-family: var(--font-prose);
+  font-size: var(--text-sm);
+  font-weight: 400;
+  line-height: 1.4;
+  color: var(--ink);
+  overflow: visible; text-overflow: clip;
+}
+#tool-list li[data-status='active'] .tool-name::before {
+  content: '';
+  display: inline-block;
+  width: 5px; height: 5px; border-radius: 50%;
+  background: var(--health-bright);
+  margin-right: var(--sp-2); vertical-align: middle;
+}
+#tool-list .tool-badges { padding-top: 2px; }
+
+/* locked rungs: present, quiet, and self-explaining */
+#tool-list li[data-status='locked'] { opacity: 0.55; }
+#tool-list li[data-status='locked'] .tool-name { color: var(--ink-ghost); }
+#tool-list li[data-status='locked'] .tool-name::before {
+  content: '';
+  display: inline-block;
+  width: 5px; height: 5px; border-radius: 1px;
+  border: 1px solid var(--ink-ghost); background: none;
+  margin-right: var(--sp-2); vertical-align: middle;
+}
+.tool-badge-locked {
+  color: var(--ink-ghost);
+  font-family: var(--font-instrument);
+  font-size: var(--text-2xs);
+  white-space: nowrap;
+}
+#tool-list li[data-status='tombstoned'] .tool-name { text-decoration: line-through; }
+
+/* the stage control says what it is, instead of three unexplained words */
+.rail-modes { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; }
+.rail-modes-label {
+  font-family: var(--font-instrument);
+  font-size: var(--text-2xs);
+  letter-spacing: .1em; text-transform: uppercase;
+  color: var(--ink-ghost);
+}
+/* the read/write badge is secondary to the sentence it annotates */
+#tool-list .tool-badge { font-size: 10px; opacity: .8; }

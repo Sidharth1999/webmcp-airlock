@@ -130,10 +130,26 @@ try {
 
   // ---- M3-01: read-tool surface over live sim state ----------------------
   // (sim is already running from the worker-stream check above)
-  const rail = await page.locator('#tool-list li').count();
-  // 6 reads + record_finding, which is present in every mode: the airlock
-  // gates world-changing actions, not the agent stating what it concluded
-  check('tool rail lists the read surface + record_finding (7)', rail === 7);
+  // The rail is a CAPABILITY LADDER, not an inventory: it shows the granted
+  // rungs AND the ones this page has not granted yet, because "what it
+  // cannot do" is the more reassuring half. In triage that is 7 granted
+  // (6 reads + record_finding) and 5 still locked behind later stages.
+  const railActive = await page.locator('#tool-list li[data-status="active"]').count();
+  const railLocked = await page.locator('#tool-list li[data-status="locked"]').count();
+  check('triage grants 7 rungs (6 reads + record_finding)', railActive === 7);
+  check('the ladder also shows the 5 rungs still locked', railLocked === 5);
+  check(
+    'locked rungs name the stage that would open them',
+    /needs (Diagnosis|Recovery)/.test(
+      await page.locator('#tool-list li[data-status="locked"]').first().textContent()
+    )
+  );
+  check(
+    'the surface reads as sentences, not function names',
+    !/propose_|airlock_status/.test(
+      await page.locator('#tool-list li[data-status="active"]').first().textContent()
+    )
+  );
   check(
     'record_finding is listed and is NOT read-only',
     await page.evaluate(() => {

@@ -16,6 +16,9 @@ const RECORDABLE: ReadonlySet<EventKind> = new Set([
   'annotation.added',
   // the agent's own read of the incident: recorded, world untouched
   'finding.recorded',
+  // the agent's ordered intent. It mutates nothing and authorizes nothing —
+  // every step still arrives as its own action.proposed and its own gate.
+  'plan.proposed',
 ] as EventKind[]);
 
 export interface SimCtx {

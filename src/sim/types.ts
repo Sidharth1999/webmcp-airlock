@@ -28,7 +28,10 @@ export type EventKind =
   | 'finding.recorded'
   // meta
   | 'scenario.seeded'
-  | 'annotation.added';
+  | 'annotation.added'
+  // an ordered sequence the agent proposes as ONE object; each step is still
+  // gated individually, so this records the SHAPE of the intent, not consent
+  | 'plan.proposed';
 
 export interface Event {
   seq: number; // monotonic, the ordering truth

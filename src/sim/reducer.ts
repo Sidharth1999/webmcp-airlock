@@ -324,6 +324,9 @@ export function reduce(world: World, event: Event): World {
     case 'finding.recorded':
     case 'scenario.seeded':
     case 'annotation.added':
+    // an ORDER the agent stated. It grants nothing; the steps it names still
+    // arrive one at a time as their own gated action.proposed.
+    case 'plan.proposed':
       return world;
   }
 }

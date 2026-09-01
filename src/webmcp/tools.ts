@@ -1,4 +1,5 @@
 import { MODE_WRITE_TOOLS, surfaceDiff, type Mode } from '../sim/modes';
+import { WRITE_ACTIONS } from '../sim/vocabulary';
 import type { QueryRequest } from '../sim/queries';
 import { getModelContext, type ModelContextLike, type ToolDescriptor } from './shim';
 
@@ -21,6 +22,16 @@ import { getModelContext, type ModelContextLike, type ToolDescriptor } from './s
 export type QueryRunner = (q: QueryRequest, viaTool?: string) => Promise<Record<string, unknown>>;
 /** Records the agent's own conclusion into the console's timeline. */
 export type RecordRunner = (data: Record<string, unknown>) => void;
+/**
+ * Records an ORDERED intent. It grants nothing: the caller records the
+ * plan.proposed event and then puts step 1 — and only step 1 — through the
+ * ordinary airlock. See docs/schema.md, amendment 2026-09-01.
+ */
+export type PlanRunner = (plan: {
+  planId: string;
+  reason: string;
+  steps: { tool: string; input: Record<string, unknown>; because?: string }[];
+}) => void;
 
 export type ProposeRunner = (
   tool: string,
@@ -391,6 +402,7 @@ export function createAirlockTools(
   run: QueryRunner,
   propose: ProposeRunner,
   recordFinding: RecordRunner,
+  proposePlan: PlanRunner,
   mc: ModelContextLike | null = getModelContext()
 ): AirlockTools {
   const descriptors = new Map<string, ToolDescriptor>();
@@ -483,6 +495,105 @@ export function createAirlockTools(
     registerWith(tool, false);
   }
 
+  // A SEQUENCE IS A DIFFERENT KIND OF ASK THAN AN ACTION.
+  //
+  // `retry-storm`'s answer is two levers in one order, and doing them
+  // backwards costs more than doing nothing at all. Proposing them as two
+  // unrelated writes hides the only thing that matters — that the order is
+  // load-bearing — and asking the human to approve both at once removes the
+  // check that makes an airlock worth having.
+  //
+  // So this tool takes the ORDER and the REASON for it, and then behaves with
+  // deliberate modesty: it proposes step 1 and stops. Step 2 is not proposed
+  // until step 1 has actually executed, so the human always decides against
+  // the world as it is. A plan is a claim on the record, never a grant.
+  {
+    const planIds = (() => {
+      let n = 0;
+      return () => `plan-${++n}`; // deterministic: no Date.now, no random
+    })();
+    const tool: ToolDescriptor = {
+      name: 'propose_plan',
+      description:
+        'Propose an ORDERED sequence of 2-4 actions when the order itself matters — when doing the same steps in a different order would cost more. Give the reason the order is load-bearing; the operator reads it before approving anything. Each step is still approved separately, and step N+1 is not proposed until step N has run, so nothing executes ahead of the human.',
+      inputSchema: {
+        type: 'object',
+        properties: {
+          reason: {
+            type: 'string',
+            description: 'Why THIS order. What goes wrong if the steps are taken the other way round?',
+          },
+          steps: {
+            type: 'array',
+            description: 'The actions in the order they must happen. 2 to 4 of them.',
+            items: {
+              type: 'object',
+              properties: {
+                tool: { type: 'string', description: 'The propose_* tool for this step, e.g. propose_rate_limit' },
+                input: { type: 'object', description: 'That tool’s own input object' },
+                because: { type: 'string', description: 'What this step buys, in one line' },
+              },
+              required: ['tool', 'input'],
+            },
+          },
+        },
+        required: ['reason', 'steps'],
+      },
+      annotations: { readOnlyHint: false },
+      execute: async (input) => {
+        const reject = (reason: string) => ({
+          content: [{ type: 'text' as const, text: JSON.stringify({ status: 'rejected', reason }) }],
+        });
+        const i = coerceInput(input) as { reason?: unknown; steps?: unknown };
+        const reason = String(i.reason ?? '').slice(0, 400);
+        if (!reason) return reject('reason is required: say why the order matters.');
+        const raw = Array.isArray(i.steps) ? i.steps : [];
+        if (raw.length < 2) {
+          return reject('a plan needs at least 2 steps; for a single action, use its own propose tool.');
+        }
+        if (raw.length > 4) return reject('a plan is capped at 4 steps.');
+
+        const steps: { tool: string; input: Record<string, unknown>; because?: string }[] = [];
+        for (const [n, r] of raw.entries()) {
+          const st = (r ?? {}) as { tool?: unknown; input?: unknown; because?: unknown };
+          const name = String(st.tool ?? '');
+          const spec = WRITE_TOOLS.find((w) => w.name === name);
+          if (!spec) return reject(`step ${n + 1}: ${name || '(missing)'} is not a proposal tool on this page.`);
+          if (!MODE_WRITE_TOOLS[mode].includes(name)) {
+            return reject(`step ${n + 1}: ${name} is not available in ${mode}. Move the response stage on first.`);
+          }
+          const stepInput = coerceInput(st.input) as Record<string, unknown>;
+          // shape-check BEFORE anything is recorded: a plan that names a
+          // malformed step must not reach the operator looking sound
+          const bad = WRITE_ACTIONS[spec.action]?.validate(stepInput);
+          if (bad) return reject(`step ${n + 1} (${name}): ${bad}`);
+          steps.push({
+            tool: spec.action,
+            input: stepInput,
+            ...(st.because ? { because: String(st.because).slice(0, 200) } : {}),
+          });
+        }
+        const planId = planIds();
+        proposePlan({ planId, reason, steps });
+        return {
+          content: [
+            {
+              type: 'text',
+              text: JSON.stringify({
+                status: 'planned',
+                planId,
+                steps: steps.length,
+                note: 'The operator can see the whole order and its reason. Step 1 is proposed; the rest follow one at a time, only after the step before them has executed.',
+              }),
+            },
+          ],
+        };
+      },
+    };
+    descriptors.set(tool.name, tool);
+    registerWith(tool, false);
+  }
+
   const proposeAndReport = async (action: string, input: unknown): Promise<string> => {
     const res = await propose(action, coerceInput(input));
     if (res.outcome === 'blocked') {
@@ -563,6 +674,8 @@ export function createAirlockTools(
       }));
       // present in every mode: recording a conclusion is not a world change
       out.push({ name: 'record_finding', readOnly: false, untrusted: false, status: 'active' });
+      // an order is a claim, not a change: available wherever writes are
+      out.push({ name: 'propose_plan', readOnly: false, untrusted: false, status: 'active' });
       for (const w of WRITE_TOOLS) {
         if (writes.has(w.name)) {
           out.push({ name: w.name, readOnly: false, untrusted: false, status: 'active' });

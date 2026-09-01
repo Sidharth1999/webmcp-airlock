@@ -1555,6 +1555,119 @@ body {
 .ap-prov-src { color: var(--ink-faint); }
 .approval-card:has(.ap-prov) { border-color: var(--warn-dim); border-left-color: var(--warn); }
 
+/* --- the plan: a sequence, priced, approved one step at a time ----------
+   Read top to bottom it is an argument: the reason for the order, then the
+   steps with their prices, then exactly one live decision. The step rail on
+   the left is the state at a glance — filled means done, ringed means this
+   is the one you are being asked about, hollow means not yet asked. */
+.plan-card {
+  border: 1px solid var(--actor-agent-dim);
+  border-left: 3px solid var(--actor-agent);
+  background: oklch(76% 0.13 310 / 0.07);
+  padding: var(--sp-2) var(--sp-3);
+  margin: var(--sp-2) 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  font-family: var(--font-instrument);
+  font-size: var(--text-xs);
+}
+.plan-card[data-state='abandoned'] { border-color: var(--line); border-left-color: var(--ink-ghost); opacity: 0.85; }
+.plan-card[data-state='complete'] { border-color: var(--good); border-left-color: var(--good); }
+.pl-head { display: flex; align-items: baseline; gap: var(--sp-2); }
+.pl-actor {
+  color: var(--actor-agent);
+  font-family: var(--font-prose);
+  font-weight: 600;
+}
+.pl-state { margin-left: auto; color: var(--ink-faint); font-size: var(--text-2xs); text-align: right; }
+.plan-card[data-state='complete'] .pl-state { color: var(--good); }
+
+.pl-why { display: flex; flex-direction: column; gap: 2px; }
+.pl-why-k {
+  color: var(--ink-faint);
+  font-size: var(--text-2xs);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+}
+.pl-why-t {
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--font-prose);
+  font-size: var(--text-xs);
+  line-height: 1.5;
+}
+
+.pl-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-2); }
+.pl-step {
+  position: relative;
+  padding-left: var(--sp-4);
+  border-left: 1px solid var(--line);
+  counter-increment: pl;
+}
+.pl-steps { counter-reset: pl; }
+/* the rail marker: hollow → ringed → filled, so state is legible without text */
+.pl-step::before {
+  content: counter(pl);
+  position: absolute;
+  left: -9px;
+  top: 0;
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-size: var(--text-2xs);
+  font-variant-numeric: tabular-nums;
+  background: var(--panel);
+  border: 1px solid var(--line);
+  color: var(--ink-ghost);
+}
+.pl-step[data-state='live']::before {
+  border-color: var(--actor-agent);
+  color: var(--actor-agent);
+  box-shadow: 0 0 0 3px oklch(76% 0.13 310 / 0.18);
+}
+.pl-step[data-state='done']::before {
+  content: '✓';
+  border-color: var(--good);
+  background: var(--good);
+  color: var(--panel);
+}
+.pl-step[data-state='skipped']::before,
+.pl-step[data-state='blocked']::before { border-color: var(--bad); color: var(--bad); }
+.pl-step[data-state='dropped'] { opacity: 0.5; }
+
+.pl-what { margin: 0; color: var(--ink); line-height: 1.45; }
+.pl-step[data-state='done'] .pl-what { color: var(--ink-dim); text-decoration: line-through; text-decoration-color: var(--ink-ghost); }
+.pl-cost { margin: 2px 0 0; color: var(--ink-faint); font-size: var(--text-2xs); line-height: 1.5; }
+.pl-cost-k {
+  color: var(--warn);
+  text-transform: uppercase;
+  letter-spacing: var(--tracking-label);
+  margin-right: var(--sp-2);
+}
+.pl-because {
+  margin: 2px 0 0;
+  color: var(--ink-dim);
+  font-family: var(--font-prose);
+  font-size: var(--text-xs);
+  line-height: 1.45;
+}
+.pl-note { margin: 2px 0 0; color: var(--ink-ghost); font-size: var(--text-2xs); }
+.pl-step[data-state='live'] .pl-note { color: var(--actor-agent); }
+.pl-step[data-state='blocked'] .pl-note,
+.pl-step[data-state='skipped'] .pl-note { color: var(--bad); }
+/* the live step's own approval card sits inside the step, not beside it.
+   The step has already said WHO is asking and WHAT it would do, so the card
+   drops both and carries only what the step cannot: the tier, the evidence
+   it was assembled from, the key when one is needed, and the decision. */
+.pl-slot:empty { display: none; }
+.pl-slot .approval-card { margin: var(--sp-2) 0 0; background: none; border-left-width: 2px; }
+.pl-slot .ap-diff,
+.pl-slot .ap-actor { display: none; }
+.pl-slot .ap-tier { margin-left: 0; }
+
 /* --- evidence strip: what the agent worked from -------------------------
    Two registers on purpose. The chip row is PAGE-DERIVED — read off the
    audit trail, so it cannot be overstated by the agent — and is therefore

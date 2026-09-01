@@ -124,3 +124,44 @@ smoke-tested, so the DOC moves to match the code, not vice versa):
   in STATUS deferred-by-decision since M2 close). The draft metric
   `agentOverhead = Σ tool.called durations` is therefore not yet
   computable; `toolBytes` is the implemented overhead measure.
+
+---
+
+## Amendment — 2026-09-01 (agent UX: the plan as a first-class object)
+
+**New meta kind: `plan.proposed`.** Recordable (the reducer no-ops it, like
+every other meta kind), actor `agent`.
+
+```
+data: {
+  planId:  string     // stable across the plan's whole life
+  reason:  string     // why THIS ORDER — the claim the human weighs first
+  steps:   [{ tool: string,          // vocabulary action key, e.g. ratelimit.set
+              input: Record<string, unknown>,
+              because?: string }]    // ≥2 steps; the object is meaningless at 1
+}
+```
+
+**Why a plan needs to exist in the log at all.** Three of the four scenario
+families have a single-action answer; `retry-storm` does not — its answer is
+two levers in one order, and doing the same two levers backwards costs more
+than doing nothing. An approval surface that can only show ONE action at a
+time therefore cannot show the human the thing they are actually deciding.
+
+**What it is NOT.** `plan.proposed` authorizes nothing and mutates nothing.
+Every step still arrives as its own `action.proposed`, is still gated by mode
+and tier and dual-key AT DECISION TIME, and still requires its own human
+approval. Step N+1 is not even proposed until step N has executed, so the
+human always approves against the world as it actually is, never against the
+world the plan predicted. Rejecting any step abandons the remainder.
+
+The plan is the agent stating an ORDER and its reason, on the record, before
+anything happens. It is evidence for the human, not a grant from them.
+
+**Causality.** Each step's `action.proposed` carries `causedBy` = the
+`plan.proposed` seq, so the audit trail reads "these three writes came from
+one stated plan" rather than as three unrelated asks.
+
+**Sid ping (required by the header of src/sim/types.ts):** this amendment
+adds a kind to schema v1 rather than changing any existing one; no existing
+event's shape or meaning moves. Flagged in STATUS.md for review.

@@ -23,6 +23,7 @@ function fakeMc() {
 function fixture() {
   const queries: QueryRequest[] = [];
   const proposals: Array<{ tool: string; input: Record<string, unknown> }> = [];
+  const plans: Array<{ planId: string; reason: string; steps: unknown[] }> = [];
   const { mc, registered } = fakeMc();
   const tools = createAirlockTools(
     async (q) => {
@@ -34,9 +35,12 @@ function fixture() {
       return { seq: 99, outcome: 'proposed' as const };
     },
     () => {},
+    (plan) => {
+      plans.push(plan);
+    },
     mc
   );
-  return { tools, registered, queries, proposals };
+  return { tools, registered, queries, proposals, plans };
 }
 
 describe('mode-gated registration (M3-02)', () => {
@@ -55,9 +59,9 @@ describe('mode-gated registration (M3-02)', () => {
     for (const name of PRODUCTION) {
       expect(registered.has(name), `${name} must not exist in triage`).toBe(false);
     }
-    expect(registered.size).toBe(12); // 6 reads + record_finding + 5 incident-command
+    expect(registered.size).toBe(13); // 6 reads + record_finding + propose_plan + 5 incident-command
     expect([...registered.keys()]).toContain('explain_surface');
-    expect(tools.list().filter((t) => t.status === 'active')).toHaveLength(12);
+    expect(tools.list().filter((t) => t.status === 'active')).toHaveLength(13);
     // STRONGER than the old blanket check: the six READS are read-only, and
     // the only other tool in triage is record_finding — which writes to the
     // console's timeline (so it is honestly not readOnly) but carries no
@@ -67,11 +71,83 @@ describe('mode-gated registration (M3-02)', () => {
     }
     const nonRead = [...registered.keys()].filter((n) => !READ_TOOLS.some((r) => r.name === n));
     expect(nonRead).toContain('record_finding');
-    // every other non-read in triage is incident command, never production
+    // every other non-read in triage is incident command, never production.
+    // propose_plan joins the list because it shares the prefix, NOT because a
+    // plan is a production write — it changes nothing itself and cannot name
+    // a step this mode does not already grant. The test below proves that
+    // rather than trusting the name.
     expect(nonRead.filter((n) => n.startsWith('propose_')).sort()).toEqual([
-      'propose_acknowledge', 'propose_escalate', 'propose_severity',
+      'propose_acknowledge', 'propose_escalate', 'propose_plan', 'propose_severity',
       'propose_silence_alerts', 'propose_status_update',
     ]);
+  });
+
+  it('a plan cannot smuggle a production write into triage', async () => {
+    const { tools, plans, proposals } = fixture();
+    // deploy.rollback has no tool in triage at all; naming it inside a plan
+    // must be refused at the tool boundary, before anything is recorded
+    const res = JSON.parse(
+      await tools.invoke('propose_plan', {
+        reason: 'roll it back and then tell customers',
+        steps: [
+          { tool: 'propose_rollback', input: { deployId: 'd-201' } },
+          { tool: 'propose_status_update', input: { message: 'investigating' } },
+        ],
+      })
+    );
+    expect(res.status).toBe('rejected');
+    expect(res.reason).toMatch(/not available in triage/);
+    expect(plans).toHaveLength(0); // nothing reached the log
+    expect(proposals).toHaveLength(0); // and nothing reached the airlock
+  });
+
+  it('a plan records the order and proposes NOTHING by itself', async () => {
+    const { tools, plans, proposals } = fixture();
+    const res = JSON.parse(
+      await tools.invoke('propose_plan', {
+        reason: 'own it before you page anyone, or the page has no owner to land on',
+        steps: [
+          { tool: 'propose_acknowledge', input: { by: 'sid' }, because: 'takes the incident' },
+          { tool: 'propose_escalate', input: { team: 'database' } },
+        ],
+      })
+    );
+    expect(res.status).toBe('planned');
+    expect(res.steps).toBe(2);
+    expect(plans).toHaveLength(1);
+    // the tool hands over VOCABULARY keys, not its own tool names, so the
+    // renderer can price each step from WRITE_ACTIONS
+    expect(plans[0]!.steps.map((s) => (s as { tool: string }).tool)).toEqual([
+      'incident.acknowledge',
+      'incident.escalate',
+    ]);
+    // and the airlock has been asked for nothing: advancing a plan is the
+    // page's job, one step at a time, after the step before it has executed
+    expect(proposals).toHaveLength(0);
+  });
+
+  it('a plan with fewer than two steps, or a malformed step, is refused', async () => {
+    const { tools, plans } = fixture();
+    const one = JSON.parse(
+      await tools.invoke('propose_plan', {
+        reason: 'just the one',
+        steps: [{ tool: 'propose_acknowledge', input: { by: 'sid' } }],
+      })
+    );
+    expect(one.status).toBe('rejected');
+    expect(one.reason).toMatch(/at least 2 steps/);
+    const bad = JSON.parse(
+      await tools.invoke('propose_plan', {
+        reason: 'owner is missing from step one',
+        steps: [
+          { tool: 'propose_acknowledge', input: {} },
+          { tool: 'propose_escalate', input: { team: 'database' } },
+        ],
+      })
+    );
+    expect(bad.status).toBe('rejected');
+    expect(bad.reason).toMatch(/step 1/);
+    expect(plans).toHaveLength(0);
   });
 
   it('diagnosis adds the flag proposal; recovery adds the full write set', () => {
@@ -91,7 +167,7 @@ describe('mode-gated registration (M3-02)', () => {
       expect.arrayContaining(['propose_rollback', 'propose_rollforward', 'propose_env_change', 'propose_route_change'])
     );
     expect(r.removed).toEqual([]);
-    expect(registered.size).toBe(19 + 7); // all proposals + 6 reads + record_finding
+    expect(registered.size).toBe(19 + 8); // all proposals + 6 reads + record_finding + propose_plan
     expect(registered.get('propose_rollback')!.annotations?.readOnlyHint).toBe(false);
   });
 
@@ -99,7 +175,7 @@ describe('mode-gated registration (M3-02)', () => {
     const { tools, registered } = fixture();
     tools.setMode('recovery');
     tools.setMode('triage');
-    expect(registered.size).toBe(12); // abort really unregistered (fake honors signal)
+    expect(registered.size).toBe(13); // abort really unregistered (fake honors signal)
     const tombs = tools.list().filter((t) => t.status === 'tombstoned');
     expect(tombs).toHaveLength(14); // everything recovery granted beyond triage
     expect(tombs[0]!.tombstone).toContain('left with recovery mode');
@@ -120,6 +196,7 @@ describe('mode-gated registration (M3-02)', () => {
     const tools = createAirlockTools(
       async () => ({ asOfSeq: 1 }),
       async () => ({ seq: 7, outcome: 'blocked' as const, reason: 'not-available-in-mode' }),
+      () => {},
       () => {},
       mc
     );
@@ -170,8 +247,8 @@ describe('reset (M3-close review): a fresh world gets a fresh rail', () => {
     tools.reset();
     expect(tools.mode()).toBe('triage');
     expect(tools.list().filter((t) => t.status === 'tombstoned')).toHaveLength(0);
-    // back to triage's own grants: 6 reads + record_finding + 5 incident-command
-    expect(registered.size).toBe(12); // recovery's registrations really aborted
+    // back to triage's own grants: 6 reads + record_finding + propose_plan + 5 incident-command
+    expect(registered.size).toBe(13); // recovery's registrations really aborted
   });
 });
 
@@ -251,6 +328,7 @@ describe('readOnlyHint audit — the six reads (M4)', () => {
         return result;
       },
       async () => ({ seq: 0, outcome: 'proposed' as const }),
+      () => {},
       () => {},
       mc
     );

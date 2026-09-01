@@ -534,6 +534,7 @@ function seed(templateId: string): void {
   }
   applyLogFilter();
   resetEvidence(); // a new world, and the old world's reads are not evidence for it
+  resetPlans();
   for (const { card } of pendingCards.values()) card.remove();
   pendingCards.clear();
   flagControls.innerHTML = '';
@@ -1106,6 +1107,223 @@ function buildEvidence(proposalSeq: number): HTMLElement {
   return box;
 }
 
+// ---- the plan as a first-class object ------------------------------------
+// Three of the four scenario families have a one-action answer. `retry-storm`
+// does not: its answer is two levers in one ORDER, and the same two levers
+// backwards cost more than doing nothing. An approval surface that can only
+// ever show one action at a time cannot show the operator the thing they are
+// actually deciding, which is the sequence.
+//
+// So a plan is an object here, and it is deliberately NOT a batch approval:
+//
+//   · The reason the ORDER matters is stated before anything is committed.
+//     That claim is the first thing on the card, above the steps.
+//   · Every step still arrives as its own action.proposed, through the same
+//     airlock, with its own tier, dual-key and provenance checks applied at
+//     decision time. A plan grants nothing.
+//   · Step N+1 is not even PROPOSED until step N has executed. The operator
+//     therefore always approves against the world as it actually is, never
+//     against the world the plan predicted — which is the failure mode of
+//     every "approve all" affordance.
+//   · Rejecting a step abandons the remainder rather than skipping it. A
+//     sequence with a hole in it is not the plan anyone agreed to.
+//   · Each step carries its own COST, from the same vocabulary string the
+//     manual control shows, because the price of step 2 is exactly what the
+//     operator is being asked to pre-read while deciding step 1.
+
+interface PlanStep {
+  tool: string;
+  input: Record<string, unknown>;
+  because?: string;
+}
+interface LivePlan {
+  id: string;
+  reason: string;
+  steps: PlanStep[];
+  index: number;
+  el: HTMLElement;
+  stepEls: HTMLElement[];
+  state: 'running' | 'complete' | 'abandoned';
+  currentProposalSeq?: number;
+}
+const plans = new Map<string, LivePlan>();
+/** approval seq → proposalSeq: action.executed only names its approval. */
+const approvalToProposal = new Map<number, number>();
+/** proposalSeq → planId, so a step's card lands inside its own step slot. */
+const planForProposal = new Map<number, string>();
+
+function stepDescription(step: PlanStep): string {
+  const spec = WRITE_ACTIONS[step.tool];
+  if (!spec) return actionKey(step.tool, step.input);
+  try {
+    return world ? spec.describe(step.input, world) : actionKey(step.tool, step.input);
+  } catch {
+    return actionKey(step.tool, step.input);
+  }
+}
+
+function setStepState(plan: LivePlan, i: number, state: string, note: string): void {
+  const el = plan.stepEls[i];
+  if (!el) return;
+  el.dataset.state = state;
+  el.querySelector<HTMLElement>('.pl-note')!.textContent = note;
+}
+
+/** Put the next step through the airlock. Nothing else advances a plan. */
+function advancePlan(plan: LivePlan): void {
+  const step = plan.steps[plan.index];
+  if (!step) {
+    plan.state = 'complete';
+    plan.el.dataset.state = 'complete';
+    plan.el.querySelector<HTMLElement>('.pl-state')!.textContent = 'every step executed';
+    syncAirlock();
+    return;
+  }
+  setStepState(plan, plan.index, 'live', 'waiting on your decision');
+  void proposeToWorker(step.tool, step.input).then((res) => {
+    if (res.outcome === 'blocked') {
+      // the airlock refused it — the plan stops here, and says why
+      setStepState(plan, plan.index, 'blocked', res.reason ?? 'refused by the airlock');
+      plan.state = 'abandoned';
+      plan.el.dataset.state = 'abandoned';
+      plan.el.querySelector<HTMLElement>('.pl-state')!.textContent =
+        'stopped: the airlock refused this step';
+      return;
+    }
+    plan.currentProposalSeq = res.seq;
+    planForProposal.set(res.seq, plan.id);
+  });
+}
+
+/** The slot a proposal's approval card belongs in, if it belongs to a plan. */
+function planHostFor(proposalSeq: number): HTMLElement | null {
+  const id = planForProposal.get(proposalSeq);
+  if (!id) return null;
+  const plan = plans.get(id);
+  if (!plan) return null;
+  return plan.stepEls[plan.index]?.querySelector<HTMLElement>('.pl-slot') ?? null;
+}
+
+/** A decision landed on a plan's live step: advance, or abandon the rest. */
+function planDecided(proposalSeq: number, executed: boolean): void {
+  const id = planForProposal.get(proposalSeq);
+  if (!id) return;
+  const plan = plans.get(id);
+  if (!plan || plan.state !== 'running') return;
+  if (executed) {
+    setStepState(plan, plan.index, 'done', 'executed');
+    plan.index += 1;
+    advancePlan(plan);
+    return;
+  }
+  setStepState(plan, plan.index, 'skipped', 'you rejected this step');
+  for (let i = plan.index + 1; i < plan.steps.length; i++) {
+    setStepState(plan, i, 'dropped', 'not proposed — the plan was abandoned');
+  }
+  plan.state = 'abandoned';
+  plan.el.dataset.state = 'abandoned';
+  plan.el.querySelector<HTMLElement>('.pl-state')!.textContent =
+    'abandoned — a sequence with a hole in it is not the plan that was agreed';
+}
+
+function renderPlan(e: Event): void {
+  const d = e.data as { planId?: string; reason?: string; steps?: PlanStep[] };
+  const steps = Array.isArray(d.steps) ? d.steps : [];
+  if (!d.planId || steps.length < 2) return;
+
+  const el = document.createElement('div');
+  el.className = 'plan-card';
+  el.dataset.state = 'running';
+  el.dataset.testid = `plan-${d.planId}`;
+  el.dataset.planId = d.planId;
+
+  const head = document.createElement('div');
+  head.className = 'pl-head';
+  const who = document.createElement('span');
+  who.className = 'pl-actor';
+  who.textContent = `agent proposes ${steps.length} steps, in this order`;
+  const state = document.createElement('span');
+  state.className = 'pl-state';
+  state.textContent = 'one at a time — nothing runs ahead of you';
+  head.append(who, state);
+  el.append(head);
+
+  // THE ORDER'S REASON COMES FIRST. It is what distinguishes this from a
+  // batch, and the operator must weigh it before the first approval, not
+  // discover it between steps.
+  const why = document.createElement('div');
+  why.className = 'pl-why';
+  const k = document.createElement('span');
+  k.className = 'pl-why-k';
+  k.textContent = 'Why this order';
+  const body = document.createElement('p');
+  body.className = 'pl-why-t';
+  renderCitedText(body, String(d.reason ?? ''));
+  why.append(k, body);
+  el.append(why);
+
+  const list = document.createElement('ol');
+  list.className = 'pl-steps';
+  const stepEls: HTMLElement[] = [];
+  steps.forEach((step, i) => {
+    const li = document.createElement('li');
+    li.className = 'pl-step';
+    li.dataset.state = 'pending';
+    li.dataset.testid = `plan-step-${d.planId}-${i}`;
+    const what = document.createElement('p');
+    what.className = 'pl-what';
+    what.textContent = stepDescription(step);
+    li.append(what);
+    const cost = WRITE_ACTIONS[step.tool]?.cost;
+    if (cost) {
+      const c = document.createElement('p');
+      c.className = 'pl-cost';
+      const ck = document.createElement('span');
+      ck.className = 'pl-cost-k';
+      ck.textContent = 'Costs';
+      c.append(ck, document.createTextNode(cost));
+      li.append(c);
+    }
+    if (step.because) {
+      const b = document.createElement('p');
+      b.className = 'pl-because';
+      renderCitedText(b, step.because);
+      li.append(b);
+    }
+    const note = document.createElement('p');
+    note.className = 'pl-note';
+    note.textContent = i === 0 ? 'proposing…' : 'not proposed until the step above has run';
+    li.append(note);
+    // the real approval card for this step gets mounted here when it arrives
+    const slot = document.createElement('div');
+    slot.className = 'pl-slot';
+    li.append(slot);
+    list.append(li);
+    stepEls.push(li);
+  });
+  el.append(list);
+  airlockCards.appendChild(el);
+
+  const plan: LivePlan = {
+    id: d.planId,
+    reason: String(d.reason ?? ''),
+    steps,
+    index: 0,
+    el,
+    stepEls,
+    state: 'running',
+  };
+  plans.set(plan.id, plan);
+  syncAirlock();
+  advancePlan(plan);
+}
+
+function resetPlans(): void {
+  plans.clear();
+  planForProposal.clear();
+  approvalToProposal.clear();
+}
+
 function addApprovalCard(e: Event): void {
   const d = e.data as {
     tool: string;
@@ -1170,7 +1388,9 @@ function addApprovalCard(e: Event): void {
     anchor.classList.add('proposal-anchor');
     revealAnchor(anchor);
   }
-  airlockCards.appendChild(card);
+  // a plan step's card belongs INSIDE its step, so the sequence stays one
+  // object on screen instead of scattering into loose asks
+  (planHostFor(e.seq) ?? airlockCards).appendChild(card);
   pendingCards.set(e.seq, { card, anchor });
   syncAirlock();
 }
@@ -1184,9 +1404,14 @@ function revealAnchor(anchor: HTMLElement): void {
 
 const airlockEl = document.querySelector<HTMLElement>('#airlock')!;
 const airlockCards = document.querySelector<HTMLElement>('#airlock-cards')!;
-/** The region only exists while something is pending; it never leaves a void. */
+/**
+ * The region only exists while something is pending; it never leaves a void.
+ * A plan holds it open for its whole life, INCLUDING after the last step ran:
+ * the finished sequence with its ticks is the operator's receipt, and it used
+ * to vanish the instant the final card resolved.
+ */
 function syncAirlock(): void {
-  airlockEl.dataset.pending = String(pendingCards.size);
+  airlockEl.dataset.pending = String(pendingCards.size + plans.size);
 }
 
 function resolveApprovalCard(proposalSeq: number): void {
@@ -2396,8 +2621,18 @@ function renderEvents(events: Event[], w: World): void {
       pushTele(e.data as { rps: number; errRate: number; p95: number });
     } else if (e.kind === 'log.line') renderLogLine(e);
     else if (e.kind === 'action.proposed') addApprovalCard(e);
+    else if (e.kind === 'plan.proposed') renderPlan(e);
     else if (e.kind === 'action.approved' || e.kind === 'action.rejected') {
-      resolveApprovalCard((e.data as { proposalSeq: number }).proposalSeq);
+      const ps = (e.data as { proposalSeq: number }).proposalSeq;
+      resolveApprovalCard(ps);
+      // approval is not execution — the mode or the key can still refuse at
+      // decision time — so a plan advances on the WRITE, and action.executed
+      // names only its approval. Keep the join.
+      if (e.kind === 'action.approved') approvalToProposal.set(e.seq, ps);
+      else planDecided(ps, false);
+    } else if (e.kind === 'action.executed' && typeof e.causedBy === 'number') {
+      const ps = approvalToProposal.get(e.causedBy);
+      if (ps !== undefined) planDecided(ps, true);
     } else if (e.kind === 'annotation.added' && e.actor === 'agent') {
       telestrate((e.data as { target: EntityRef }).target);
     }
@@ -2876,6 +3111,7 @@ const RUNG_LABEL: Record<string, string> = {
   traffic_history: 'Look at the error-rate history',
   explain_surface: 'Ask why its own tools changed',
   record_finding: 'Write what it concludes into this console',
+  propose_plan: 'Ask for a sequence of actions, in a stated order',
   // incident command — granted in triage
   propose_acknowledge: 'Ask to take ownership of the incident',
   propose_severity: 'Ask to set the severity',
@@ -2972,7 +3208,24 @@ function recordFindingToWorker(data: Record<string, unknown>): void {
   send({ type: 'record', kind: 'finding.recorded', actor: 'agent', data });
 }
 
-const airlockTools = createAirlockTools(runWorkerQuery, proposeToWorker, recordFindingToWorker);
+/**
+ * An ordered intent, onto the record. It authorizes nothing — renderPlan puts
+ * step 1, and only step 1, through the ordinary airlock when this lands.
+ */
+function proposePlanToWorker(plan: {
+  planId: string;
+  reason: string;
+  steps: { tool: string; input: Record<string, unknown>; because?: string }[];
+}): void {
+  send({ type: 'record', kind: 'plan.proposed', actor: 'agent', data: { ...plan } });
+}
+
+const airlockTools = createAirlockTools(
+  runWorkerQuery,
+  proposeToWorker,
+  recordFindingToWorker,
+  proposePlanToWorker
+);
 renderToolRail(airlockTools);
 
 // mode switching is the operator's ritual: swap the surface, record the

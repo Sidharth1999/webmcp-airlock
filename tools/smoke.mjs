@@ -165,7 +165,10 @@ try {
   // triage grants reads + record_finding + the five incident-command
   // proposals: a page can let an agent help RUN an incident long before it
   // lets one touch production
-  check('triage grants 12 rungs (6 reads + record_finding + incident command)', railActive === 12);
+  check(
+    'triage grants 13 rungs (6 reads + record_finding + propose_plan + incident command)',
+    railActive === 13
+  );
   check('the ladder shows the 14 production rungs still locked', railLocked === 14);
   check(
     'triage grants NOTHING that changes production',
@@ -243,8 +246,8 @@ try {
   await page.getByTestId('mode-recovery').click();
   await page.locator('#tool-list li[data-tool="propose_rollback"][data-status="active"]').waitFor({ timeout: 5_000 });
   check(
-    'recovery registers the full surface (26: 6 reads + record_finding + 19 proposals)',
-    (await page.locator('#tool-list li[data-status="active"]').count()) === 26
+    'recovery registers the full surface (27: 6 reads + record_finding + propose_plan + 19 proposals)',
+    (await page.locator('#tool-list li[data-status="active"]').count()) === 27
   );
 
   const proposal = JSON.parse(
@@ -421,7 +424,7 @@ try {
   await page.locator('#scenario-pick > summary').click(); // the picker is a menu now
   await page.getByTestId('template-baseline').click();
   await page.waitForFunction(
-    () => document.querySelectorAll('#tool-list li[data-status="active"]').length === 12,
+    () => document.querySelectorAll('#tool-list li[data-status="active"]').length === 13,
     null,
     { timeout: 5_000 }
   );
@@ -690,6 +693,107 @@ try {
       (await ev.locator(`#log-stream li.log-cited[data-seq="${cite}"]`).count()) === 1
   );
   await ev.close();
+
+  // ---- the plan: a sequence, priced, approved one step at a time --------
+  // retry-storm's answer is two levers in ONE ORDER and the reverse order is
+  // worse than doing nothing, so the surface has to be able to show a
+  // sequence. These gates hold it to the promise that makes it safe: it is
+  // not a batch approval. Step 2 must not exist until step 1 has run.
+  const pl = await browser.newPage();
+  pl.on('pageerror', (e) => pageErrors.push(e.message));
+  await pl.goto(URL + '?template=retry-storm&tick=120', { waitUntil: 'networkidle' });
+  await pl.getByTestId('sim-run').click();
+  await pl.waitForFunction(() => document.querySelectorAll('#log-stream .log-row').length > 4, null, {
+    timeout: 40_000,
+  });
+  await pl.getByTestId('mode-recovery').click();
+
+  const planSteps = [
+    { tool: 'propose_rate_limit', input: { route: 'r-checkout', rps: 150 }, because: 'buys headroom; rejects real customers and fixes nothing' },
+    { tool: 'propose_rollforward', input: { service: 'api' }, because: '2.4.2 is staged and green' },
+  ];
+  const planned = JSON.parse(
+    await pl.evaluate(
+      (steps) =>
+        window.__airlock.invoke('propose_plan', {
+          reason: 'The fleet is at its autoscaler ceiling, so a rolling replacement withdraws capacity this incident cannot spare. Headroom first.',
+          steps,
+        }),
+      planSteps
+    )
+  );
+  check('a plan is accepted as one object with its order intact', planned.status === 'planned' && planned.steps === 2);
+  const planCard = pl.getByTestId(`plan-${planned.planId}`);
+  await planCard.waitFor({ timeout: 5_000 });
+  check(
+    'the reason the ORDER matters is on the card, before any approval',
+    (await planCard.locator('.pl-why-t').textContent()).includes('autoscaler ceiling')
+  );
+  check(
+    'every step states its own cost',
+    (await planCard.locator('.pl-cost').count()) === 2
+  );
+  // THE PROMISE: this is not a batch. Only step 1 has been put to the human.
+  check(
+    'only the first step is live; the second is not proposed yet',
+    (await planCard.locator('.pl-step[data-state="live"]').count()) === 1 &&
+      (await pl.getByTestId(`plan-step-${planned.planId}-1`).getAttribute('data-state')) === 'pending' &&
+      (await planCard.locator('.approval-card').count()) === 1
+  );
+  await planCard.locator('.pl-step[data-state="live"] .ap-approve').click();
+  await pl.waitForFunction(
+    (id) => document.querySelector(`[data-testid="plan-step-${id}-1"]`)?.dataset.state === 'live',
+    planned.planId,
+    { timeout: 10_000 }
+  );
+  check(
+    'executing step 1 is what proposes step 2 — never before',
+    (await pl.getByTestId(`plan-step-${planned.planId}-0`).getAttribute('data-state')) === 'done' &&
+      (await planCard.locator('.approval-card').count()) === 1
+  );
+  await planCard.locator('.pl-step[data-state="live"] .ap-approve').click();
+  await pl.waitForFunction(
+    (id) => document.querySelector(`[data-testid="plan-${id}"]`)?.dataset.state === 'complete',
+    planned.planId,
+    { timeout: 10_000 }
+  );
+  check(
+    'a finished plan says so and keeps its receipt on screen',
+    (await planCard.locator('.pl-step[data-state="done"]').count()) === 2 &&
+      (await planCard.isVisible())
+  );
+  // every step went through the airlock as its own gated proposal
+  const gated = await pl.evaluate(() =>
+    [...document.querySelectorAll('#event-stream li[data-kind="action.proposed"]')].length
+  );
+  check('each step still arrived as its own action.proposed', gated >= 2);
+
+  // rejecting a step abandons the REST: a sequence with a hole in it is not
+  // the plan anyone agreed to
+  const p2 = JSON.parse(
+    await pl.evaluate(
+      (steps) =>
+        window.__airlock.invoke('propose_plan', {
+          reason: 'second plan, to test abandonment',
+          steps,
+        }),
+      planSteps
+    )
+  );
+  const card2 = pl.getByTestId(`plan-${p2.planId}`);
+  await card2.locator('.pl-step[data-state="live"] .ap-reject').click();
+  await pl.waitForFunction(
+    (id) => document.querySelector(`[data-testid="plan-${id}"]`)?.dataset.state === 'abandoned',
+    p2.planId,
+    { timeout: 10_000 }
+  );
+  check(
+    'rejecting one step abandons the remainder rather than skipping it',
+    (await pl.getByTestId(`plan-step-${p2.planId}-1`).getAttribute('data-state')) === 'dropped' &&
+      (await card2.locator('.approval-card').count()) === 0
+  );
+  await pl.close();
+
 
 
   // ---- M3-07: unattended full-scenario agent driver (plumbing loop) ------

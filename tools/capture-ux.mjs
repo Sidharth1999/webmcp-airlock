@@ -7,7 +7,13 @@ import { mkdirSync } from 'node:fs';
 const OUT = process.argv[2] ?? 'log/ux';
 mkdirSync(OUT, { recursive: true });
 
+// SID'S DISPLAY IS ~2330px WIDE. Capturing only 1440 hid every wide-layout
+// defect he reported — `1fr` columns absorbing all the slack, content
+// stranded at opposite edges, the glance band wasting its left half.
+// Never judge this layout without looking at `ultra`.
 const VIEWPORTS = {
+  ultra: { width: 2400, height: 1350 },
+  wide: { width: 1920, height: 1080 },
   desk: { width: 1440, height: 900 },
   narrow: { width: 1120, height: 820 },
 };

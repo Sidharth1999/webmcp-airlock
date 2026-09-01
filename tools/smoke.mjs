@@ -813,7 +813,7 @@ try {
   const driver = spawnSync('node', ['tools/agent-driver.mjs', URL], {
     stdio: ['ignore', 'pipe', 'pipe'],
   });
-  check('agent driver resolves the scenario unattended', driver.status === 0);
+  check('agent driver resolves BOTH scenarios unattended (trap + ordering)', driver.status === 0);
   if (driver.status !== 0) {
     console.error(driver.stdout?.toString() ?? '', driver.stderr?.toString() ?? '');
   }

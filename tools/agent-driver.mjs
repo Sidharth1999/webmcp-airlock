@@ -99,20 +99,150 @@ const finalStatus = await invoke('airlock_status');
 if (finalStatus.incidentOpen) throw new Error('scenario did not resolve');
 console.log('[driver] resolved: d-202 serving, incident closed');
 
-// --- trace out ------------------------------------------------------------
-mkdirSync('log/driver-runs', { recursive: true });
-const stamp = new Date().toISOString().replace(/[:.]/g, '-');
-const trace = {
-  ranAt: stamp,
-  url: URL,
-  outcome: 'resolved',
-  // evals-cli expectedCall shape: what a tool-selection eval would assert
-  expectedCall: calls.map(({ functionName, arguments: args }) => ({ functionName, arguments: args })),
-  calls,
+const writeTrace = (scenario, outcome, made) => {
+  mkdirSync('log/driver-runs', { recursive: true });
+  const stamp = new Date().toISOString().replace(/[:.]/g, '-');
+  const trace = {
+    ranAt: stamp,
+    url: URL,
+    scenario,
+    outcome,
+    // evals-cli expectedCall shape: what a tool-selection eval would assert
+    expectedCall: made.map(({ functionName, arguments: args }) => ({ functionName, arguments: args })),
+    calls: made,
+  };
+  const path = `log/driver-runs/${stamp}-${scenario}.json`;
+  writeFileSync(path, JSON.stringify(trace, null, 2));
+  console.log(`[driver] trace → ${path} (${made.length} tool calls)`);
 };
-const path = `log/driver-runs/${stamp}.json`;
-writeFileSync(path, JSON.stringify(trace, null, 2));
-console.log(`[driver] trace → ${path} (${calls.length} tool calls)`);
+writeTrace('migration-trap', 'resolved', calls);
+await page.close();
+
+// ==========================================================================
+// SCENARIO 2 — the ORDERING story, unattended, through the plan object.
+//
+// The first scenario proves the airlock plumbing on a one-action answer.
+// This one exists because retry-storm's answer is a SEQUENCE: cap /checkout
+// to buy headroom, THEN ship the fix. Backwards is worse than doing nothing
+// (the fleet is at its autoscaler ceiling, so a rolling replacement withdraws
+// instances the incident cannot spare), and no single read says "shed first".
+//
+// Everything here goes through the same two doors as scenario 1: agent turns
+// via window.__airlock.invoke, human turns via hit-tested clicks. The point
+// being proved is the one the plan object exists for — STEP 2 IS NOT
+// PROPOSED UNTIL STEP 1 HAS EXECUTED, and the run cannot fake that, because
+// it waits on the step's own state before it can click anything.
+// ==========================================================================
+const ord = await browser.newPage({ viewport: { width: 1440, height: 860 } });
+const ordCalls = [];
+const ordInvoke = async (name, input = {}) => {
+  const text = await ord.evaluate(([n, i]) => window.__airlock.invoke(n, i), [name, input]);
+  ordCalls.push({ functionName: name, arguments: input, result: JSON.parse(text) });
+  return JSON.parse(text);
+};
+
+console.log('[driver] scenario 2: retry-storm (the answer is an ORDER)');
+await ord.goto(URL + '?template=retry-storm&tick=120', { waitUntil: 'networkidle' });
+await ord.getByTestId('sim-run').click();
+let ordStatus;
+for (let i = 0; i < 80; i++) {
+  ordStatus = await ordInvoke('airlock_status');
+  if (ordStatus.incidentOpen) break;
+  await ord.waitForTimeout(200);
+}
+if (!ordStatus.incidentOpen) throw new Error('retry-storm incident never opened');
+
+// the stitch: offered rate on /checkout far above its organic share, the
+// trigger already gone, and the fleet with no spare capacity. Three reads.
+const traffic = await ordInvoke('traffic_history');
+const ordDeploys = await ordInvoke('list_deploys');
+const amplifier = ordDeploys.deploys.find((d) => d.status === 'live' && /retr/i.test(d.note ?? ''));
+if (!amplifier) throw new Error('driver expected a live deploy whose note describes retries');
+// The incident opens before the story is fully told: the trigger clearing and
+// the autoscaler topping out arrive a few ticks later, and BOTH are needed —
+// "the load is retries" is not readable from any one of them. So the agent
+// keeps watching rather than concluding early, which is the behaviour the
+// scenario is built to require.
+let cleared;
+let ceiling;
+for (let i = 0; i < 80 && (!cleared || !ceiling); i++) {
+  const page = await ordInvoke('read_logs');
+  for (const l of page.lines ?? []) {
+    if (!cleared && /cleared/i.test(l.msg)) cleared = l;
+    if (!ceiling && /ceiling|no spare capacity/i.test(l.msg)) ceiling = l;
+  }
+  if (!cleared || !ceiling) await ord.waitForTimeout(250);
+}
+if (!cleared || !ceiling) {
+  throw new Error(
+    `driver never saw the retry-storm tells: cleared=${!!cleared} ceiling=${!!ceiling}`
+  );
+}
+void traffic;
+console.log(
+  `[driver] stitched: ${amplifier.id} amplifies, trigger cleared (#${cleared.seq}), no spare capacity (#${ceiling.seq})`
+);
+
+// the agent says what it worked out, in the operator's console, before asking
+await ordInvoke('record_finding', {
+  summary: `The load on /checkout is retries, not customers: the db reported contention cleared (#${cleared.seq}) and the fleet is at its autoscaler ceiling (#${ceiling.seq}).`,
+  ruledOut: `Shipping the fix first. A rolling replacement withdraws instances this incident cannot spare while the amplifier is still serving.`,
+});
+
+await ord.getByTestId('mode-recovery').click();
+const plan = await ordInvoke('propose_plan', {
+  reason: `The fleet is at its autoscaler ceiling with no spare instances (#${ceiling.seq}), so a rolling replacement withdraws capacity this incident cannot spare. Headroom has to exist before the fix ships.`,
+  steps: [
+    { tool: 'propose_rate_limit', input: { route: 'r-checkout', rps: 150 }, because: 'buys headroom now — it rejects real customers and fixes nothing' },
+    { tool: 'propose_rollforward', input: { service: 'api' }, because: '2.4.2 is staged and green' },
+  ],
+});
+if (plan.status !== 'planned') throw new Error(`plan rejected: ${JSON.stringify(plan)}`);
+await ord.getByTestId(`plan-${plan.planId}`).waitFor({ timeout: 10_000 });
+
+// THE GATE, asserted rather than assumed: with step 1 still pending, step 2
+// must not have been put to the human at all.
+const stepTwoBefore = await ord.getByTestId(`plan-step-${plan.planId}-1`).getAttribute('data-state');
+if (stepTwoBefore !== 'pending') {
+  throw new Error(`step 2 was proposed before step 1 ran (state=${stepTwoBefore})`);
+}
+const cardsBefore = await ord.locator(`[data-testid="plan-${plan.planId}"] .approval-card`).count();
+if (cardsBefore !== 1) throw new Error(`a plan put ${cardsBefore} decisions to the human at once`);
+
+// human turn: approve step 1 by clicking it, exactly as an operator would
+await ord.locator('.pl-step[data-state="live"] .ap-approve').click();
+await ord.waitForFunction(
+  (id) => document.querySelector(`[data-testid="plan-step-${id}-1"]`)?.dataset.state === 'live',
+  plan.planId,
+  { timeout: 15_000 }
+);
+console.log('[driver] step 1 executed — and only now is step 2 proposed');
+await ord.locator('.pl-step[data-state="live"] .ap-approve').click();
+await ord.waitForFunction(
+  (id) => document.querySelector(`[data-testid="plan-${id}"]`)?.dataset.state === 'complete',
+  plan.planId,
+  { timeout: 15_000 }
+);
+
+// The last step lands before its effect does — a rolling replacement takes
+// ticks — so the run watches for the recovery rather than reading the world
+// the instant it clicked. Reporting "resolved" off the click would be a lie.
+let ordFinal;
+for (let i = 0; i < 60; i++) {
+  ordFinal = await ordInvoke('airlock_status');
+  if (!ordFinal.incidentOpen) break;
+  await ord.waitForTimeout(300);
+}
+if (ordFinal.incidentOpen) {
+  throw new Error(
+    `retry-storm did not recover after the plan ran in order (api=${ordFinal.services?.find((x) => x.id === 'api')?.health})`
+  );
+}
+console.log(
+  `[driver] resolved in order: shed then shipped · api ${ordFinal.services?.find((x) => x.id === 'api')?.health} · incident closed`
+);
+writeTrace('retry-storm', 'resolved', ordCalls);
+await ord.close();
 
 await browser.close();
 console.log('[driver] GREEN');

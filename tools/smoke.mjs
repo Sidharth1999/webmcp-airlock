@@ -375,6 +375,7 @@ try {
 
   // review fix: a template re-seed clears the previous scenario's tombstones
   // (this page left recovery mode earlier, so ghosts would render pre-fix)
+  await page.locator('#scenario-pick > summary').click(); // the picker is a menu now
   await page.getByTestId('template-baseline').click();
   await page.waitForFunction(
     () => document.querySelectorAll('#tool-list li[data-status="active"]').length === 7,
@@ -456,6 +457,7 @@ try {
 
   // template switch fully resets the console (pacer, deck, status) — the
   // migration-trap flag row must not survive into baseline
+  await play.locator('#scenario-pick > summary').click(); // the picker is a menu now
   await play.getByTestId('template-baseline').click();
   await play.waitForFunction(
     () => document.querySelector('#flag-controls').children.length === 0,

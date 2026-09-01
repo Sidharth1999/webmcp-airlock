@@ -53,14 +53,20 @@ app.innerHTML = `
       <span class="health-word" id="health-word">Nominal</span>
       <button type="button" id="site-toggle" data-testid="site-toggle" aria-pressed="false"
               title="show what customers are seeing right now">Live site</button>
-      <div class="seg" id="template-pick" data-testid="template-pick" role="radiogroup" aria-label="Scenario">
-        ${templateIds()
-          .map(
-            (id) =>
-              `<button type="button" role="radio" data-template="${id}" data-testid="template-${id}" aria-checked="${id === TEMPLATE_ID}" title="${TEMPLATE_TITLES[id] ?? id}">${TEMPLATE_LABELS[id] ?? id}</button>`
-          )
-          .join('')}
-      </div>
+      <details class="scenario" id="scenario-pick">
+        <summary aria-label="Choose scenario"><span class="sc-k">Scenario</span><span class="sc-v" id="scenario-current"></span></summary>
+        <div class="sc-menu" id="template-pick" data-testid="template-pick" role="radiogroup" aria-label="Scenario">
+          ${templateIds()
+            .map(
+              (id) =>
+                `<button type="button" role="radio" data-template="${id}" data-testid="template-${id}" aria-checked="${id === TEMPLATE_ID}">
+                   <span class="sc-name">${TEMPLATE_LABELS[id] ?? id}</span>
+                   <span class="sc-desc">${TEMPLATE_TITLES[id] ?? ''}</span>
+                 </button>`
+            )
+            .join('')}
+        </div>
+      </details>
       <span class="spacer"></span>
       <div class="tele" id="tele" data-testid="tele">
         ${(['rps', 'err', 'p95'] as const)
@@ -167,8 +173,11 @@ app.innerHTML = `
       </div>
     </section>
 
+    <button type="button" class="pane-restore" data-restore="site" data-testid="restore-site" aria-label="Show the storefront"><span>Storefront</span></button>
     <section class="pane" id="site-pane" aria-label="Site pane">
-      <header>Storefront<span class="pane-sub">aperture supply co.</span></header>
+      <header>Storefront<span class="pane-sub">aperture supply co.</span>
+        <button type="button" class="pane-min" data-min="site" data-testid="min-site" aria-label="Minimise the storefront" title="Minimise">&minus;</button>
+      </header>
       <div class="body">
         <div id="storefront" data-testid="storefront" data-state="ok">
           <div class="sf-chrome">
@@ -213,10 +222,12 @@ app.innerHTML = `
       <span class="ac-dot"></span><span class="ac-label">agent</span>
     </div>
 
+    <button type="button" class="pane-restore" data-restore="rail" data-testid="restore-rail" aria-label="Show the agent panel"><span>Agent</span></button>
     <section class="pane" id="tool-rail" aria-label="Agent">
       <header>
         Agent
         <span class="pane-sub" id="rail-sub">standing by</span>
+        <button type="button" class="pane-min" data-min="rail" data-testid="min-rail" aria-label="Minimise the agent panel" title="Minimise">&minus;</button>
       </header>
       <div class="rail-modes">
         <span class="rail-modes-label">Response stage</span>
@@ -329,6 +340,10 @@ function markTemplate(id: string): void {
   templatePick.querySelectorAll<HTMLButtonElement>('[data-template]').forEach((b) => {
     b.setAttribute('aria-checked', String(b.dataset.template === id));
   });
+  const cur = document.querySelector<HTMLElement>('#scenario-current');
+  if (cur) cur.textContent = TEMPLATE_LABELS[id] ?? id;
+  // picking one is the end of the interaction: put the menu away
+  document.querySelector<HTMLDetailsElement>('#scenario-pick')?.removeAttribute('open');
 }
 markTemplate(TEMPLATE_ID);
 
@@ -1456,6 +1471,34 @@ function discloseFor(phase: string): void {
   }
 }
 
+/**
+ * The activity feed is read by an operator, not by whoever wrote the event
+ * schema. `traffic.tick` and `action.executed` are our internal vocabulary
+ * leaking onto the surface — the clearest "built by engineers, for
+ * engineers" tell left in the console.
+ */
+const KIND_LABEL: Record<string, string> = {
+  'deploy.started': 'Deploy started',
+  'deploy.finished': 'Deploy landed',
+  'deploy.failed': 'Deploy failed',
+  'service.health': 'Health changed',
+  'migration.applied': 'Migration applied',
+  'user.impact': 'Customer impact',
+  'log.line': 'Log',
+  'action.proposed': 'Agent proposed',
+  'action.approved': 'You approved',
+  'action.rejected': 'You rejected',
+  'action.executed': 'Change applied',
+  'action.blocked': 'Blocked by the airlock',
+  'tool.called': 'Agent looked',
+  'mode.changed': 'Response stage',
+  'selection.changed': 'You pointed at',
+  'finding.recorded': 'Agent concluded',
+  'annotation.added': 'Agent highlighted',
+  'scenario.seeded': 'Scenario loaded',
+  'traffic.tick': 'Traffic',
+};
+
 function renderEvents(events: Event[], w: World): void {
   world = w;
   if (events.length) simNowMs = events[events.length - 1]!.t;
@@ -1464,7 +1507,8 @@ function renderEvents(events: Event[], w: World): void {
     li.dataset.kind = e.kind;
     li.dataset.actor = e.actor;
     li.dataset.causedBy = e.causedBy !== undefined ? String(e.causedBy) : '';
-    li.innerHTML = `<span class="ev-t">${(e.t / 1000).toFixed(0)}s</span><span class="ev-kind">${e.kind}</span><span class="ev-summary"></span>`;
+    li.innerHTML = `<span class="ev-t">${(e.t / 1000).toFixed(0)}s</span><span class="ev-kind"></span><span class="ev-summary"></span>`;
+    li.querySelector('.ev-kind')!.textContent = KIND_LABEL[e.kind] ?? e.kind;
     li.querySelector('.ev-summary')!.textContent = summarize(e);
     streamEl.append(li);
 
@@ -1533,6 +1577,24 @@ worker.onmessage = (e: MessageEvent<SimResponse>) => {
     statusEl.textContent = `sim error: ${msg.message}`;
   }
 };
+
+const shellEl = document.querySelector<HTMLElement>('.shell')!;
+
+/** Collapsed panes leave a rail you can click to bring them back. */
+function setPane(which: 'site' | 'rail', open: boolean): void {
+  if (which === 'site') shellEl.dataset.site = open ? 'on' : 'off';
+  else shellEl.dataset.rail = open ? 'on' : 'off';
+}
+
+document.addEventListener('click', (e) => {
+  const min = (e.target as HTMLElement).closest<HTMLElement>('[data-min]');
+  if (min) {
+    setPane(min.dataset.min as 'site' | 'rail', false);
+    return;
+  }
+  const restore = (e.target as HTMLElement).closest<HTMLElement>('[data-restore]');
+  if (restore) setPane(restore.dataset.restore as 'site' | 'rail', true);
+});
 
 runBtn.addEventListener('click', () => {
   running = !running;

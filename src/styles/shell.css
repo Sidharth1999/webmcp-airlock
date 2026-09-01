@@ -1565,3 +1565,86 @@ body {
 }
 /* the read/write badge is secondary to the sentence it annotates */
 #tool-list .tool-badge { font-size: 10px; opacity: .8; }
+
+/* --- activity feed reads like a feed, not a schema dump ------------------
+   traffic samples are a chart, not a log line: they are in the DOM for the
+   audit trail and the cap logic, and never on the surface. */
+#event-stream li[data-kind='traffic.tick'] { display: none; }
+#event-stream .ev-kind {
+  font-family: var(--font-prose);
+  min-width: 15ch;
+  font-size: var(--text-2xs);
+}
+
+/* --- scenario: a named control, not four unexplained words --------------
+   It is a setup control, so it states what it is and stays out of the way. */
+.scenario { position: relative; flex: none; margin-left: var(--sp-3); }
+.scenario > summary {
+  cursor: pointer; list-style: none;
+  display: flex; align-items: baseline; gap: var(--sp-2);
+  padding: 5px var(--sp-3);
+  border: 1px solid var(--line); border-radius: var(--r-sm);
+  background: var(--panel-inset);
+  white-space: nowrap;
+}
+.scenario > summary::-webkit-details-marker { display: none; }
+.scenario > summary::after {
+  content: ''; width: 0; height: 0; margin-left: 2px;
+  border-top: 4px solid currentColor;
+  border-left: 3.5px solid transparent; border-right: 3.5px solid transparent;
+  color: var(--ink-ghost); align-self: center;
+}
+.scenario .sc-k {
+  font-family: var(--font-instrument); font-size: var(--text-2xs);
+  letter-spacing: .08em; text-transform: uppercase; color: var(--ink-ghost);
+}
+.scenario .sc-v { font-size: var(--text-xs); color: var(--ink); font-weight: 500; }
+.sc-menu {
+  position: absolute; top: calc(100% + 6px); left: 0; z-index: 60;
+  min-width: 268px; display: flex; flex-direction: column;
+  padding: var(--sp-2);
+  background: var(--panel); border: 1px solid var(--line-strong, var(--line));
+  border-radius: var(--r-md);
+  box-shadow: 0 12px 34px oklch(0% 0 0 / 0.5);
+}
+.sc-menu button {
+  display: flex; flex-direction: column; gap: 1px;
+  text-align: left; padding: var(--sp-2) var(--sp-3);
+  background: none; border: none; border-radius: var(--r-sm);
+  cursor: pointer; font: inherit; color: var(--ink);
+}
+.sc-menu button:hover { background: oklch(100% 0 0 / 0.06); }
+.sc-menu button[aria-checked='true'] { background: oklch(100% 0 0 / 0.09); }
+.sc-menu .sc-name { font-size: var(--text-sm); font-weight: 500; }
+.sc-menu .sc-desc { font-size: var(--text-2xs); color: var(--ink-ghost); }
+
+/* --- minimise / restore --------------------------------------------------
+   A console lets you put a panel away. Collapsed panes leave a labelled
+   rail so nothing becomes unreachable. */
+.pane-min {
+  margin-left: auto; flex: none;
+  width: 22px; height: 22px; line-height: 1;
+  display: grid; place-items: center;
+  background: none; border: 1px solid transparent; border-radius: var(--r-sm);
+  color: var(--ink-ghost); cursor: pointer; font-size: 15px;
+}
+.pane-min:hover { color: var(--ink); border-color: var(--line); background: var(--panel-inset); }
+
+.pane-restore {
+  display: none;
+  writing-mode: vertical-rl;
+  background: var(--panel-inset); border: none;
+  border-left: 1px solid var(--line);
+  color: var(--ink-dim); cursor: pointer;
+  font: inherit; font-size: var(--text-2xs);
+  letter-spacing: .1em; text-transform: uppercase;
+  padding: var(--sp-3) 0;
+}
+.pane-restore:hover { color: var(--ink); background: var(--panel); }
+.shell[data-site='off'] .pane-restore[data-restore='site'] { display: block; grid-area: site; }
+.shell[data-rail='off'] .pane-restore[data-restore='rail'] { display: block; grid-area: rail; }
+.shell[data-rail='off'] #tool-rail { display: none; }
+.shell[data-rail='off'] { grid-template-columns: minmax(340px, 29%) 1fr 34px; }
+.shell[data-rail='off'][data-site='off'] { grid-template-columns: 1fr 34px 34px; }
+.shell[data-site='off'] .pane-restore[data-restore='site'] { grid-area: site; }
+.shell[data-site='off'] { grid-template-columns: 1fr 34px minmax(310px, 23%); }

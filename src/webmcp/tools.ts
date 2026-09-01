@@ -104,6 +104,68 @@ export interface WriteToolSpec {
 const prop = (desc: string) => ({ type: 'string', description: desc });
 
 export const WRITE_TOOLS: WriteToolSpec[] = [
+  // ---- incident command: granted EARLY -------------------------------
+  // A page can safely let an agent help you organise and communicate long
+  // before it lets one touch production. That is how real orgs work, and it
+  // makes triage a useful stage rather than a read-only waiting room.
+  {
+    name: 'propose_acknowledge',
+    action: 'incident.acknowledge',
+    description:
+      'Propose taking ownership of the incident so other responders stand down. Creates an approval card; nothing happens until the operator approves.',
+    inputSchema: {
+      type: 'object',
+      properties: { by: prop('Who is taking it') },
+      required: ['by'],
+    },
+  },
+  {
+    name: 'propose_severity',
+    action: 'incident.severity',
+    description:
+      'Propose a severity for the incident. Severity decides who gets woken up and what customers are told, so it is the operator call.',
+    inputSchema: {
+      type: 'object',
+      properties: { level: prop('sev1, sev2 or sev3') },
+      required: ['level'],
+    },
+  },
+  {
+    name: 'propose_escalate',
+    action: 'incident.escalate',
+    description:
+      'Propose paging another team. This wakes a real person, so use record_finding to say why the evidence justifies it.',
+    inputSchema: {
+      type: 'object',
+      properties: { team: prop('Team to page, such as database on-call') },
+      required: ['team'],
+    },
+  },
+  {
+    name: 'propose_silence_alerts',
+    action: 'alerts.silence',
+    description:
+      'Propose silencing alerting while the incident is worked, or turning it back on. Silence hides a genuinely new alert too.',
+    inputSchema: {
+      type: 'object',
+      properties: { silenced: { type: 'boolean', description: 'true to silence, false to restore' } },
+      required: ['silenced'],
+    },
+  },
+  {
+    name: 'propose_status_update',
+    action: 'statuspage.post',
+    description:
+      'Propose text to publish on the public status page. TOP RUNG: the only action that leaves the building, and it cannot be unsaid. Write it as a customer would want to read it.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        state: prop('investigating, identified, monitoring or resolved'),
+        text: prop('What customers are told. Plain, specific, no internal jargon.'),
+      },
+      required: ['state', 'text'],
+    },
+  },
   {
     name: 'propose_flag_change',
     action: 'flag.set',
@@ -166,6 +228,119 @@ export const WRITE_TOOLS: WriteToolSpec[] = [
         target: prop('New target service id'),
       },
       required: ['id', 'target'],
+    },
+  },
+  // ---- production levers: granted LATE --------------------------------
+  {
+    name: 'propose_deploy_freeze',
+    action: 'deploy.freeze',
+    description:
+      'Propose freezing (or unfreezing) deploys across all services. A freeze also blocks the fix you may be about to ship.',
+    inputSchema: {
+      type: 'object',
+      properties: { frozen: { type: 'boolean', description: 'true to freeze, false to lift' } },
+      required: ['frozen'],
+    },
+  },
+  {
+    name: 'propose_canary',
+    action: 'canary.set',
+    description:
+      'Propose changing how much traffic a deploy serves. Raising it widens the blast radius of a bad build; lowering it narrows it without a full rollback.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        deployId: prop('Deploy id from list_deploys'),
+        percent: { type: 'number', description: 'Share of traffic, 0-100' },
+      },
+      required: ['deployId', 'percent'],
+    },
+  },
+  {
+    name: 'propose_traffic_change',
+    action: 'traffic.shift',
+    description:
+      'Propose moving a share of a route to another target. Check traffic_history first: moving traffic to a target with the same fault moves the outage rather than ending it.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        route: prop('Route id from list_changes'),
+        percent: { type: 'number', description: 'Share to send to target, 0-100' },
+        target: prop('Where that share should go'),
+      },
+      required: ['route', 'percent'],
+    },
+  },
+  {
+    name: 'propose_drain',
+    action: 'traffic.drain',
+    description:
+      'Propose draining a route so it serves nobody. Stops the bleeding at the cost of availability for those customers.',
+    inputSchema: {
+      type: 'object',
+      properties: { route: prop('Route id from list_changes') },
+      required: ['route'],
+    },
+  },
+  {
+    name: 'propose_rate_limit',
+    action: 'ratelimit.set',
+    description:
+      'Propose capping a route. Sheds load by rejecting real customers; buys time without fixing a cause.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        route: prop('Route id from list_changes'),
+        rps: { type: 'number', description: 'Requests per second to allow' },
+      },
+      required: ['route', 'rps'],
+    },
+  },
+  {
+    name: 'propose_restart',
+    action: 'service.restart',
+    description:
+      'Propose restarting a service. Drops every in-flight request and empties warm caches and pools, so expect a spike before it settles.',
+    inputSchema: {
+      type: 'object',
+      properties: { service: prop('Service id from airlock_status') },
+      required: ['service'],
+    },
+  },
+  {
+    name: 'propose_scale',
+    action: 'service.scale',
+    description:
+      'Propose changing replica count. New instances start cold, so capacity arrives after they warm rather than immediately.',
+    inputSchema: {
+      type: 'object',
+      properties: {
+        service: prop('Service id from airlock_status'),
+        replicas: { type: 'number', description: 'Desired replica count' },
+      },
+      required: ['service', 'replicas'],
+    },
+  },
+  {
+    name: 'propose_cache_flush',
+    action: 'cache.flush',
+    description:
+      'Propose flushing a cache. Every key refills at once, which against a saturated backend is a thundering herd and makes things worse.',
+    inputSchema: {
+      type: 'object',
+      properties: { scope: prop('Which cache, such as session') },
+      required: ['scope'],
+    },
+  },
+  {
+    name: 'propose_failover',
+    action: 'db.failover',
+    description:
+      'Propose promoting a database replica. Writes are refused during promotion and any replica lag is lost. You cannot put it back.',
+    inputSchema: {
+      type: 'object',
+      properties: { service: prop('Database service id') },
+      required: ['service'],
     },
   },
 ];
@@ -333,6 +508,17 @@ export function createAirlockTools(
       content: [{ type: 'text', text: await proposeAndReport(spec.action, input) }],
     }),
   });
+
+  // The starting mode is not necessarily empty of writes. Triage now grants
+  // the incident-command proposals, and registering only on setMode meant
+  // they existed in the grant table but were never on the surface at boot.
+  for (const name of MODE_WRITE_TOOLS[mode]) {
+    const spec = WRITE_TOOLS.find((w) => w.name === name);
+    if (!spec) continue;
+    const tool = writeDescriptor(spec);
+    descriptors.set(name, tool);
+    registerWith(tool, true);
+  }
 
   const activeWrites = (): Set<string> => new Set(MODE_WRITE_TOOLS[mode]);
 

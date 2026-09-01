@@ -198,7 +198,9 @@ describe('campaign plumbing', () => {
 
     expect(names).toContain('airlock_status');
     expect(names).toContain('propose_rollback');
-    expect(names).toHaveLength(11);
+    // 6 reads + 19 proposals — evidence parity means BOTH arms see the
+    // whole surface; the gate is the treatment, not a smaller menu
+    expect(names).toHaveLength(25);
     for (const d of defs) {
       expect(d.description.length).toBeGreaterThan(0);
       expect(d.parameters).toHaveProperty('type', 'object');

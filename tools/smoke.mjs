@@ -136,8 +136,25 @@ try {
   // (6 reads + record_finding) and 5 still locked behind later stages.
   const railActive = await page.locator('#tool-list li[data-status="active"]').count();
   const railLocked = await page.locator('#tool-list li[data-status="locked"]').count();
-  check('triage grants 7 rungs (6 reads + record_finding)', railActive === 7);
-  check('the ladder also shows the 5 rungs still locked', railLocked === 5);
+  // triage grants reads + record_finding + the five incident-command
+  // proposals: a page can let an agent help RUN an incident long before it
+  // lets one touch production
+  check('triage grants 12 rungs (6 reads + record_finding + incident command)', railActive === 12);
+  check('the ladder shows the 14 production rungs still locked', railLocked === 14);
+  check(
+    'triage grants NOTHING that changes production',
+    (await page.evaluate(() =>
+      window.__airlock
+        .list()
+        .filter((t) => t.status === 'active')
+        .every(
+          (t) =>
+            !/^propose_(rollback|rollforward|env_change|route_change|traffic_change|drain|restart|scale|cache_flush|failover|flag_change|canary|rate_limit|deploy_freeze)$/.test(
+              t.name
+            )
+        )
+    )) === true
+  );
   check(
     'locked rungs name the stage that would open them',
     /needs (Diagnosis|Recovery)/.test(
@@ -200,8 +217,8 @@ try {
   await page.getByTestId('mode-recovery').click();
   await page.locator('#tool-list li[data-tool="propose_rollback"][data-status="active"]').waitFor({ timeout: 5_000 });
   check(
-    'recovery registers the write set (12 active tools: 6 reads + record_finding + 5 proposals)',
-    (await page.locator('#tool-list li[data-status="active"]').count()) === 12
+    'recovery registers the full surface (26: 6 reads + record_finding + 19 proposals)',
+    (await page.locator('#tool-list li[data-status="active"]').count()) === 26
   );
 
   const proposal = JSON.parse(
@@ -225,8 +242,8 @@ try {
   await page.getByTestId('mode-triage').click();
   await page.locator('#tool-list li[data-status="tombstoned"]').first().waitFor({ timeout: 5_000 });
   check(
-    'leaving recovery tombstones the writes (5 ghosts)',
-    (await page.locator('#tool-list li[data-status="tombstoned"]').count()) === 5
+    'leaving recovery hands 14 capabilities back to the page',
+    (await page.locator('#tool-list li[data-status="tombstoned"]').count()) === 14
   );
   const surface = JSON.parse(await page.evaluate(() => window.__airlock.invoke('explain_surface', {})));
   check(
@@ -234,7 +251,7 @@ try {
     surface.mode === 'triage' &&
       Array.isArray(surface.changes) &&
       surface.changes.length >= 2 &&
-      surface.changes[0].removed.length === 5
+      surface.changes[0].removed.length === 14
   );
 
   // ---- M3-03: approval diff-cards + causedBy audit chain -----------------
@@ -378,7 +395,7 @@ try {
   await page.locator('#scenario-pick > summary').click(); // the picker is a menu now
   await page.getByTestId('template-baseline').click();
   await page.waitForFunction(
-    () => document.querySelectorAll('#tool-list li[data-status="active"]').length === 7,
+    () => document.querySelectorAll('#tool-list li[data-status="active"]').length === 12,
     null,
     { timeout: 5_000 }
   );

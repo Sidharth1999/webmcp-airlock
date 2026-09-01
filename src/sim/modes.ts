@@ -17,14 +17,52 @@ export const MODES: Mode[] = ['triage', 'diagnosis', 'recovery'];
 
 /** Which PROPOSAL tools each mode adds to the always-on read surface. */
 export const MODE_WRITE_TOOLS: Record<Mode, string[]> = {
-  triage: [],
-  diagnosis: ['propose_flag_change'],
-  recovery: [
+  // TRIAGE — organise and communicate. A page can safely let an agent help
+  // run the incident long before it lets one touch production, which is how
+  // real orgs work and what makes triage a useful stage rather than a
+  // read-only waiting room.
+  triage: [
+    'propose_acknowledge',
+    'propose_severity',
+    'propose_escalate',
+    'propose_silence_alerts',
+    'propose_status_update',
+  ],
+  // DIAGNOSIS — reversible production levers: stop the bleeding and narrow
+  // blast radius, without changing what is deployed.
+  diagnosis: [
+    'propose_acknowledge',
+    'propose_severity',
+    'propose_escalate',
+    'propose_silence_alerts',
+    'propose_status_update',
     'propose_flag_change',
+    'propose_deploy_freeze',
+    'propose_canary',
+    'propose_rate_limit',
+  ],
+  // RECOVERY — everything, including levers that move data, move customers,
+  // or cannot be undone in the moment.
+  recovery: [
+    'propose_acknowledge',
+    'propose_severity',
+    'propose_escalate',
+    'propose_silence_alerts',
+    'propose_status_update',
+    'propose_flag_change',
+    'propose_deploy_freeze',
+    'propose_canary',
+    'propose_rate_limit',
     'propose_rollback',
     'propose_rollforward',
     'propose_env_change',
     'propose_route_change',
+    'propose_traffic_change',
+    'propose_drain',
+    'propose_restart',
+    'propose_scale',
+    'propose_cache_flush',
+    'propose_failover',
   ],
 };
 
@@ -35,11 +73,65 @@ export const MODE_WRITE_TOOLS: Record<Mode, string[]> = {
  * doctrine), recovery opens the ladder (tier 4 still needs the dual key
  * at approval time).
  */
-export const MODE_TIERS: Record<Mode, ReadonlySet<number>> = {
-  triage: new Set(),
-  diagnosis: new Set([3]),
-  recovery: new Set([1, 2, 3, 4]),
+/**
+ * WHICH ACTIONS EACH STAGE ALLOWS — the engine's own copy.
+ *
+ * MODE_WRITE_TOOLS decides what the agent can SEE; this decides what the
+ * engine will EXECUTE. Deliberately separate: the engine must never trust
+ * that a tool was unregistered, or a client ignoring the surface could act
+ * anyway. Defense in depth is the thesis, so the check lives on both sides
+ * and a test asserts they agree. Keyed by vocabulary action.
+ */
+export const MODE_ACTIONS: Record<Mode, ReadonlySet<string>> = {
+  triage: new Set([
+    'incident.acknowledge',
+    'incident.severity',
+    'incident.escalate',
+    'alerts.silence',
+    'statuspage.post',
+  ]),
+  diagnosis: new Set([
+    'incident.acknowledge',
+    'incident.severity',
+    'incident.escalate',
+    'alerts.silence',
+    'statuspage.post',
+    'flag.set',
+    'deploy.freeze',
+    'canary.set',
+    'ratelimit.set',
+  ]),
+  recovery: new Set([
+    'incident.acknowledge',
+    'incident.severity',
+    'incident.escalate',
+    'alerts.silence',
+    'statuspage.post',
+    'flag.set',
+    'deploy.freeze',
+    'canary.set',
+    'ratelimit.set',
+    'deploy.rollback',
+    'deploy.rollforward',
+    'env.set',
+    'route.set',
+    'traffic.shift',
+    'traffic.drain',
+    'service.restart',
+    'service.scale',
+    'cache.flush',
+    'db.failover',
+    'dns.cutover',
+  ]),
 };
+
+/**
+ * Tier now governs ONE thing: whether the human must hold the key while the
+ * write executes. Availability is MODE_ACTIONS. Keeping tier as a second
+ * availability gate made it contradict the stage grants the moment a tier-4
+ * action (a status-page post) became appropriate during triage.
+ */
+export const DUAL_KEY_TIER = 4;
 
 export function currentMode(events: readonly Event[]): Mode {
   for (let i = events.length - 1; i >= 0; i--) {

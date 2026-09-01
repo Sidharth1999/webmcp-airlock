@@ -200,7 +200,7 @@ WRITE_ACTIONS['db.failover'] = {
   tool: 'db.failover',
   tier: 4,
   tierName: 'route',
-  cost: 'Writes are refused during promotion, and any replica lag is lost. Not reversible in the moment.',
+  cost: 'Writes are refused during promotion, and any replica lag is lost. You cannot put it back.',
   validate: (i) => needString(i, 'service'),
   describe: (i) => `promote the ${String(i.service)} replica to primary`,
 };

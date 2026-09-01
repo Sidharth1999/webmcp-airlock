@@ -21,13 +21,16 @@ describe('mode derivation and surface diff (M3-02)', () => {
   });
 
   it('surfaceDiff computes the registration delta between modes', () => {
-    expect(surfaceDiff('triage', 'diagnosis')).toEqual({
-      added: ['propose_flag_change'],
-      removed: [],
-    });
+    const toDiagnosis = surfaceDiff('triage', 'diagnosis');
+    expect(toDiagnosis.removed).toEqual([]);
+    expect(toDiagnosis.added.sort()).toEqual([
+      'propose_canary', 'propose_deploy_freeze', 'propose_flag_change', 'propose_rate_limit',
+    ]);
+    // going back down hands 14 capabilities BACK to the page — the direction
+    // that matters for the airlock claim
     const toTriage = surfaceDiff('recovery', 'triage');
     expect(toTriage.added).toEqual([]);
-    expect(toTriage.removed).toHaveLength(5);
+    expect(toTriage.removed).toHaveLength(14);
   });
 
   it('surface query narrates history newest-first within the size cap', () => {

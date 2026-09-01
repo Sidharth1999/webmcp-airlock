@@ -1,3 +1,4 @@
+import { MODE_ACTIONS, MODE_WRITE_TOOLS } from '../sim/modes';
 import { describe, expect, it } from 'vitest';
 import type { QueryRequest } from '../sim/queries';
 import type { ModelContextLike, ToolDescriptor } from './shim';
@@ -39,13 +40,24 @@ function fixture() {
 }
 
 describe('mode-gated registration (M3-02)', () => {
-  it('triage registers the 6 reads + record_finding, and no world-changing writes', () => {
+  it('triage grants communication, and NOTHING that changes production', () => {
     const { tools, registered } = fixture();
-    // 6 reads + record_finding, which is present in EVERY mode by design:
-    // the airlock gates actions, not the agent saying what it has worked out
-    expect(registered.size).toBe(7);
+    // Triage is not a read-only waiting room: a page can safely let an agent
+    // help run an incident (acknowledge, severity, page a team, status page)
+    // long before it lets one touch production. What triage must never grant
+    // is a lever that changes what customers are served.
+    const PRODUCTION = [
+      'propose_flag_change', 'propose_rollback', 'propose_rollforward',
+      'propose_env_change', 'propose_route_change', 'propose_traffic_change',
+      'propose_drain', 'propose_rate_limit', 'propose_restart', 'propose_scale',
+      'propose_cache_flush', 'propose_failover', 'propose_canary',
+    ];
+    for (const name of PRODUCTION) {
+      expect(registered.has(name), `${name} must not exist in triage`).toBe(false);
+    }
+    expect(registered.size).toBe(12); // 6 reads + record_finding + 5 incident-command
     expect([...registered.keys()]).toContain('explain_surface');
-    expect(tools.list().filter((t) => t.status === 'active')).toHaveLength(7);
+    expect(tools.list().filter((t) => t.status === 'active')).toHaveLength(12);
     // STRONGER than the old blanket check: the six READS are read-only, and
     // the only other tool in triage is record_finding — which writes to the
     // console's timeline (so it is honestly not readOnly) but carries no
@@ -54,14 +66,24 @@ describe('mode-gated registration (M3-02)', () => {
       expect(registered.get(spec.name)!.annotations?.readOnlyHint, spec.name).toBe(true);
     }
     const nonRead = [...registered.keys()].filter((n) => !READ_TOOLS.some((r) => r.name === n));
-    expect(nonRead).toEqual(['record_finding']);
-    expect(nonRead.some((n) => n.startsWith('propose_'))).toBe(false);
+    expect(nonRead).toContain('record_finding');
+    // every other non-read in triage is incident command, never production
+    expect(nonRead.filter((n) => n.startsWith('propose_')).sort()).toEqual([
+      'propose_acknowledge', 'propose_escalate', 'propose_severity',
+      'propose_silence_alerts', 'propose_status_update',
+    ]);
   });
 
   it('diagnosis adds the flag proposal; recovery adds the full write set', () => {
     const { tools, registered } = fixture();
     const d = tools.setMode('diagnosis');
-    expect(d).toEqual({ from: 'triage', added: ['propose_flag_change'], removed: [] });
+    // diagnosis adds the REVERSIBLE production levers on top of triage's
+    // incident-command grants; nothing is taken away
+    expect(d.from).toBe('triage');
+    expect(d.removed).toEqual([]);
+    expect(d.added.sort()).toEqual([
+      'propose_canary', 'propose_deploy_freeze', 'propose_flag_change', 'propose_rate_limit',
+    ]);
     expect(registered.has('propose_flag_change')).toBe(true);
 
     const r = tools.setMode('recovery');
@@ -69,7 +91,7 @@ describe('mode-gated registration (M3-02)', () => {
       expect.arrayContaining(['propose_rollback', 'propose_rollforward', 'propose_env_change', 'propose_route_change'])
     );
     expect(r.removed).toEqual([]);
-    expect(registered.size).toBe(7 + 5);
+    expect(registered.size).toBe(19 + 7); // all proposals + 6 reads + record_finding
     expect(registered.get('propose_rollback')!.annotations?.readOnlyHint).toBe(false);
   });
 
@@ -77,9 +99,9 @@ describe('mode-gated registration (M3-02)', () => {
     const { tools, registered } = fixture();
     tools.setMode('recovery');
     tools.setMode('triage');
-    expect(registered.size).toBe(7); // abort really unregistered (fake honors signal)
+    expect(registered.size).toBe(12); // abort really unregistered (fake honors signal)
     const tombs = tools.list().filter((t) => t.status === 'tombstoned');
-    expect(tombs).toHaveLength(5);
+    expect(tombs).toHaveLength(14); // everything recovery granted beyond triage
     expect(tombs[0]!.tombstone).toContain('left with recovery mode');
   });
 
@@ -148,7 +170,8 @@ describe('reset (M3-close review): a fresh world gets a fresh rail', () => {
     tools.reset();
     expect(tools.mode()).toBe('triage');
     expect(tools.list().filter((t) => t.status === 'tombstoned')).toHaveLength(0);
-    expect(registered.size).toBe(7); // write registrations really aborted
+    // back to triage's own grants: 6 reads + record_finding + 5 incident-command
+    expect(registered.size).toBe(12); // recovery's registrations really aborted
   });
 });
 
@@ -239,6 +262,36 @@ describe('readOnlyHint audit — the six reads (M4)', () => {
       expect(JSON.stringify(engine.world), `${spec.name} mutated the world`).toBe(worldBefore);
       const added = engine.events.slice(seqBefore);
       expect(added.map((e) => e.kind), `${spec.name} side effects`).toEqual(['tool.called']);
+    }
+  });
+});
+
+describe('capability authority: some levers are human-only', () => {
+  it('no agent tool can propose a DNS cutover', () => {
+    // The page grants the agent nineteen proposals and withholds this one.
+    // DNS propagation takes minutes and resolvers cache, so it is the wrong
+    // instrument for an incident you are trying to end now — and "the page
+    // decided the agent may never attempt this" is the capability-authority
+    // claim in its sharpest form. The HUMAN keeps the control in the console.
+    expect(WRITE_TOOLS.some((t) => t.action === 'dns.cutover')).toBe(false);
+    expect(MODE_ACTIONS.recovery.has('dns.cutover')).toBe(true);
+  });
+
+  it('every granted tool maps to a real action the engine will execute', () => {
+    for (const t of WRITE_TOOLS) {
+      expect(MODE_ACTIONS.recovery.has(t.action), `${t.name} -> ${t.action}`).toBe(true);
+    }
+  });
+
+  it('the registration surface and the engine gate agree', () => {
+    // Defense in depth only works if both halves say the same thing.
+    for (const mode of ['triage', 'diagnosis', 'recovery'] as const) {
+      const granted = MODE_WRITE_TOOLS[mode]
+        .map((n) => WRITE_TOOLS.find((t) => t.name === n)?.action)
+        .filter(Boolean) as string[];
+      for (const action of granted) {
+        expect(MODE_ACTIONS[mode].has(action), `${mode}: ${action}`).toBe(true);
+      }
     }
   });
 });

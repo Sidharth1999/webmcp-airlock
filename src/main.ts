@@ -2010,11 +2010,28 @@ const RUNG_LABEL: Record<string, string> = {
   traffic_history: 'Look at the error-rate history',
   explain_surface: 'Ask why its own tools changed',
   record_finding: 'Write what it concludes into this console',
+  // incident command — granted in triage
+  propose_acknowledge: 'Ask to take ownership of the incident',
+  propose_severity: 'Ask to set the severity',
+  propose_escalate: 'Ask to page another team',
+  propose_silence_alerts: 'Ask to silence alerting while you work',
+  propose_status_update: 'Ask to tell customers on the status page',
+  // reversible production levers — diagnosis
   propose_flag_change: 'Ask you to turn a feature flag on or off',
+  propose_deploy_freeze: 'Ask to freeze deploys',
+  propose_canary: 'Ask to change how much traffic a build serves',
+  propose_rate_limit: 'Ask to cap a route',
+  // the rest — recovery
   propose_rollback: 'Ask you to roll a deploy back',
   propose_rollforward: 'Ask you to ship a fixed build forward',
   propose_env_change: 'Ask you to change an environment value',
   propose_route_change: 'Ask you to move traffic elsewhere',
+  propose_traffic_change: 'Ask to shift a share of a route',
+  propose_drain: 'Ask to drain a route',
+  propose_restart: 'Ask to restart a service',
+  propose_scale: 'Ask to change replica count',
+  propose_cache_flush: 'Ask to flush a cache',
+  propose_failover: 'Ask to promote a database replica',
 };
 
 /** Which stage first grants each proposal, for the locked rungs. */

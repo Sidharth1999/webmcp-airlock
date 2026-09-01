@@ -2,7 +2,7 @@ import { SimClock } from './clock';
 import { EventLog } from './log';
 import { initialWorld, reduce } from './reducer';
 import { mulberry32, type Rng } from './rng';
-import { currentMode, MODE_TIERS } from './modes';
+import { currentMode, DUAL_KEY_TIER, MODE_ACTIONS } from './modes';
 import { provenanceOf } from './provenance';
 import { getTemplate, type TemplateInstance } from './templates';
 import type { Actor, Event, EventKind, SeedSpec, World } from './types';
@@ -135,7 +135,7 @@ export class Engine {
       );
     }
     const mode = currentMode(this.log.all);
-    if (!MODE_TIERS[mode].has(spec.tier)) {
+    if (!MODE_ACTIONS[mode].has(tool)) {
       return ctx.emit(
         'action.blocked',
         'agent',
@@ -204,7 +204,7 @@ export class Engine {
       // Blocked, the proposal stays pending — re-entering the mode and
       // approving again works (same shape as the dual-key miss below).
       const mode = currentMode(this.log.all);
-      if (!MODE_TIERS[mode].has(tier)) {
+      if (!MODE_ACTIONS[mode].has(tool)) {
         ctx.emit(
           'action.blocked',
           'human',
@@ -216,7 +216,7 @@ export class Engine {
       // top-tier writes need the dual key: the human must HOLD the key while
       // the agent's write executes. An approval without it is blocked — the
       // proposal stays pending, so engaging the key and approving again works.
-      if ((tier === 4 || requiresKey) && !keyHolder) {
+      if ((tier === DUAL_KEY_TIER || requiresKey) && !keyHolder) {
         ctx.emit(
           'action.blocked',
           'human',
@@ -225,7 +225,7 @@ export class Engine {
             input,
             tier,
             reason: 'dual-key-required',
-            ...(tier !== 4 && requiresKey ? { escalatedBy: 'untrusted-evidence' } : {}),
+            ...(tier !== DUAL_KEY_TIER && requiresKey ? { escalatedBy: 'untrusted-evidence' } : {}),
             proposalSeq,
           },
           proposalSeq

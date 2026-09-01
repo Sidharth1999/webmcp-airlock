@@ -47,6 +47,15 @@ const DEV_MODE = params.get('dev') === '1';
 const app = document.querySelector<HTMLDivElement>('#app')!;
 
 app.innerHTML = `
+  <div class="palette" id="palette" role="dialog" aria-modal="true" aria-label="Run a command" hidden>
+    <div class="palette-box">
+      <input id="palette-input" type="text" autocomplete="off" spellcheck="false"
+             placeholder="Run a command — try &quot;drain&quot;, &quot;restart&quot;, &quot;status page&quot;"
+             aria-label="Search commands" data-testid="palette-input" />
+      <div class="palette-list" id="palette-list" role="listbox" data-testid="palette-list"></div>
+      <div class="palette-foot"><kbd>↑</kbd><kbd>↓</kbd> to move · <kbd>enter</kbd> to run · <kbd>esc</kbd> to close</div>
+    </div>
+  </div>
   <div class="shell" data-site="off">
     <div class="masthead">
       <span class="health-lamp" aria-hidden="true"></span>
@@ -2022,6 +2031,166 @@ document.addEventListener('click', (e) => {
     restore.setAttribute('aria-pressed', String(which === 'site' ? open : shellEl.dataset.rail !== 'off'));
   }
 });
+
+/**
+ * COMMAND PALETTE (Cmd/Ctrl+K).
+ *
+ * Nineteen levers is past the point where hunting works. Every ops tool
+ * worth using has one of these — it was in Grafana's own top bar while I was
+ * reading their alerting surface.
+ *
+ * Commands are built from the WORLD, not from the vocabulary alone, so they
+ * are concrete ("Drain /checkout") rather than abstract ("traffic.drain").
+ * Each carries the same `cost` string the control and the agent's proposal
+ * carry, and execution goes through the SAME path as a click — including the
+ * agent's caution, so a lever the agent has advised against still stops you
+ * here.
+ */
+interface Command {
+  label: string;
+  group: string;
+  tool: string;
+  input: Record<string, unknown>;
+}
+
+function buildCommands(w: World): Command[] {
+  const out: Command[] = [];
+  const add = (group: string, label: string, tool: string, input: Record<string, unknown>): void => {
+    if (WRITE_ACTIONS[tool]) out.push({ group, label, tool, input });
+  };
+
+  add('Incident', 'Acknowledge the incident', 'incident.acknowledge', { by: 'you' });
+  for (const lvl of ['sev1', 'sev2', 'sev3']) add('Incident', `Declare ${lvl.toUpperCase()}`, 'incident.severity', { level: lvl });
+  add('Incident', 'Page database on-call', 'incident.escalate', { team: 'database on-call' });
+  add('Incident', w.incident.alertsSilenced ? 'Unsilence alerting' : 'Silence alerting', 'alerts.silence', { silenced: !w.incident.alertsSilenced });
+  add('Incident', w.incident.deploysFrozen ? 'Lift the deploy freeze' : 'Freeze deploys', 'deploy.freeze', { frozen: !w.incident.deploysFrozen });
+  add('Customers', 'Post a status page update', 'statuspage.post', {
+    state: 'investigating',
+    text: 'We are investigating elevated checkout failures.',
+  });
+
+  for (const f of w.flags) {
+    const on = f.state === 'on' || (typeof f.state === 'number' && f.state > 0);
+    add('Release', `Turn ${on ? 'off' : 'on'} flag ${f.id}`, 'flag.set', { id: f.id, state: on ? 'off' : 'on' });
+  }
+  for (const d of w.deploys) {
+    if (d.status === 'live') {
+      add('Release', `Roll back ${d.id} (${d.service} ${d.version})`, 'deploy.rollback', { deployId: d.id });
+      add('Release', `Put ${d.id} in front of 5% of traffic`, 'canary.set', { deployId: d.id, percent: 5 });
+    }
+  }
+  for (const svc of w.services) {
+    add('Compute', `Restart ${svc.id}`, 'service.restart', { service: svc.id });
+    add('Compute', `Scale ${svc.id} to 4 replicas`, 'service.scale', { service: svc.id, replicas: 4 });
+  }
+  for (const r of w.routes) {
+    add('Traffic', `Drain ${r.path}`, 'traffic.drain', { route: r.id });
+    add('Traffic', `Shift 50% of ${r.path} to secondary`, 'traffic.shift', { route: r.id, percent: 50, target: 'secondary' });
+    add('Traffic', `Cap ${r.path} at 100 req/s`, 'ratelimit.set', { route: r.id, rps: 100 });
+  }
+  add('Data', 'Flush the session cache', 'cache.flush', { scope: 'session' });
+  add('Data', 'Fail over to the database replica', 'db.failover', { service: 'db' });
+  add('DNS', 'Cut shop.example over to the secondary edge', 'dns.cutover', {
+    hostname: 'shop.example',
+    target: 'edge-secondary',
+  });
+  return out;
+}
+
+const paletteEl = document.querySelector<HTMLElement>('#palette')!;
+const paletteInput = document.querySelector<HTMLInputElement>('#palette-input')!;
+const paletteList = document.querySelector<HTMLElement>('#palette-list')!;
+let paletteCmds: Command[] = [];
+let paletteActive = 0;
+let paletteReturnFocus: HTMLElement | null = null;
+
+function paletteMatches(): Command[] {
+  const q = paletteInput.value.trim().toLowerCase();
+  if (!q) return paletteCmds;
+  return paletteCmds.filter((c) => `${c.group} ${c.label}`.toLowerCase().includes(q));
+}
+
+function renderPalette(): void {
+  const items = paletteMatches();
+  if (paletteActive >= items.length) paletteActive = Math.max(0, items.length - 1);
+  paletteList.innerHTML = '';
+  if (items.length === 0) {
+    const empty = document.createElement('p');
+    empty.className = 'palette-empty';
+    empty.textContent = 'No command matches that.';
+    paletteList.append(empty);
+    return;
+  }
+  items.forEach((c, i) => {
+    const row = document.createElement('button');
+    row.type = 'button';
+    row.className = 'palette-item';
+    row.setAttribute('role', 'option');
+    row.setAttribute('aria-selected', String(i === paletteActive));
+    row.dataset.idx = String(i);
+    const g = document.createElement('span');
+    g.className = 'pi-group';
+    g.textContent = c.group;
+    const l = document.createElement('span');
+    l.className = 'pi-label';
+    l.textContent = c.label;
+    const cost = document.createElement('span');
+    cost.className = 'pi-cost';
+    cost.textContent = WRITE_ACTIONS[c.tool]?.cost ?? '';
+    row.append(g, l, cost);
+    paletteList.append(row);
+  });
+  paletteList.querySelector<HTMLElement>('[aria-selected="true"]')?.scrollIntoView({ block: 'nearest' });
+}
+
+function openPalette(): void {
+  if (!world) return;
+  paletteReturnFocus = document.activeElement as HTMLElement;
+  paletteCmds = buildCommands(world);
+  paletteInput.value = '';
+  paletteActive = 0;
+  paletteEl.hidden = false;
+  renderPalette();
+  paletteInput.focus();
+}
+
+function closePalette(): void {
+  paletteEl.hidden = true;
+  paletteReturnFocus?.focus();
+}
+
+function runPalette(i: number): void {
+  const c = paletteMatches()[i];
+  if (!c) return;
+  closePalette();
+  // the same path a click takes, so the agent's caution still applies
+  const key = humanActionKey(c.tool, c.input);
+  const target = document.querySelector<HTMLButtonElement>(`[data-tool="${c.tool}"]`);
+  if (target && cautionFor(target, key)) {
+    target.scrollIntoView({ block: 'nearest' });
+    return;
+  }
+  send({ type: 'act', tool: c.tool, input: c.input });
+}
+
+document.addEventListener('keydown', (e) => {
+  if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
+    e.preventDefault();
+    paletteEl.hidden ? openPalette() : closePalette();
+    return;
+  }
+  if (paletteEl.hidden) return;
+  if (e.key === 'Escape') { e.preventDefault(); closePalette(); }
+  else if (e.key === 'ArrowDown') { e.preventDefault(); paletteActive++; renderPalette(); }
+  else if (e.key === 'ArrowUp') { e.preventDefault(); paletteActive = Math.max(0, paletteActive - 1); renderPalette(); }
+  else if (e.key === 'Enter') { e.preventDefault(); runPalette(paletteActive); }
+});
+paletteInput.addEventListener('input', () => { paletteActive = 0; renderPalette(); });
+paletteList.addEventListener('click', (e) => {
+  const row = (e.target as HTMLElement).closest<HTMLElement>('[data-idx]');
+  if (row) runPalette(Number(row.dataset.idx));
+});
+paletteEl.addEventListener('click', (e) => { if (e.target === paletteEl) closePalette(); });
 
 runBtn.addEventListener('click', () => {
   running = !running;

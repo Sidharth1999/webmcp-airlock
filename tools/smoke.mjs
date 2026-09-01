@@ -131,6 +131,27 @@ try {
     /tick \d+ · \d+ events/.test(await page.getByTestId('sim-status').textContent())
   );
 
+  // ---- command palette: 19 levers is past the point where hunting works ---
+  await page.keyboard.press('Control+k');
+  await page.getByTestId('palette-input').waitFor({ timeout: 5_000 });
+  const paletteAll = await page.locator('.palette-item').count();
+  await page.getByTestId('palette-input').fill('drain');
+  await page.waitForTimeout(150);
+  const paletteHits = await page.evaluate(() =>
+    [...document.querySelectorAll('.palette-item .pi-label')].map((n) => n.textContent)
+  );
+  check('Cmd+K opens a palette built from the live world', paletteAll > 15);
+  check(
+    'typing narrows to the matching command',
+    paletteHits.length === 1 && /Drain/.test(paletteHits[0])
+  );
+  check(
+    'every command carries the same cost string the control does',
+    (await page.locator('.palette-item .pi-cost').first().textContent()).length > 20
+  );
+  await page.keyboard.press('Escape');
+  check('escape closes it', await page.locator('#palette').isHidden());
+
   // ---- M3-01: read-tool surface over live sim state ----------------------
   // (sim is already running from the worker-stream check above)
   // The rail is a CAPABILITY LADDER, not an inventory: it shows the granted

@@ -1,5 +1,36 @@
 # STATUS — live audit log
 
+## This session (2026-09-02) — UI REBUILT AS A FIXED-VIEWPORT WORKBENCH
+- **Boot:** `npm run smoke` GREEN run alone (65 assertions). M4 25.0% · M5 10.0% · overall 53.3% — unchanged, and should be: no features.json entry covers UI layout.
+- **Close:** smoke **GREEN** · **150 unit tests** · typecheck + lint:sim clean · **corpus 67 accepted / 0 rejected**. Commit `5ca3929`.
+- Method ran in the order the post-mortem demanded: `artifact-design` skill FIRST, then layout-system research (VS Code parts model, WAI-ARIA window-splitter + tabs, `100dvh` app shells, container queries, Radix 12-step / Geist ramps), then a 2400px capture BEFORE any CSS. Full write-up: `docs/ux-debt.md` § WORKBENCH REBUILD.
+- **The shell was replaced, not patched.** Title bar · activity bar · centre · bottom tabbed panel group · storefront dock · agent dock · status bar. Draggable ARIA sashes, hairline division, one scroll container at a time.
+- **The airlock is now a docked region** — the decision the agent is waiting on is pinned, never scrolled to, while the row it would change still lights up in place.
+- **Incident command became a toolbar** (Sid's call, mid-session) and the **agent dock** now leads with what the agent has WORKED OUT rather than a 26-item capability inventory.
+- **NEW INTERACTION (Sid's idea): the agent objects BEFORE the click.** Hover or focus a control the agent has ruled out and its reasoning appears beside that control. Counsel, never a block. Screenshot-verified and now a permanent state in `tools/capture-ux.mjs` (`*-07-agent-counsel`).
+
+### Four defects found by LOOKING at 2400px, none of them testable
+1. `display:none` on the airlock shifted every centre region into the wrong grid row and stranded the slack in an empty track — found by measuring `gridTemplateRows` in the browser after three wrong guesses. Every docked region now has an explicit `grid-row`.
+2. The readout used a **viewport** media query; with the storefront open a 1920px window leaves the console ~750px and its three columns printed on top of each other. Now container queries on the centre. **Sid hit this within a minute of looking.**
+3. `.zone { overflow: hidden }` clipped every lever's cost popover — the one thing a control has to say before you press it. **Sid hit this too.**
+4. `margin-left:auto` plus `minmax(0,1fr)` on the state column WERE the stranding bug behind "so much space between the deploy name and the buttons".
+
+### TEST-FILE DIFF THIS SESSION — flagged for Sid, `tools/smoke.mjs`, two lines
+- `#zone-activity > summary` no longer exists: the three evidence views are TABS in the bottom panel group, so the gesture that reveals the trail is now `getByTestId('tab-activity').click()`. Same user action, same assertions.
+- The SECOND such call (in the M2-05 play-through) was **removed rather than retargeted**: that block asserts on deploy cards, which live on a different tab, and it reads the stream through the DOM rather than the screen. Selecting the Activity tab there would have hidden the very cards the block checks.
+- **No assertion was changed, weakened or deleted.** Gate count unchanged at 65.
+
+### Verified, and how
+- `npm run smoke` run ALONE, twice, GREEN both times. `npm test` 150/150. `npm run corpus` 67/67. `npm run typecheck`, `npm run lint:sim` clean.
+- `node tools/capture-ux.mjs` swept 7 states × 4 viewports (2400 / 1920 / 1440 / 1120) with zero console errors; every pass judged from the **ultra** PNGs. Baseline `log/ux-base-0902/`, final `log/ux-wb-16/`.
+- **NOT verified, and Sid grades it:** whether the layout now clears his bar. Screenshots are in `log/ux-wb-16/`; the storefront-open state is `*-03-incident-store`, the airlock is `*-05-approval-pending`, the agent's pre-click objection is `*-07-agent-counsel`.
+
+### Open / next
+- Sid's forward idea: **show the agent using Cmd+K** so it visibly operates the same surface the human does. Evidence-phase work, recorded in `docs/ux-debt.md`.
+- Remaining voids at 2400×1350 are inside cards (Status page, Traffic group), not bare ground — there genuinely is not more to show in those states.
+- Next per the handoff: agent UX polish, then re-run agent testing against this surface for showcase evidence.
+
+
 **Updated:** 2026-08-31 (Monday PM) · **Milestone:** M4/M5 — gate 1 closed; readOnlyHint audit + injection family #2 shipped · **Progress: M4 25.0% · M5 10.0% · overall 53.3%** (run `python3 tools/progress.py`; RUNBOOK rule: report both %s at every session start and milestone close)
 
 ## This session (2026-08-31, Monday PM) — readOnlyHint audit + INJECTION FAMILY #2 SHIPPED

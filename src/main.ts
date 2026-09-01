@@ -1280,6 +1280,29 @@ function stepDescription(step: PlanStep): string {
   }
 }
 
+/**
+ * THE PLAN'S HEAD NAMES WHAT IT DOES, not what shape it is.
+ *
+ * "agent proposes 2 steps, in this order" said four things the card already
+ * shows: it sits in the AGENT dock, under "waiting on you", above a numbered
+ * list, above a block headed WHY THIS ORDER. The one thing the head can say
+ * that nothing else does is WHICH plan this is — which is the only thing that
+ * matters once it collapses to a receipt and the steps are gone.
+ *
+ * Built from `stepDescription`, so it cannot drift from the steps it
+ * summarises; the tail after an em dash, colon or bracket is the step's
+ * elaboration and is exactly what a summary should drop.
+ */
+function planSummary(steps: PlanStep[]): string {
+  const short = steps.map((st) =>
+    stepDescription(st)
+      .split(/\s*[—:(]/)[0]!
+      .trim()
+      .replace(/[,;]$/, '')
+  );
+  return short.join(', then ');
+}
+
 function setStepState(plan: LivePlan, i: number, state: string, note: string): void {
   const el = plan.stepEls[i];
   if (!el) return;
@@ -1385,7 +1408,7 @@ function renderPlan(e: Event): void {
   });
   const who = document.createElement('span');
   who.className = 'pl-actor';
-  who.textContent = `agent proposes ${steps.length} steps, in this order`;
+  who.textContent = planSummary(steps);
   const state = document.createElement('span');
   state.className = 'pl-state';
   // The head carries STATE, not a sales line. "one at a time — nothing runs

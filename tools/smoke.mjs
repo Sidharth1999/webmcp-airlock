@@ -200,22 +200,26 @@ try {
   // 27 rows of capability was eating the dock by default. It is closed now,
   // but the COUNT stays on the summary: that the surface is bounded, and by
   // how much, is the reassuring half and must survive the collapse.
+  // Collapsed INLINE it was still at the bottom of a scrolling column, which
+  // is hidden whether it is open or not. It is a pinned line that never
+  // scrolls away, and it opens over the page.
   check(
-    'the capability ladder is opt-in, and still says how many rungs when closed',
-    (await page.evaluate(() => document.querySelector('#tool-surface').open)) === false &&
-      (await page.getByTestId('tool-list').isVisible()) === false &&
-      /\d/.test(await page.locator('#tool-count').textContent())
+    'capability is a pinned line that says how many tools this stage grants',
+    (await page.getByTestId('tool-surface').isVisible()) &&
+      (await page.locator('#surface').isHidden()) &&
+      /^\d+ tools available/.test(
+        (await page.getByTestId('tool-surface').textContent()).replace(/\s+/g, ' ').trim()
+      )
   );
+  await page.getByTestId('tool-surface').click();
   check(
-    'opening it is one click, and it is the same ladder',
-    await page.evaluate(async () => {
-      document.querySelector('#tool-surface summary').click();
-      const open = document.querySelector('#tool-surface').open;
-      const rows = document.querySelectorAll('#tool-list li').length;
-      document.querySelector('#tool-surface summary').click();
-      return open && rows > 10 && !document.querySelector('#tool-surface').open;
-    })
+    'it opens over the page, naming the stage the count is true for',
+    (await page.locator('#surface').isVisible()) &&
+      (await page.locator('#tool-list li').count()) > 10 &&
+      /triage stage/.test(await page.locator('#surface-stage').textContent())
   );
+  await page.keyboard.press('Escape');
+  check('escape closes the capability sheet', await page.locator('#surface').isHidden());
   // ⌘J is the region's shortcut, advertised in the status bar and on the dock
   await page.keyboard.press('Control+j');
   const railHidden = await page.evaluate(() => document.querySelector('.wb').dataset.rail);
@@ -300,18 +304,17 @@ try {
   );
 
   await page.getByTestId('mode-recovery').click();
-  // The ladder is opt-in now, so the rung a human would go and LOOK at is
-  // behind one click. The gate below still demands the rung be VISIBLE —
+  // Capability opens over the page now, so the rung a human would go and LOOK
+  // at is behind one click. The gate below still demands the rung be VISIBLE —
   // that assertion is untouched; this is the gesture the UI now requires.
-  await page.evaluate(() => {
-    const d = document.querySelector('#tool-surface');
-    if (!d.open) d.querySelector('summary').click();
-  });
+  await page.getByTestId('tool-surface').click();
   await page.locator('#tool-list li[data-tool="propose_rollback"][data-status="active"]').waitFor({ timeout: 5_000 });
   check(
     'recovery registers the full surface (27: 6 reads + record_finding + propose_plan + 19 proposals)',
     (await page.locator('#tool-list li[data-status="active"]').count()) === 27
   );
+  // it is a modal: leave it open and every click after this one hits the scrim
+  await page.keyboard.press('Escape');
 
   const proposal = JSON.parse(
     await page.evaluate(() => window.__airlock.invoke('propose_rollback', { deployId: 'd-201' }))
@@ -332,11 +335,15 @@ try {
   );
 
   await page.getByTestId('mode-triage').click();
+  // the VANISHING is the point, so this gate demands the rung be visible —
+  // untouched; opening the sheet is the gesture the UI now requires
+  await page.getByTestId('tool-surface').click();
   await page.locator('#tool-list li[data-status="tombstoned"]').first().waitFor({ timeout: 5_000 });
   check(
     'leaving recovery hands 14 capabilities back to the page',
     (await page.locator('#tool-list li[data-status="tombstoned"]').count()) === 14
   );
+  await page.keyboard.press('Escape');
   const surface = JSON.parse(await page.evaluate(() => window.__airlock.invoke('explain_surface', {})));
   check(
     'explain_surface narrates mode + surface history',

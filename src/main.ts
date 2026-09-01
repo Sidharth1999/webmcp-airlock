@@ -68,6 +68,20 @@ app.innerHTML = `
     </div>
   </div>
 
+  <div class="sheet" id="surface" role="dialog" aria-modal="true"
+       aria-label="What this page lets the agent do" hidden>
+    <div class="sheet-box">
+      <header class="sheet-head">
+        <span class="sheet-title">What this page lets the agent do</span>
+        <span class="sheet-sub" id="surface-stage"></span>
+        <button type="button" class="dock-close" id="surface-close"
+                data-testid="surface-close" aria-label="Close" title="Close  esc">&times;</button>
+      </header>
+      <ul id="tool-list" data-testid="tool-list"></ul>
+      <p class="ladder-foot" id="ladder-foot"></p>
+    </div>
+  </div>
+
   <!-- WORKBENCH (2026-09-01). A fixed-viewport app shell, not a document:
        title bar / activity bar / centre / bottom panel group / docks /
        status bar, divided by hairlines and sashes. Nothing scrolls but the
@@ -409,20 +423,19 @@ app.innerHTML = `
           </p>
         </section>
 
-        <!-- 27 rows of capability is REFERENCE, not glance, and it was eating
-             the dock by default (Sid, 2026-09-01: "useful for sure but needs to
-             be opt-in"). The count stays on the summary, so the fact that the
-             surface is bounded — and by how much — is still visible closed;
-             the rows themselves are one click away. -->
-        <details class="ladder" id="tool-surface" aria-label="What the agent can reach">
-          <summary class="ladder-head">
-            <span class="ladder-title">What this page lets the agent do</span>
-            <span class="ts-count" id="tool-count"></span>
-          </summary>
-          <ul id="tool-list" data-testid="tool-list"></ul>
-          <p class="ladder-foot" id="ladder-foot"></p>
-        </details>
       </div>
+      <!-- CAPABILITY IS REFERENCE, so it lives at the EDGE and opens on
+           demand. Collapsed inline it was still at the bottom of a scrolling
+           column, which is the same as hidden (Sid, 2026-09-01: "what does
+           page lets the agent do is hidden ... should be an opt-in UI that you
+           can pop-up"). The pinned line carries the one number that matters
+           per stage; the rungs themselves are one click away. -->
+      <button type="button" class="rail-foot" id="tool-surface" data-testid="tool-surface"
+              aria-haspopup="dialog" aria-expanded="false">
+        <span class="rf-count" id="tool-count"></span>
+        <span class="rf-label">tools available</span>
+        <span class="rf-more" aria-hidden="true">view</span>
+      </button>
     </section>
 
     <!-- STATUS BAR. Machine state that used to be scattered through the
@@ -3145,6 +3158,34 @@ for (const handle of document.querySelectorAll<HTMLElement>('.wb-sash')) {
   });
 }
 
+/**
+ * THE CAPABILITY SHEET.
+ *
+ * Same overlay idiom as ⌘K on purpose: one way to open a thing over the page,
+ * not two. It is opened from the dock's pinned footer, which is the only part
+ * of the agent region that never scrolls away — the whole complaint was that
+ * an inline ladder at the bottom of a scrolling column is hidden whether it is
+ * collapsed or not.
+ */
+const surfaceEl = document.querySelector<HTMLElement>('#surface')!;
+const surfaceBtn = document.querySelector<HTMLElement>('#tool-surface')!;
+let surfaceReturnFocus: HTMLElement | null = null;
+
+function openSurface(): void {
+  surfaceReturnFocus = document.activeElement as HTMLElement;
+  surfaceEl.hidden = false;
+  surfaceBtn.setAttribute('aria-expanded', 'true');
+  document.querySelector<HTMLElement>('#surface-close')!.focus();
+}
+function closeSurface(): void {
+  surfaceEl.hidden = true;
+  surfaceBtn.setAttribute('aria-expanded', 'false');
+  surfaceReturnFocus?.focus();
+}
+surfaceBtn.addEventListener('click', () => (surfaceEl.hidden ? openSurface() : closeSurface()));
+document.querySelector('#surface-close')!.addEventListener('click', () => closeSurface());
+surfaceEl.addEventListener('click', (e) => { if (e.target === surfaceEl) closeSurface(); });
+
 document.querySelector('#act-palette')!.addEventListener('click', () => openPalette());
 document.querySelector('#cmdk-open')!.addEventListener('click', () => openPalette());
 
@@ -3435,6 +3476,7 @@ document.addEventListener('keydown', (e) => {
     paletteEl.hidden ? openPalette() : closePalette();
     return;
   }
+  if (!surfaceEl.hidden && e.key === 'Escape') { e.preventDefault(); closeSurface(); return; }
   if (paletteEl.hidden) return;
   if (e.key === 'Escape') { e.preventDefault(); closePalette(); }
   else if (e.key === 'ArrowDown') { e.preventDefault(); paletteActive++; renderPalette(); }
@@ -3495,6 +3537,9 @@ function renderCapability(tools: AirlockTools): void {
   const writes = active.filter((t) => !t.readOnly && t.name !== 'record_finding');
   const countEl = document.querySelector<HTMLElement>('#tool-count');
   if (countEl) countEl.textContent = String(active.length);
+  // the count is only true for the stage you are on, so the sheet says which
+  const stageEl = document.querySelector<HTMLElement>('#surface-stage');
+  if (stageEl) stageEl.textContent = `${tools.mode()} stage · ${active.length} available now`;
   const fc = document.querySelector<HTMLElement>('#finding-count');
   const n = document.querySelectorAll('#agent-findings .finding').length;
   if (fc) fc.textContent = n ? String(n) : '';

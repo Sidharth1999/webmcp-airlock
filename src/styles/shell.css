@@ -1199,6 +1199,64 @@ body {
 /* the close control used to be pushed right by `.pane-sub`'s margin. The
    agent dock no longer has a subtitle, so it carries the push itself. */
 .dock-head .dock-close { margin-left: auto; }
+/* --- the agent dock's pinned footer -----------------------------------
+   Capability is REFERENCE, so it lives at the edge, like the status bar. It
+   is the one part of the agent region that never scrolls away: collapsed
+   INLINE it was still at the bottom of a scrolling column, which is hidden
+   whether it is open or not. */
+.rail-foot {
+  display: flex; align-items: baseline; gap: 6px;
+  width: 100%;
+  padding: var(--sp-2) var(--sp-4);
+  background: var(--s-chrome);
+  border: none; border-top: 1px solid var(--line);
+  cursor: pointer; font: inherit; text-align: left;
+  color: var(--ink-dim);
+}
+.rail-foot:hover { background: oklch(100% 0 0 / 0.05); color: var(--ink); }
+.rail-foot:focus-visible { outline: 2px solid var(--actor-agent); outline-offset: -2px; }
+.rf-count { font-family: var(--font-instrument); font-size: var(--text-sm); color: var(--ink); }
+.rf-label { font-family: var(--font-prose); font-size: var(--text-xs); }
+.rf-more {
+  margin-left: auto;
+  font-family: var(--font-instrument); font-size: var(--text-2xs);
+  letter-spacing: var(--tracking-label); text-transform: uppercase;
+  color: var(--ink-ghost);
+}
+.rail-foot:hover .rf-more { color: var(--actor-agent); }
+
+/* --- the capability sheet: the palette's chrome, one overlay idiom ------ */
+.sheet {
+  position: fixed; inset: 0; z-index: 200;
+  display: flex; justify-content: center; align-items: flex-start;
+  padding-top: 10vh;
+  background: oklch(0% 0 0 / 0.55);
+  backdrop-filter: blur(2px);
+}
+.sheet[hidden] { display: none; }
+.sheet-box {
+  width: min(620px, calc(100vw - 2 * var(--sp-5)));
+  max-height: 76vh;
+  display: flex; flex-direction: column;
+  background: var(--panel);
+  border: 1px solid var(--line-strong, var(--line));
+  border-radius: var(--r-md);
+  box-shadow: 0 24px 70px oklch(0% 0 0 / 0.65);
+  overflow: hidden;
+  animation: palette-in 140ms cubic-bezier(.2,.7,.3,1) both;
+}
+.sheet-head {
+  display: flex; align-items: baseline; gap: var(--sp-3);
+  padding: var(--sp-3) var(--sp-2) var(--sp-3) var(--sp-4);
+  border-bottom: 1px solid var(--line);
+}
+.sheet-title { font-family: var(--font-prose); font-size: var(--text-sm); font-weight: 600; color: var(--ink); }
+.sheet-sub { font-size: var(--text-2xs); color: var(--ink-faint); }
+.sheet-head .dock-close { margin-left: auto; }
+.sheet-box #tool-list { min-height: 0; overflow-y: auto; padding: var(--sp-2) var(--sp-2) 0; }
+.sheet-box .ladder-foot { margin: 0; padding: var(--sp-3) var(--sp-4); border-top: 1px solid var(--line); }
+@media (prefers-reduced-motion: reduce) { .sheet-box { animation: none; } }
+
 /* the region's shortcut sits beside the control that does the same thing */
 .dock-kbd {
   font-family: var(--font-instrument); font-size: 10px;

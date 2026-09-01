@@ -130,10 +130,30 @@ healthy 75% and is slower than aborting the canary; or the fix reaches only a
 quarter of traffic. Correct: abort/hold the canary.
 **Needs:** canary percentage as first-class state + `canary.hold` / `canary.abort`.
 
-### Family 9 — Thundering herd
-Service degraded under a retry storm. Obvious: restart it. Wrong: restart drops
-warm caches and the herd hits cold — worse. Correct: shed load, then restart.
-**Needs:** `service.restart` + `ratelimit.set` + a herd model in the sim.
+### Family 9 — Thundering herd — **SHIPPED 2026-09-01 as `retry-storm`, and the sketch was wrong**
+The sketch said "shed load, then restart". Restarting is not the fix: it drops
+the in-flight queue and every client retries at once into a cold pool, so the
+storm re-forms. It is a TRAP in the shipped family (×1.02 the damage of doing
+nothing — a bounded spike, honestly thin).
+
+What shipped instead is a **metastable** failure: the trigger (a brief db lock
+contention) CLEARS and the outage sustains itself on the retry loop, so doing
+nothing never recovers. The answer is **shed, then ship the fix** — cap the
+route to buy headroom, then roll forward 2.4.2 (or roll the amplifier back;
+both are correct and both need the headroom, because the fleet is at its
+autoscaler ceiling and a rolling replacement withdraws instances the incident
+cannot spare).
+
+Backwards it is worse than doing nothing: `ROLLOUT_AUTO_ABORT` halts the
+rollout partway and leaves a mixed fleet with less capacity. And
+`alerts.silence` — free on its own — disarms that abort, so silence-then-ship
+takes the service DOWN in 24/24 variants. **Conditional harm is the thing a
+static runbook cannot encode**, and it is the reason this family exists.
+
+**Cost of the family:** one template + `TemplateMeta.orderTraps` (the compiler
+probe for an ordering claim) + six levers made round-trippable in `actionKey`.
+No new verbs were needed — every lever it uses was already registered and
+already priced in `vocabulary.ts`.
 
 ---
 

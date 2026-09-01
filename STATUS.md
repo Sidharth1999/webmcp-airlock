@@ -1,5 +1,14 @@
 # STATUS — live audit log
 
+## SCENARIO-vs-LEVER AUDIT (2026-09-02) — read before running any more agent evals
+**20 levers are registered in `src/sim/vocabulary.ts`:** alerts.silence, cache.flush, canary.set, db.failover, deploy.freeze, deploy.rollback, deploy.rollforward, dns.cutover, env.set, flag.set, incident.acknowledge, incident.escalate, incident.severity, ratelimit.set, route.set, service.restart, service.scale, statuspage.post, traffic.drain, traffic.shift.
+
+**Answer keys across all three scenario families use exactly FOUR of them:** `flag.set`, `deploy.rollback`, `deploy.rollforward`, `env.set` (`migration-trap.ts:53`, `innocent-deploy.ts:84,88`, `poisoned-runbook.ts:93`).
+
+**So 16 of 20 levers appear in no answer key.** A campaign run today would measure the same four-verb problem the 2026-09-01 handoff already recorded as teaching us nothing — only with 16 more distractors on screen. Distractor richness does test discrimination; it does NOT test ordering or cost trade-offs, which is where the value proposition lives.
+
+**Consequence:** at least one scenario class whose CORRECT path requires sequencing costly levers — and where the wrong order is measurably worse — is a prerequisite for the next campaign, not a follow-up to it. The compiler already checks this mechanically and token-free (scripted vs null probe to the same horizon).
+
 ## This session (2026-09-02) — UI REBUILT AS A FIXED-VIEWPORT WORKBENCH
 - **Boot:** `npm run smoke` GREEN run alone (65 assertions). M4 25.0% · M5 10.0% · overall 53.3% — unchanged, and should be: no features.json entry covers UI layout.
 - **Close:** smoke **GREEN** · **150 unit tests** · typecheck + lint:sim clean · **corpus 67 accepted / 0 rejected**. Commit `5ca3929`.

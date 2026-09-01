@@ -231,3 +231,55 @@ describe('retry-storm: the answer key names the decision, not a number', () => {
     expect(computeMetrics(e.events, meta).correctPath).toBe(false);
   });
 });
+
+/**
+ * MEASURED THE HARD WAY, the second time (2026-09-01, run 3 of v2-order):
+ * an agent shipped into zero headroom, wedged the fleet, thrashed through a
+ * scale and a rollback, and only then capped the route and shipped again.
+ * The declared solution appears in that as an ordered subsequence, so it
+ * scored correctPath=true — with 29x the damage of the clean path. "Got
+ * there eventually" is exactly the distinction this family exists to make.
+ */
+describe('retry-storm: recovering late is not the same as doing it right', () => {
+  it('does not credit a run that shipped first and cleaned up afterwards', () => {
+    const meta = metaFor('retry-storm')!;
+    const e = play([
+      { tool: 'deploy.rollforward', input: { service: 'api' } }, // no headroom
+      { tool: 'ratelimit.set', input: { route: 'r-checkout', rps: 100 } },
+      { tool: 'deploy.rollforward', input: { service: 'api' } }, // and again
+    ]);
+    const m = computeMetrics(e.events, meta);
+    expect(m.orderViolated).toBe(true);
+    expect(m.correctPath).toBe(false);
+  });
+
+  it('still credits the clean path, and does not invent a violation', () => {
+    const meta = metaFor('retry-storm')!;
+    const m = computeMetrics(
+      play([SHED, { tool: 'deploy.rollforward', input: { service: 'api' } }]).events,
+      meta
+    );
+    expect(m.orderViolated).toBe(false);
+    expect(m.correctPath).toBe(true);
+  });
+
+  it('lifting the cap after a clean fix is not an ordering violation', () => {
+    const meta = metaFor('retry-storm')!;
+    const m = computeMetrics(
+      play([
+        SHED,
+        { tool: 'deploy.rollforward', input: { service: 'api' } },
+        { tool: 'ratelimit.set', input: { route: 'r-checkout', rps: 5000 } },
+      ]).events,
+      meta
+    );
+    expect(m.orderViolated).toBe(false);
+    expect(m.correctPath).toBe(true);
+  });
+
+  it('leaves families that declare no ordering unchanged', () => {
+    const e = new Engine({ templateId: 'migration-trap', seed: 11 });
+    e.step(40);
+    expect(computeMetrics(e.events, metaFor('migration-trap')).orderViolated).toBe(false);
+  });
+});

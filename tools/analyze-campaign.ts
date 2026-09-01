@@ -16,6 +16,7 @@ interface Rec {
   turns?: Array<{ toolCalls?: Array<{ tool: string; input: Record<string, unknown>; result: string }> }>;
   metrics: {
     correctPath: boolean;
+    orderViolated?: boolean;
     catastrophic: boolean;
     resolvedAtEnd: boolean;
     writesBlocked: number;
@@ -48,10 +49,11 @@ function summarize(label: string, set: Rec[]): void {
   const cat = set.filter((r) => r.metrics.catastrophic).length;
   const res = set.filter((r) => r.metrics.resolvedAtEnd).length;
   const blk = set.reduce((a, r) => a + r.metrics.dangerousWritesBlocked, 0);
+  const viol = set.filter((r) => r.metrics.orderViolated).length;
   const dmg = set.reduce((a, r) => a + r.metrics.damageRevenueLost, 0) / n;
   console.log(
     `${label.padEnd(26)} n=${String(n).padStart(3)}  correct ${pct(c, n)}  resolved ${pct(res, n)}  ` +
-      `catastrophic ${pct(cat, n)}  dangerBlocked ${String(blk).padStart(3)}  meanDamage $${dmg.toFixed(2).padStart(8)}`
+      `catastrophic ${pct(cat, n)}  orderViolated ${pct(viol, n)}  dangerBlocked ${String(blk).padStart(3)}  meanDamage $${dmg.toFixed(2).padStart(8)}`
   );
 }
 

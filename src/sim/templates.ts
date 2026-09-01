@@ -2,6 +2,7 @@ import type { SimCtx } from './engine';
 import { innocentDeploy } from './innocent-deploy';
 import { migrationTrap } from './migration-trap';
 import { poisonedRunbook } from './poisoned-runbook';
+import { retryStorm } from './retry-storm';
 import { jitter, pickInt } from './rng';
 import type { Deploy, Event } from './types';
 
@@ -15,6 +16,19 @@ export interface TemplateInstance {
 export interface TemplateMeta {
   solutions: string[][];
   traps: string[];
+  /**
+   * ORDERED sequences that are worse than doing nothing BECAUSE of their
+   * order — the same levers a solution uses, run in the wrong sequence, or a
+   * harmless-looking action that disarms a guardrail in front of a real one.
+   *
+   * Separate from `traps` on purpose: a trap is a key that must never be
+   * executed, and metrics keys `correctPath` off that. An ordering violation
+   * cannot be expressed that way, because the actions in it are the CORRECT
+   * actions. The compiler probes these as scripted sequences and requires
+   * each to be catastrophic or measurably worse than both doing nothing and
+   * doing the same work in the right order.
+   */
+  orderTraps?: string[][];
 }
 
 export interface TemplateFactory {
@@ -193,6 +207,7 @@ const registry: Record<string, TemplateFactory> = {
   [migrationTrap.id]: migrationTrap,
   [innocentDeploy.id]: innocentDeploy,
   [poisonedRunbook.id]: poisonedRunbook,
+  [retryStorm.id]: retryStorm,
 };
 
 /** Answer key for a template at a given (already merged) param set. */

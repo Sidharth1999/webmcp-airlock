@@ -115,6 +115,15 @@ function standingFacts(world: World): string[] {
         `${d.id} (${d.service} ${d.version}), the deploy that introduced it, is still the live build`
     );
   }
+  for (const r of world.routes) {
+    // A mitigation the operator applied is still in force. Reported as a
+    // fact, never as a verdict: whether it is still doing harm depends on
+    // the offered load, which is in traffic_history.
+    if (r.drained) facts.push(`${r.path} is drained: it is serving nobody`);
+    else if (r.rateLimitRps !== undefined) {
+      facts.push(`${r.path} is capped at ${r.rateLimitRps} req/s: requests above that are rejected`);
+    }
+  }
   for (const s of world.services) {
     const live = world.deploys.filter((d) => d.service === s.id && d.status === 'live');
     const rolled = world.deploys.filter((d) => d.service === s.id && d.status === 'rolled_back');
@@ -263,7 +272,18 @@ function changes(events: readonly Event[], world: World): Record<string, unknown
       ...(f.touchedByDeploy ? { byDeploy: f.touchedByDeploy } : {}),
     })),
     env: world.envVars.map((v) => ({ key: v.key, value: v.valueRedacted, at: v.changedAt })),
-    routes: world.routes.map((r) => ({ id: r.id, path: r.path, target: r.target, tier: r.tier })),
+    routes: world.routes.map((r) => ({
+      id: r.id,
+      path: r.path,
+      target: r.target,
+      tier: r.tier,
+      // Admission state, emitted ONLY when someone has changed it. A cap or a
+      // drain is a live change to what customers get, so it belongs on the
+      // list of changes — and an agent that just proposed one has to be able
+      // to see whether it took.
+      ...(r.rateLimitRps !== undefined ? { rateLimitRps: r.rateLimitRps } : {}),
+      ...(r.drained ? { drained: true } : {}),
+    })),
     migrations: world.migrations.map((m) => ({
       id: m.id,
       byDeploy: m.appliedByDeploy,

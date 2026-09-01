@@ -39,6 +39,22 @@ export function actionKey(tool: string, input: Record<string, unknown>): string 
         : `env.set:${input.key}=${input.value}`;
     case 'route.set':
       return `route.set:${input.id}=${input.target}`;
+    // The ordering family (retry-storm) put these on the answer key, so they
+    // have to serialize round-trippably like the four above. Each encodes
+    // the ONE parameter that carries the decision; anything else about the
+    // call is flavour the answer key never depended on.
+    case 'ratelimit.set':
+      return `ratelimit.set:${input.route}=${input.rps}`;
+    case 'traffic.drain':
+      return `traffic.drain:${input.route}`;
+    case 'cache.flush':
+      return `cache.flush:${input.scope}`;
+    case 'service.restart':
+      return `service.restart:${input.service}`;
+    case 'db.failover':
+      return `db.failover:${input.service}`;
+    case 'alerts.silence':
+      return `alerts.silence:${input.silenced}`;
     default:
       return tool;
   }

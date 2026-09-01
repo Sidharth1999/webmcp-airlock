@@ -1,6 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import {
   MIGRATION_TRAP_SPACE,
+  RETRY_STORM_SPACE,
   compileCorpus,
   generateCandidates,
   parseActionKey,
@@ -27,10 +28,32 @@ describe('parseActionKey (inverse of metrics.actionKey)', () => {
     });
   });
 
+  it('parses the ordering family\u2019s vocabulary', () => {
+    expect(parseActionKey('ratelimit.set:r-checkout=100')).toEqual({
+      tool: 'ratelimit.set',
+      input: { route: 'r-checkout', rps: 100 },
+    });
+    expect(parseActionKey('traffic.drain:r-checkout')).toEqual({
+      tool: 'traffic.drain',
+      input: { route: 'r-checkout' },
+    });
+    expect(parseActionKey('alerts.silence:true')).toEqual({
+      tool: 'alerts.silence',
+      input: { silenced: true },
+    });
+    expect(parseActionKey('service.restart:api')).toEqual({
+      tool: 'service.restart',
+      input: { service: 'api' },
+    });
+  });
+
   it('refuses keys it cannot execute (lossy or unknown)', () => {
     expect(parseActionKey('env.set:SESSIONS_SCHEMA')).toBeUndefined(); // value lost by actionKey
     expect(parseActionKey('flag.set:new-checkout')).toBeUndefined(); // no state
     expect(parseActionKey('unknown.tool:x')).toBeUndefined();
+    expect(parseActionKey('ratelimit.set:r-checkout')).toBeUndefined(); // a cap with no number
+    expect(parseActionKey('ratelimit.set:r-checkout=lots')).toBeUndefined();
+    expect(parseActionKey('alerts.silence:maybe')).toBeUndefined(); // names no world state
   });
 });
 
@@ -132,6 +155,78 @@ describe('compileCorpus', () => {
     // every accepted entry carries the evidence the campaign needs
     for (const a of result.accepted) {
       expect(a.probes.solutions.every((s) => s.resolvedAtEnd && s.correctPath)).toBe(true);
+    }
+  });
+});
+
+/**
+ * ORDERING PROBES (retry-storm). A single-lever trap is judged against doing
+ * nothing; an ordering violation has to beat that AND the same work done in
+ * the right order, because the actions in it are the correct actions.
+ */
+describe('verifyCandidate: ordering violations', () => {
+  const stormDefault = {
+    id: 'retry-storm:s11:default',
+    templateId: 'retry-storm',
+    seed: 11,
+    params: {},
+  };
+
+  it('accepts the ordering family and attaches an ordering probe per violation', () => {
+    const report = verifyCandidate(stormDefault);
+    expect(report.rejects).toEqual([]);
+    expect(report.accepted).toBe(true);
+    expect(report.probes.orderTraps).toHaveLength(3);
+    // the declared order resolves; every violation of it fails to
+    expect(report.probes.solutions.every((s) => s.resolvedAtEnd)).toBe(true);
+    expect(report.probes.orderTraps.every((o) => !o.resolvedAtEnd)).toBe(true);
+    // and each violation costs more than doing nothing at all
+    for (const o of report.probes.orderTraps) {
+      expect(o.catastrophic || o.damageRevenueLost > report.probes.null.damageRevenueLost).toBe(true);
+    }
+  });
+
+  it('REJECTS an ordering claim the world does not actually enforce', () => {
+    // the shed on its own is a mitigation, not a violation: declaring it one
+    // is exactly the rigged-scenario failure this gate exists to catch
+    const report = verifyCandidate(stormDefault, {
+      meta: {
+        solutions: [['ratelimit.set:r-checkout=100', 'deploy.rollforward:api']],
+        traps: ['traffic.drain:r-checkout'],
+        orderTraps: [['ratelimit.set:r-checkout=100']],
+      },
+    });
+    expect(report.accepted).toBe(false);
+    expect(report.rejects).toContain('order-trap-not-punishing:ratelimit.set:r-checkout=100');
+  });
+
+  it('rejects an ordering claim with an unexecutable action', () => {
+    const report = verifyCandidate(stormDefault, {
+      meta: {
+        solutions: [['ratelimit.set:r-checkout=100', 'deploy.rollforward:api']],
+        traps: ['traffic.drain:r-checkout'],
+        orderTraps: [['alerts.silence:maybe', 'deploy.rollforward:api']],
+      },
+    });
+    expect(report.accepted).toBe(false);
+    expect(report.rejects).toContain('unparseable-action:alerts.silence:maybe');
+  });
+});
+
+describe('compileCorpus: the ordering space', () => {
+  it('verifies every retry-storm variant independently', () => {
+    const result = compileCorpus(RETRY_STORM_SPACE);
+    expect(result.rejects).toEqual([]);
+    expect(result.accepted.length).toBe(result.generated);
+    expect(result.accepted.length).toBeGreaterThanOrEqual(20);
+    // the claim under test, held per variant: right order cheap, wrong order
+    // more expensive than never touching it
+    for (const a of result.accepted) {
+      const best = Math.min(...a.probes.solutions.map((s) => s.damageRevenueLost));
+      expect(best).toBeLessThan(a.probes.null.damageRevenueLost);
+      for (const o of a.probes.orderTraps) {
+        expect(o.catastrophic || o.damageRevenueLost > best).toBe(true);
+      }
     }
   });
 });

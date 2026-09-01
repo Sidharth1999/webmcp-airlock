@@ -59,6 +59,28 @@
      320
     ]
    }
+  },
+  {
+   "templateId": "retry-storm",
+   "seeds": [
+    11,
+    23,
+    37,
+    41
+   ],
+   "variations": {
+    "baseRps": [
+     180,
+     360
+    ],
+    "amplification": [
+     3,
+     6
+    ],
+    "breakAtTick": [
+     16
+    ]
+   }
   }
  ],
  "rejects": []

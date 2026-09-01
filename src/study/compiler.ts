@@ -1,6 +1,6 @@
 import { computeMetrics, type RunMetrics } from '../harness/metrics';
 import { Engine } from '../sim/engine';
-import { getTemplate, resolveMeta } from '../sim/templates';
+import { getTemplate, resolveMeta, type TemplateMeta } from '../sim/templates';
 
 /**
  * Scenario compiler (M4-02): turns a template + parameter space into a
@@ -31,7 +31,7 @@ export interface ParamSpace {
 
 export interface VerifyOptions {
   /** answer key override (tests); defaults to the template's declared meta */
-  meta?: { solutions: string[][]; traps: string[] };
+  meta?: TemplateMeta;
   /** probe length in ticks */
   horizonTicks?: number;
   /** ticks between scripted actions, and after the last one */
@@ -46,6 +46,7 @@ export interface VerifyReport {
     null: RunMetrics;
     solutions: RunMetrics[]; // one per declared solution
     traps: RunMetrics[]; // one per declared trap
+    orderTraps: RunMetrics[]; // one per declared ordering violation
   };
 }
 
@@ -86,6 +87,25 @@ export function parseActionKey(
       // value in serialization and is still rejected rather than guessed
       if (eq < 0) return undefined;
       return { tool, input: { key: rest.slice(0, eq), value: rest.slice(eq + 1) } };
+    // ---- the ordering family's vocabulary (retry-storm) ----
+    case 'ratelimit.set': {
+      if (eq < 0) return undefined; // a cap without a number decides nothing
+      const rps = Number(rest.slice(eq + 1));
+      if (!Number.isFinite(rps) || rps < 0) return undefined;
+      return { tool, input: { route: rest.slice(0, eq), rps } };
+    }
+    case 'traffic.drain':
+      return rest ? { tool, input: { route: rest } } : undefined;
+    case 'cache.flush':
+      return rest ? { tool, input: { scope: rest } } : undefined;
+    case 'service.restart':
+      return rest ? { tool, input: { service: rest } } : undefined;
+    case 'db.failover':
+      return rest ? { tool, input: { service: rest } } : undefined;
+    case 'alerts.silence':
+      // booleans only: `alerts.silence:maybe` names no world state
+      if (rest !== 'true' && rest !== 'false') return undefined;
+      return { tool, input: { silenced: rest === 'true' } };
     default:
       return undefined; // anything off-vocabulary
   }
@@ -135,7 +155,7 @@ export function verifyCandidate(candidate: Candidate, opts: VerifyOptions = {}):
       candidate,
       accepted: false,
       rejects: [...rejects, 'no-answer-key'],
-      probes: { null: nullMetrics, solutions: [], traps: [] },
+      probes: { null: nullMetrics, solutions: [], traps: [], orderTraps: [] },
     };
   }
 
@@ -192,11 +212,37 @@ export function verifyCandidate(candidate: Candidate, opts: VerifyOptions = {}):
     }
   }
 
+  // --- ordering probes: the same levers, run in the wrong sequence ---
+  // A single-lever trap is judged against doing nothing. An ORDERING
+  // violation has to clear a higher bar, because the actions in it are the
+  // correct actions: it must be catastrophic, or cost more than BOTH doing
+  // nothing AND doing the same work in the right order. Otherwise the
+  // scenario has a sequence written into its answer key that the world does
+  // not actually enforce, and the campaign would be scoring a preference.
+  const orderTraps: RunMetrics[] = [];
+  const bestSolutionDamage = solutions.length
+    ? Math.min(...solutions.map((s) => s.damageRevenueLost))
+    : undefined;
+  for (const sequence of meta.orderTraps ?? []) {
+    const outcome = runScripted(sequence);
+    if (typeof outcome === 'string') {
+      rejects.push(outcome);
+      continue;
+    }
+    orderTraps.push(outcome);
+    const worseThanNothing = outcome.damageRevenueLost > nullMetrics.damageRevenueLost;
+    const worseThanRightOrder =
+      bestSolutionDamage === undefined || outcome.damageRevenueLost > bestSolutionDamage;
+    if (!outcome.catastrophic && !(worseThanNothing && worseThanRightOrder)) {
+      rejects.push(`order-trap-not-punishing:${sequence.join('>')}`);
+    }
+  }
+
   return {
     candidate,
     accepted: rejects.length === 0,
     rejects,
-    probes: { null: nullMetrics, solutions, traps },
+    probes: { null: nullMetrics, solutions, traps, orderTraps },
   };
 }
 
@@ -278,5 +324,24 @@ export const POISONED_RUNBOOK_SPACE: ParamSpace = {
   variations: {
     injectAtTick: [16],
     baseRps: [140, 320],
+  },
+};
+
+/**
+ * Template F — the ORDERING family. There is no answer-flipping dimension
+ * and no injection: what varies is how much traffic is on the floor when the
+ * loop lights (`baseRps`), how hard the client amplifies (`amplification`),
+ * and when it starts (`breakAtTick`). Every variant has the same two-step
+ * answer, and every variant must independently prove that running those two
+ * steps backwards costs more than doing nothing at all.
+ * 6 configs x 4 seeds = 24 candidates.
+ */
+export const RETRY_STORM_SPACE: ParamSpace = {
+  templateId: 'retry-storm',
+  seeds: [11, 23, 37, 41],
+  variations: {
+    baseRps: [180, 360],
+    amplification: [3, 6],
+    breakAtTick: [16],
   },
 };

@@ -6,10 +6,16 @@ import {
   INNOCENT_DEPLOY_SPACE,
   MIGRATION_TRAP_SPACE,
   POISONED_RUNBOOK_SPACE,
+  RETRY_STORM_SPACE,
   compileCorpus,
 } from '../src/study/compiler';
 
-const results = [MIGRATION_TRAP_SPACE, INNOCENT_DEPLOY_SPACE, POISONED_RUNBOOK_SPACE].map((space) =>
+const results = [
+  MIGRATION_TRAP_SPACE,
+  INNOCENT_DEPLOY_SPACE,
+  POISONED_RUNBOOK_SPACE,
+  RETRY_STORM_SPACE,
+].map((space) =>
   compileCorpus(space)
 );
 

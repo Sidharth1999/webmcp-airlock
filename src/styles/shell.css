@@ -1732,3 +1732,60 @@ body {
 .sp-post[data-state='resolved'] .sp-state { color: var(--health-bright); }
 .sp-text { margin: 0; font-size: var(--text-sm); line-height: 1.5; color: var(--ink); }
 .statuspage .empty { padding: var(--sp-3); margin: 0; }
+
+/* --- row actions: one menu, right-aligned -------------------------------
+   Rule from Grafana Alerting: a row carries a single `Actions v`, never a
+   scattered set of buttons. Three buttons of different widths per row CANNOT
+   align — that was the alignment problem, not a spacing bug. */
+/* Every control row has the SAME five columns, so trailing controls line up
+   down the whole surface even when a row has no primary action. Rows used to
+   be flex with differently-sized buttons, which cannot align by construction. */
+.ctl-row {
+  display: grid;
+  grid-template-columns: 40px minmax(0, 1fr) auto 108px 92px;
+  align-items: center;
+  gap: var(--sp-3);
+}
+.ctl-row .ctl-kind { grid-column: 1; }
+.ctl-row .ctl-name { grid-column: 2; min-width: 0; overflow: hidden; text-overflow: ellipsis; }
+.ctl-row .ctl-state { grid-column: 3; justify-self: end; text-align: right; white-space: nowrap; }
+/* column 4 is the optional primary verb; column 5 is always the menu */
+.ctl-row > .ctl-btn:not(.lever) { grid-column: 4; justify-self: stretch; }
+.ctl-row > .actions-menu { grid-column: 5; justify-self: stretch; }
+.ctl-row > .actions-menu > summary { justify-content: center; width: 100%; }
+
+.actions-menu { position: relative; justify-self: end; }
+.actions-menu > summary {
+  list-style: none; cursor: pointer;
+  display: inline-flex; align-items: center; gap: 5px;
+  padding: 5px var(--sp-3);
+  border: 1px solid var(--line); border-radius: var(--r-sm);
+  background: var(--panel-inset);
+  color: var(--ink-dim); font-size: var(--text-xs);
+  white-space: nowrap;
+}
+.actions-menu > summary::-webkit-details-marker { display: none; }
+.actions-menu > summary::after {
+  content: ''; width: 0; height: 0;
+  border-top: 4px solid currentColor;
+  border-left: 3.5px solid transparent; border-right: 3.5px solid transparent;
+}
+.actions-menu > summary:hover { color: var(--ink); border-color: var(--line-strong, var(--line)); }
+.am-list {
+  position: absolute; top: calc(100% + 5px); right: 0; z-index: 80;
+  min-width: 290px; display: flex; flex-direction: column;
+  padding: var(--sp-2);
+  background: var(--panel); border: 1px solid var(--line-strong, var(--line));
+  border-radius: var(--r-md);
+  box-shadow: 0 14px 38px oklch(0% 0 0 / 0.55);
+}
+.am-item {
+  display: flex; flex-direction: column; gap: 2px;
+  text-align: left; padding: var(--sp-2) var(--sp-3);
+  background: none; border: none; border-radius: var(--r-sm);
+  cursor: pointer; font: inherit; color: var(--ink);
+}
+.am-item:hover { background: oklch(100% 0 0 / 0.06); }
+.am-label { font-size: var(--text-sm); }
+/* the cost gets room to be read, instead of a tooltip on a cramped button */
+.am-cost { font-size: var(--text-2xs); color: var(--ink-ghost); line-height: 1.45; }

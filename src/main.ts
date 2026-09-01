@@ -657,6 +657,38 @@ function renderCommand(w: World): void {
 const routeControls = document.querySelector<HTMLDivElement>('#route-controls')!;
 const opsControls = document.querySelector<HTMLDivElement>('#ops-controls')!;
 
+/**
+ * ROW ACTIONS COLLAPSE INTO ONE MENU.
+ *
+ * Rule taken from Grafana Alerting, read in-browser: every row carries a
+ * single right-aligned `Actions v`, never a scattered set of buttons. That is
+ * why our control rows looked misaligned — three buttons of different widths
+ * per row cannot align, and no real ops tool asks them to.
+ *
+ * The cost of each lever rides inside the menu, where there is room to read
+ * it, instead of as a hover tooltip on a cramped button.
+ */
+function actionsMenu(
+  items: Array<{ tool: string; input: Record<string, unknown>; label: string; testid: string }>,
+  menuId: string
+): string {
+  const rows = items
+    .map((it) => {
+      const spec = WRITE_ACTIONS[it.tool];
+      const cost = (spec?.cost ?? '').replace(/"/g, '&quot;');
+      return `<button type="button" role="menuitem" class="am-item" data-act="lever"
+        data-tool="${it.tool}" data-input='${JSON.stringify(it.input)}' data-testid="${it.testid}">
+        <span class="am-label">${it.label}</span>
+        <span class="am-cost">${cost}</span>
+      </button>`;
+    })
+    .join('');
+  return `<details class="actions-menu" id="${menuId}">
+    <summary data-testid="${menuId}-open">Actions</summary>
+    <div class="am-list" role="menu">${rows}</div>
+  </details>`;
+}
+
 function renderRouteRow(r: World['routes'][number]): void {
   let row = routeControls.querySelector<HTMLDivElement>(`[data-route-id="${r.id}"]`);
   if (!row) {
@@ -667,9 +699,14 @@ function renderRouteRow(r: World['routes'][number]): void {
       <span class="ctl-kind">route</span>
       <span class="ctl-name"></span>
       <span class="ctl-state"></span>
-      ${lever('traffic.shift', { route: r.id, percent: 50, target: 'secondary' }, 'Shift 50%', `shift-${r.id}`)}
-      ${lever('traffic.drain', { route: r.id }, 'Drain', `drain-${r.id}`)}
-      ${lever('ratelimit.set', { route: r.id, rps: 100 }, 'Limit 100/s', `limit-${r.id}`)}
+      ${actionsMenu(
+        [
+          { tool: 'traffic.shift', input: { route: r.id, percent: 50, target: 'secondary' }, label: 'Shift 50% to secondary', testid: `shift-${r.id}` },
+          { tool: 'traffic.drain', input: { route: r.id }, label: 'Drain this route', testid: `drain-${r.id}` },
+          { tool: 'ratelimit.set', input: { route: r.id, rps: 100 }, label: 'Cap at 100 req/s', testid: `limit-${r.id}` },
+        ],
+        `route-actions-${r.id}`
+      )}
     `;
     row.querySelector('.ctl-name')!.textContent = r.path;
     routeControls.append(row);
@@ -725,9 +762,14 @@ function renderServiceRow(svc: World['services'][number]): void {
       <span class="ctl-kind">svc</span>
       <span class="ctl-name"></span>
       <span class="ctl-state"></span>
-      <button type="button" class="ctl-btn" data-act="rollforward" data-service="${svc.id}" data-testid="rollforward-${svc.id}" title="ship the next build of ${svc.id}">Roll forward</button>
-      ${lever('service.restart', { service: svc.id }, 'Restart', `restart-${svc.id}`)}
-      ${lever('service.scale', { service: svc.id, replicas: 4 }, 'Scale to 4', `scale-${svc.id}`)}
+      <button type="button" class="ctl-btn primary-row" data-act="rollforward" data-service="${svc.id}" data-testid="rollforward-${svc.id}" title="ship the next build of ${svc.id}">Roll forward</button>
+      ${actionsMenu(
+        [
+          { tool: 'service.restart', input: { service: svc.id }, label: 'Restart the service', testid: `restart-${svc.id}` },
+          { tool: 'service.scale', input: { service: svc.id, replicas: 4 }, label: 'Scale to 4 replicas', testid: `scale-${svc.id}` },
+        ],
+        `svc-actions-${svc.id}`
+      )}
     `;
     row.querySelector('.ctl-name')!.textContent = svc.id;
     serviceControls.append(row);

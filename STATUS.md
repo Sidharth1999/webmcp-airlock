@@ -158,11 +158,89 @@ scripted `naive` persona and must not be published off this data.**
 **Spend:** this campaign $3.90. Session total across everything: **$4.46** of
 the $20 top-up.
 
+## SAME SESSION, SECOND HALF — layout defects, the driver, and the two written artifacts
+
+Commits: `310590b` layout · `af58af8` driver scenario 2 · `372f3f1` README ·
+`1018227` Devpost description draft 1.
+
+### The console did not survive 1120px, and the deck was leaving bare ground
+Both found by extending `capture-ux.mjs` to the new states and running all four
+viewports, which is the only reason they were found at all.
+
+- **Below 1500px the fixed dock tracks pushed the console off the screen.** The
+  grid is `46 | 1fr | 5 | --w-site(700) | 5 | --w-rail(410)`. At 1120px those
+  sum to 1166 — more than the viewport — so the centre collapsed and the
+  storefront, which reveals ITSELF when checkout starts failing, **covered the
+  console completely.** The operator lost the thing they were meant to be
+  operating at the exact moment it began to matter. The docks now yield below
+  1500px (`min(700px, 40vw)` / `min(410px, 24vw)`); **nothing at 1920px or
+  above changes**, so ultra and wide are untouched, desk gains 188px of centre,
+  and narrow gains a console at all.
+- **`docs/ux-debt.md` claimed the remaining voids were inside card edges.**
+  Measured, that was stale: the deck's second row is `593px 593px` and
+  `#zone-holding` is `display:none` whenever nothing is held — **593×261 of
+  bare ground**, which rule 1 of that same document forbids. The status page
+  takes the row when nothing is held and yields the column back the moment
+  something is. (Gotcha worth keeping: **`:has()` cannot be nested inside
+  `:has()`** — the first attempt parsed and silently matched nothing.)
+
+Both written up in `docs/ux-debt.md` under a dated round.
+
+### `npm run driver` now plays the ordering story too, and cannot fake the gate
+Scenario 1 proved the plumbing on a one-action answer. Scenario 2 exists
+because retry-storm's answer is a sequence. It asserts the plan's promise
+rather than assuming it: with step 1 pending it checks step 2's state is
+`pending` and that exactly ONE decision was put to the human, then waits on
+step 2 becoming live before it can click anything. **A build that batched the
+approvals could not get past it.**
+
+Two things the first attempt got wrong and now does honestly: it read the logs
+the instant the incident opened (before the trigger cleared and the autoscaler
+topped out — BOTH tells are needed, so it keeps watching), and it reported the
+outcome off the click (a rolling replacement takes ticks; it now waits for the
+recovery and fails if it does not come). 9 tool calls on the trap, 19 on the
+order, traces in `log/driver-runs/`.
+
+### M5-02 — README written (`in_progress`, not done)
+Written to the M5-02 check and to the framing law. Covers the problem and the
+named audience, what WebMCP is actually doing here, clone-to-running with no
+keys and no backend, both agent runtimes with **Sol/Terra pinned and Luna's
+disabled WebMCP called out**, the four scenarios, the four things worth
+watching, every verification command, and honest limits.
+
+**Every number was checked against the build, not remembered** — 27 rungs in
+recovery, 13 in triage, 187 unit tests, 85 smoke gates, 91 corpus variants. The
+gate-1 record's `6 → 11 → 6` is DESCRIBED rather than quoted, because that
+build had a smaller surface and quoting it today would be false.
+
+**NEEDS SID:** two placeholders I cannot fill — `<LIVE-URL>` and `<REPO-URL>`.
+Left `in_progress` deliberately: the check is a COLD READER, which is not me.
+
+### M6-03 — Devpost description draft 1 (`docs/devpost-description.md`)
+Thesis in the first three sentences, mandated prompt answered verbatim, never
+framed as "we added prompt injection".
+
+**One thing to check before pasting:** the repo records exactly ONE mandated
+prompt, and M6-03's check says four. I could not find the other three written
+down anywhere, so the draft is organised around the recorded one plus Devpost's
+standard fields and says so at the top. **Verify against the live form.**
+
+The Challenges section uses the three real ones with evidence (cursor 0
+blinding the agent · an answer key naming a number instead of a decision · a
+paired sample that was not paired), and the last section reports the campaign's
+turn-cap confound and the zero-catastrophe warning rather than rounding them
+off — a judge who finds that themselves scores it worse than a judge who is
+told.
+
 ### Still open from the agreed order
 Item 4's other half — Sid's ⌘K idea, the agent DRIVING the palette the human
 drives — is not built. The controls now light up in order, which was the part
 that carries on film; the agent actually operating the palette is the part that
 does not exist yet.
+
+Also untouched, and both are Sid-shaped: **M6-04** (4-6 deliberate gallery
+stills at full res — the sweep in `log/ux/` is raw material, not a curated set)
+and the film itself.
 
 
 ## SCENARIO-vs-LEVER AUDIT (2026-09-01) — read before running any more agent evals

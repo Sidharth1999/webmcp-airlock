@@ -11,6 +11,42 @@
 
 > **ADDRESSED 2026-09-01 (Tue, later session).** `retry-storm` (Template F) ships with a two-step ordered answer key, and `TemplateMeta.orderTraps` gives the compiler a probe for the ordering claim itself. Six more levers now carry answer keys (`ratelimit.set`, `traffic.drain`, `cache.flush`, `service.restart`, `db.failover`, `alerts.silence`), so **10 of 20 are load-bearing, up from 4.** Details in the session entry below.
 
+## SID'S DIRECTION, END OF TUESDAY SESSION — the bar, and what gets built next
+
+**Sid restated the bar, and it is not a research claim:** *"build and demonstrate something genuinely useful in a domain/app that genuinely benefits from WebMCP."* The measured comparison is a bonus, never the deliverable. Combined with the rubric re-read above, that settles the remaining runway.
+
+**His Creativity play, in his words:** *"a genuinely impressive agent UX leveraging WebMCP ... what agent UI on top of WebMCP can look like to make a user genuinely feel safe, assisted, and easy to understand what the agent is doing, in an almost fun to watch, seamless way."*
+
+**His framing for Impact, which the demo must carry:** *"you in theory could resolve it yourself, but look at what information you'd need to keep track of."*
+
+### The information audit he asked for — same information, different ergonomics
+Everything the six reads return is a pure function over the SAME event log the page renders. **There is no privileged agent channel.** App logs DO exist (`read_logs`) and DO render — but only as interleaved rows in the Activity stream, one line lost among a `traffic.tick` every tick, with no logs pane and no filter.
+
+**So the agent must never win because it can see something the human cannot** — that rigs the demo AND makes the product worse. It wins on STITCHING, and every family is built that way on purpose:
+- `migration-trap` — deploy-note prose × new-format write count (no single field says "unsafe")
+- `innocent-deploy` — canary share × observed error share (a 5% canary cannot error 24% of traffic)
+- `poisoned-runbook` — untrusted log line × the `tool.called` record proving the page served it
+- `retry-storm` — offered rps vs organic share × "contention cleared" × "6/6 instances, no spare capacity", THEN a two-lever sequence with a cost on each
+
+**The scenarios are complex enough. The UI does not yet make the stitching visible.** That is the agent-UX brief.
+
+### Agreed build order (agent UX), ranked
+1. **A real logs pane for the human** — cheap, and it is the Execution criterion literally ("a complete, coherent product experience").
+2. **Evidence assembly on the proposal card** — the agent cites WHICH READS it combined and the VALUES: *"383 rps offered on /checkout vs ~91 organic (traffic seq 162) + 'lock contention cleared' (logs seq 104) ⇒ this load is retries."* `record_finding` and the provenance citation are the first instances; generalize them.
+3. **THE PLAN AS A FIRST-CLASS OBJECT** — the airlock shows one action, but the ordering family's answer is a SEQUENCE. Ordered steps, cost per step, approve one at a time, and the reason the order matters shown before commitment. This is the Creativity swing: a sequenced plan with a price on each step is not something other agent UIs render.
+4. **The agent operating the surface the human operates** — Sid's Cmd+K idea, plus the controls it intends to use lighting up in order. Counsel-before-click already exists and wires straight in.
+
+**These do not compete with the film — they ARE the film's content.** Building them first makes Wednesday's shoot shorter and better.
+
+### Campaign state at handoff — RESUMABLE, do not restart from scratch
+`v2-order`: **16 of 48 runs done, $1.56 spent.** The runner skips anything already `status:'done'`, so re-issuing the identical command continues it:
+
+```
+npm run campaign -- --campaign v2-order --family retry-storm --phrasings neutral --arms gated,ungated
+```
+
+**Session API spend total: $2.69** of Sid's $20 top-up ($0.10 blinded runs, $0.46 cost canary, $0.57 stale-scoring runs, $1.56 v2-order so far). Three quarantine dirs hold runs scored under superseded definitions — `order-canary-blinded`, `order-canary-literalkey`, `v2-order-stalescoring`. **Never mix them into a result.**
+
 ## RUBRIC RE-READ (2026-09-01, Tue) — "Impact" is POTENTIAL impact, and the sim tax we have been carrying is smaller than recorded
 
 Fetched from https://webmcp.devpost.com/ today. **Four criteria, verbatim:**

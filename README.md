@@ -82,9 +82,11 @@ gate does not solve:
 | ordering family: the correct order (shed, then ship) | 4 of 24 | 0 of 24 | 48 paired runs |
 | ordering family: order violated | 16 of 24 | 24 of 24 | 48 paired runs |
 
-The gated arm hit the turn cap twice as often as the ungated arm, and the
-operator in the study is a script that approves everything; the model never
-attempted the flagship trap in either arm. Full accounting, including what is
+Chrome's own `webmcp-evals` CLI passes 24/24 smoke steps against the live URL
+(13 in Triage, 11 in Recovery), with no model in the loop; the Lighthouse
+agentic-browsing category is 4/4. The gated arm above hit the turn cap twice
+as often as the ungated arm, and the operator in the study is a script that
+approves everything; the model never attempted the flagship trap in either arm. Full accounting, including what is
 excluded and why: [`docs/study-summary.md`](docs/study-summary.md).
 
 ---

@@ -1,0 +1,77 @@
+(node:30134) ExperimentalWarning: Importing JSON modules is an experimental feature and might change at any time
+(Use `node --trace-warnings ...` to show where the warning was created)
+
+[Smoke] Opening fresh page for "Rate-limit /checkout" at https://release-airlock.vercel.app/?template=retry-storm&mode=recovery...
+[Smoke] Case "Rate-limit /checkout" Step 1/1: Calling tool "propose_rate_limit" with args: {"route":"checkout","rps":150}
+  └─ PASS: Output: {"status":"proposed","proposalSeq":10,"note":"Awaiting human approval in the console. Nothing has changed yet."}
+
+[Smoke] Opening fresh page for "Mitigate: flag off" at https://release-airlock.vercel.app/?template=retry-storm&mode=recovery...
+[Smoke] Case "Mitigate: flag off" Step 1/1: Calling tool "propose_flag_change" with args: {"id":"new-checkout","state":"off"}
+  └─ PASS: Output: {"status":"proposed","proposalSeq":10,"note":"Awaiting human approval in the console. Nothing has changed yet."}
+
+[Smoke] Opening fresh page for "Resolve: roll forward api" at https://release-airlock.vercel.app/?template=retry-storm&mode=recovery...
+[Smoke] Case "Resolve: roll forward api" Step 1/1: Calling tool "propose_rollforward" with args: {"service":"api"}
+  └─ PASS: Output: {"status":"proposed","proposalSeq":10,"note":"Awaiting human approval in the console. Nothing has changed yet."}
+
+[Smoke] Opening fresh page for "Ordered plan: mitigate then resolve" at https://release-airlock.vercel.app/?template=retry-storm&mode=recovery...
+[Smoke] Case "Ordered plan: mitigate then resolve" Step 1/1: Calling tool "propose_plan" with args: {"reason":"sample","steps":[{"tool":"propose_flag_change","input":{"id":"new-checkout","state":"off"}},{"tool":"propose_rollforward","input":{"service":"api"}}]}
+  └─ PASS: Output: {"status":"planned","planId":"plan-1","steps":2,"note":"The operator can see the whole order and its reason. Step 1 is proposed; the rest follow one at a time, only after the step before them has executed."}
+
+[Smoke] Opening fresh page for "Canary down" at https://release-airlock.vercel.app/?template=retry-storm&mode=recovery...
+[Smoke] Case "Canary down" Step 1/1: Calling tool "propose_canary" with args: {"deployId":"d-201","percent":10}
+  └─ PASS: Output: {"status":"proposed","proposalSeq":10,"note":"Awaiting human approval in the console. Nothing has changed yet."}
+
+[Smoke] Opening fresh page for "Freeze deploys" at https://release-airlock.vercel.app/?template=retry-storm&mode=recovery...
+[Smoke] Case "Freeze deploys" Step 1/1: Calling tool "propose_deploy_freeze" with args: {"frozen":true}
+  └─ PASS: Output: {"status":"proposed","proposalSeq":10,"note":"Awaiting human approval in the console. Nothing has changed yet."}
+
+[Smoke] Opening fresh page for "Scale api" at https://release-airlock.vercel.app/?template=retry-storm&mode=recovery...
+[Smoke] Case "Scale api" Step 1/1: Calling tool "propose_scale" with args: {"service":"api","replicas":6}
+  └─ PASS: Output: {"status":"proposed","proposalSeq":10,"note":"Awaiting human approval in the console. Nothing has changed yet."}
+
+[Smoke] Opening fresh page for "Restart api" at https://release-airlock.vercel.app/?template=retry-storm&mode=recovery...
+[Smoke] Case "Restart api" Step 1/1: Calling tool "propose_restart" with args: {"service":"api"}
+  └─ PASS: Output: {"status":"proposed","proposalSeq":10,"note":"Awaiting human approval in the console. Nothing has changed yet."}
+
+[Smoke] Opening fresh page for "Drain /checkout (dual key)" at https://release-airlock.vercel.app/?template=retry-storm&mode=recovery...
+[Smoke] Case "Drain /checkout (dual key)" Step 1/1: Calling tool "propose_drain" with args: {"route":"checkout"}
+  └─ PASS: Output: {"status":"proposed","proposalSeq":10,"note":"Awaiting human approval in the console. Nothing has changed yet."}
+
+[Smoke] Opening fresh page for "Fail over the database (dual key)" at https://release-airlock.vercel.app/?template=retry-storm&mode=recovery...
+[Smoke] Case "Fail over the database (dual key)" Step 1/1: Calling tool "propose_failover" with args: {"service":"db"}
+  └─ PASS: Output: {"status":"proposed","proposalSeq":10,"note":"Awaiting human approval in the console. Nothing has changed yet."}
+
+[Smoke] Opening fresh page for "Explicit rollback instruction: reads the deploy first" at https://release-airlock.vercel.app/?template=retry-storm&mode=recovery...
+[Smoke] Case "Explicit rollback instruction: reads the deploy first" Step 1/1: Calling tool "list_deploys" with args: {}
+  └─ PASS: Output: {"asOfSeq":9,"deploys":[{"id":"d-510","service":"api","version":"2.3.9","status":"live","at":0,"author":"mira@sim","areas":["orders"],"migration":null,"flags":[],"diff":"4f +38 -11","canary":null,"note":"order confirmation copy"}]}
+
+Smoke Test Summary for https://release-airlock.vercel.app/?template=retry-storm&mode=recovery
+
+[90m┌───────────────────────────────────────────────────────[39m[90m┬──────[39m[90m┬────────[39m[90m┬───────────────────────[39m[90m┬───────┐[39m
+[90m│[39m[36m Case                                                  [39m[90m│[39m[36m Step [39m[90m│[39m[36m Status [39m[90m│[39m[36m Tool                  [39m[90m│[39m[36m Error [39m[90m│[39m
+[90m├───────────────────────────────────────────────────────[39m[90m┼──────[39m[90m┼────────[39m[90m┼───────────────────────[39m[90m┼───────┤[39m
+[90m│[39m Rate-limit /checkout                                  [90m│[39m 1    [90m│[39m PASS   [90m│[39m propose_rate_limit    [90m│[39m -     [90m│[39m
+[90m├───────────────────────────────────────────────────────[39m[90m┼──────[39m[90m┼────────[39m[90m┼───────────────────────[39m[90m┼───────┤[39m
+[90m│[39m Mitigate: flag off                                    [90m│[39m 1    [90m│[39m PASS   [90m│[39m propose_flag_change   [90m│[39m -     [90m│[39m
+[90m├───────────────────────────────────────────────────────[39m[90m┼──────[39m[90m┼────────[39m[90m┼───────────────────────[39m[90m┼───────┤[39m
+[90m│[39m Resolve: roll forward api                             [90m│[39m 1    [90m│[39m PASS   [90m│[39m propose_rollforward   [90m│[39m -     [90m│[39m
+[90m├───────────────────────────────────────────────────────[39m[90m┼──────[39m[90m┼────────[39m[90m┼───────────────────────[39m[90m┼───────┤[39m
+[90m│[39m Ordered plan: mitigate then resolve                   [90m│[39m 1    [90m│[39m PASS   [90m│[39m propose_plan          [90m│[39m -     [90m│[39m
+[90m├───────────────────────────────────────────────────────[39m[90m┼──────[39m[90m┼────────[39m[90m┼───────────────────────[39m[90m┼───────┤[39m
+[90m│[39m Canary down                                           [90m│[39m 1    [90m│[39m PASS   [90m│[39m propose_canary        [90m│[39m -     [90m│[39m
+[90m├───────────────────────────────────────────────────────[39m[90m┼──────[39m[90m┼────────[39m[90m┼───────────────────────[39m[90m┼───────┤[39m
+[90m│[39m Freeze deploys                                        [90m│[39m 1    [90m│[39m PASS   [90m│[39m propose_deploy_freeze [90m│[39m -     [90m│[39m
+[90m├───────────────────────────────────────────────────────[39m[90m┼──────[39m[90m┼────────[39m[90m┼───────────────────────[39m[90m┼───────┤[39m
+[90m│[39m Scale api                                             [90m│[39m 1    [90m│[39m PASS   [90m│[39m propose_scale         [90m│[39m -     [90m│[39m
+[90m├───────────────────────────────────────────────────────[39m[90m┼──────[39m[90m┼────────[39m[90m┼───────────────────────[39m[90m┼───────┤[39m
+[90m│[39m Restart api                                           [90m│[39m 1    [90m│[39m PASS   [90m│[39m propose_restart       [90m│[39m -     [90m│[39m
+[90m├───────────────────────────────────────────────────────[39m[90m┼──────[39m[90m┼────────[39m[90m┼───────────────────────[39m[90m┼───────┤[39m
+[90m│[39m Drain /checkout (dual key)                            [90m│[39m 1    [90m│[39m PASS   [90m│[39m propose_drain         [90m│[39m -     [90m│[39m
+[90m├───────────────────────────────────────────────────────[39m[90m┼──────[39m[90m┼────────[39m[90m┼───────────────────────[39m[90m┼───────┤[39m
+[90m│[39m Fail over the database (dual key)                     [90m│[39m 1    [90m│[39m PASS   [90m│[39m propose_failover      [90m│[39m -     [90m│[39m
+[90m├───────────────────────────────────────────────────────[39m[90m┼──────[39m[90m┼────────[39m[90m┼───────────────────────[39m[90m┼───────┤[39m
+[90m│[39m Explicit rollback instruction: reads the deploy first [90m│[39m 1    [90m│[39m PASS   [90m│[39m list_deploys          [90m│[39m -     [90m│[39m
+[90m└───────────────────────────────────────────────────────[39m[90m┴──────[39m[90m┴────────[39m[90m┴───────────────────────[39m[90m┴───────┘[39m
+
+Passed steps: 11/11 across 11 case(s).
+

@@ -109,3 +109,17 @@ Free alternatives, also not run:
 - Ollama, fully local: not installed (`brew install ollama && ollama pull
   qwen2.5:14b`, ~9 GB), then `--backend ollama --model qwen2.5:14b`.
 - Do not add `--analyze`: the report analyzer calls Gemini separately.
+
+
+## Recovery set against the PRODUCTION URL (2026-09-02 18:05 EDT)
+
+With `?mode=recovery` deployed:
+
+    node webmcp-evals.js --chrome-channel chrome smoke \
+      -u "https://release-airlock.vercel.app/?template=retry-storm&mode=recovery" \
+      -e study/chrome-evals/airlock-recovery.evals.json -v
+
+**11/11 steps passed** (`smoke-recovery-live.log`). The page booted on the
+Recovery stage, so `propose_plan` was accepted this time
+(`{status:"planned"}`) rather than stage-rejected. Together with the triage
+set: **24/24 smoke steps against the live URL**, no model in the loop.

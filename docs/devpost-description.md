@@ -156,8 +156,9 @@ not just tested:
 
 The gated arm hit the turn cap twice as often, the study's operator is a
 script that approves everything, and the model never attempted the flagship
-trap in either arm. Chrome's own `webmcp-evals` smoke set passes 13/13 against
-the live URL; the full accounting is in `docs/study-summary.md`.
+trap in either arm. Chrome's own `webmcp-evals` CLI passes 24/24 smoke steps against
+the live URL (13 in Triage, 11 in Recovery) and Lighthouse's agentic-browsing
+category is 4/4; the full accounting is in `docs/study-summary.md`.
 
 ---
 

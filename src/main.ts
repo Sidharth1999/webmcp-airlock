@@ -10,6 +10,7 @@ import type { SimRequest, SimResponse } from './sim/worker';
 import type { Actor, Deploy, Event, Flag, World } from './sim/types';
 import { hasWebMCP } from './webmcp/shim';
 import { createAirlockTools, type AirlockTools } from './webmcp/tools';
+import { filmScene, play, type PlayState } from './walkthrough';
 
 type Health = 'ok' | 'degraded' | 'down';
 const HEALTH_STATES: Health[] = ['ok', 'degraded', 'down'];
@@ -43,6 +44,14 @@ const TEMPLATE_TITLES: Record<string, string> = {
 const TEMPLATE_ID = templateIds().includes(requestedTemplate)
   ? requestedTemplate
   : DEFAULT_TEMPLATE;
+/** the scenario the console is seeded into right now; seed() keeps it */
+let currentTemplate = TEMPLATE_ID;
+
+/** the copy affordance beside a prompt: a glyph, not a button with a word */
+const COPY_BTN = (testId: string): string =>
+  `<button type="button" class="te-copy" data-testid="${testId}" aria-label="Copy" title="Copy">` +
+  `<svg viewBox="0 0 12 12" aria-hidden="true"><rect x="4" y="4" width="7" height="7" rx="1.2"/><path d="M8 4V2.2A1.2 1.2 0 0 0 6.8 1H2.2A1.2 1.2 0 0 0 1 2.2v4.6A1.2 1.2 0 0 0 2.2 8H4"/></svg>` +
+  `</button>`;
 const TICK_INTERVAL_MS = Number(params.get('tick')) || 500;
 const DEV_MODE = params.get('dev') === '1';
 
@@ -404,6 +413,16 @@ app.innerHTML = `
         <button type="button" class="dock-close" data-toggle="rail" data-min="rail" data-testid="min-rail"
                 aria-label="Hide the agent panel" title="Hide  ⌘J">&times;</button>
       </header>
+      <!-- THE DISCLOSURE. While a walkthrough's work is on the ledger, the
+           heading says the caller is a script, in machine words, and offers
+           the one way out. Hidden otherwise; it is chrome, not content. -->
+      <div class="walk-line" id="walk-line" data-testid="walk-line" data-state="off" hidden>
+        <span class="wl-say"><span class="wl-tag">walkthrough</span> · scripted caller, not a model · same tool path a host uses</span>
+        <span class="wl-end">
+          <span class="wl-state" data-testid="walk-state"></span>
+          <button type="button" class="wl-stop" data-testid="walk-stop">Stop</button>
+        </span>
+      </div>
       <div class="rail-modes">
         <span class="rail-modes-label">Response stage</span>
         <div class="mode-switch" id="mode-switch" data-testid="mode-switch">
@@ -470,12 +489,30 @@ app.innerHTML = `
         <!-- BEAT 0. The ledger starts empty and says so, and says what will
              fill it, in the order it will fill it. Sid's sequence begins
              here: *"Empty panel, agent not connected"*. -->
-        <p class="tl-empty" id="findings-empty">
-          No agent is connected. When one attaches, this becomes the record of
-          what it did: every tool call and what came back, what it concluded,
-          the order it proposes, and what each step you approve does to the
-          world.
-        </p>
+        <div class="tl-empty" id="findings-empty" data-testid="findings-empty">
+          <p class="te-p">
+            No agent is connected. When one attaches, this becomes the record
+            of what it did: every tool call and what came back, what it
+            concluded, the order it proposes, and what each step you approve
+            does to the world.
+          </p>
+          <p class="te-k">To attach one</p>
+          <ul class="te-list">
+            <li class="te-row"><span class="te-host">ChatGPT</span><span class="te-t">open this URL in its in-app browser, then ask it to look at the page</span></li>
+            <li class="te-row"><span class="te-host">Chrome 151+</span><span class="te-t">enable WebMCP in chrome://flags, then open this URL</span></li>
+          </ul>
+          <p class="te-k">Things to ask it</p>
+          <ul class="te-list te-asks">
+            <li class="te-row"><span class="te-q">What can you do on this page, and what can't you?</span>${COPY_BTN('copy-ask-1')}</li>
+            <li class="te-row"><span class="te-q">Work out what is wrong here, but don't change anything yet.</span>${COPY_BTN('copy-ask-2')}</li>
+            <li class="te-row"><span class="te-q">Move the stage to Recovery and fix it.</span>${COPY_BTN('copy-ask-3')}</li>
+          </ul>
+          <p class="te-note">Run sim first — the incident has to be underway.</p>
+          <div class="te-walk">
+            <button type="button" class="ctl-btn" id="walk-start" data-testid="walk-start">Watch a walkthrough</button>
+            <span class="te-note">scripted caller, not a model</span>
+          </div>
+        </div>
         </div>
       </div>
       <!-- CAPABILITY IS REFERENCE, so it lives at the EDGE and opens on
@@ -676,6 +713,8 @@ function seed(templateId: string): void {
   // it only ever updated from the picker's handler, so any programmatic
   // re-seed left the masthead naming the previous scenario
   markTemplate(templateId);
+  currentTemplate = templateId;
+  endWalk(); // a new world is not the walkthrough's world
   running = false;
   syncPacer();
   streamEl.innerHTML = '';
@@ -4636,6 +4675,124 @@ document.querySelector('#mode-switch')!.addEventListener('click', (e) => {
     data: { from, to, toolsAdded: added, toolsRemoved: removed, reason: 'operator switched mode in console' },
   });
   renderToolRail(airlockTools);
+});
+
+// ---- walkthrough: the film scene, played from the product ----------------
+// The agent half of this console cannot be reached by clicking, so a judge
+// with no WebMCP host attached would never see the ledger fill, the refusal,
+// or the plan. `play` drives the page through `airlockTools` — the same
+// execute path a host uses — and hands every decision back to the viewer.
+// What is scripted is WHO is calling; #walk-line says so, in the heading,
+// for as long as the walkthrough's work is on the ledger.
+const walkLine = document.querySelector<HTMLElement>('#walk-line')!;
+const walkStateEl = walkLine.querySelector<HTMLElement>('.wl-state')!;
+const walkStopBtn = walkLine.querySelector<HTMLButtonElement>('.wl-stop')!;
+let walkCtl: AbortController | null = null;
+/** the play in flight, so a stop can wait for its last call to land */
+let walkRun: Promise<void> | null = null;
+
+function setWalk(state: PlayState | 'off', detail = ''): void {
+  walkLine.hidden = state === 'off';
+  walkLine.dataset.state = state;
+  walkStateEl.textContent =
+    state === 'running' ? 'preparing' : state === 'failed' ? `failed — ${detail}` : '';
+  // while the script is still calling, or a decision is still with the
+  // viewer, the way out is Stop; once the arc has been handed over and
+  // decided, what is left on screen is a receipt, and the way out is Reset
+  walkStopBtn.textContent = state === 'settled' || state === 'failed' ? 'Reset' : 'Stop';
+}
+
+/** Anything that re-seeds the console ends the walkthrough with it. */
+function endWalk(): void {
+  if (walkCtl) {
+    walkCtl.abort();
+    walkCtl = null;
+  }
+  setWalk('off');
+}
+
+async function startWalk(): Promise<void> {
+  if (walkCtl) return;
+  // the scene names its scenario; seed it BEFORE the controller exists, so
+  // the re-seed's own endWalk() has nothing to end
+  if (currentTemplate !== filmScene.template) {
+    seed(filmScene.template);
+    await new Promise((r) => setTimeout(r, 400));
+  }
+  const ctl = new AbortController();
+  walkCtl = ctl;
+  setWalk('running', 'preparing');
+  try {
+    walkRun = play(filmScene, {
+      air: airlockTools,
+      isRunning: () => running,
+      toggleRun: () => runBtn.click(),
+      template: filmScene.template,
+      seedTemplate: (id) => seed(id),
+      signal: ctl.signal,
+      onState: (state, detail) => {
+        if (walkCtl === ctl) setWalk(state, detail);
+      },
+    });
+    await walkRun;
+  } catch {
+    // already on the line, via onState('failed')
+  } finally {
+    walkRun = null;
+  }
+}
+
+document.querySelector<HTMLButtonElement>('#walk-start')!.addEventListener('click', () => void startWalk());
+walkStopBtn.addEventListener('click', () => {
+  const inFlight = walkRun;
+  endWalk();
+  // the call in flight still lands — on the world being thrown away, not on
+  // the fresh one. Wait for it, THEN seed: a fresh console is the empty
+  // state, not a half-told story with one stray row on it.
+  void Promise.resolve(inFlight).then(
+    () => undefined,
+    () => undefined
+  ).then(() => {
+    seed(currentTemplate);
+    // the scripted caller is gone, so nothing on the heading may say otherwise
+    window.clearTimeout(agentIdleTimer);
+    setPresence('off', 'not connected');
+    narrate(null);
+    moveAgentCursor(null);
+  });
+});
+
+/** The prompts in the empty state copy with one click. */
+async function copyText(text: string): Promise<boolean> {
+  try {
+    await navigator.clipboard.writeText(text);
+    return true;
+  } catch {
+    /* no clipboard permission, or not a secure context — fall through */
+  }
+  try {
+    const ta = document.createElement('textarea');
+    ta.value = text;
+    ta.setAttribute('readonly', '');
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.append(ta);
+    ta.select();
+    const ok = document.execCommand('copy');
+    ta.remove();
+    return ok;
+  } catch {
+    return false;
+  }
+}
+document.querySelector<HTMLElement>('#findings-empty')!.addEventListener('click', (e) => {
+  const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('.te-copy');
+  if (!btn) return;
+  const text = btn.closest('li')?.querySelector('.te-q')?.textContent?.trim() ?? '';
+  void copyText(text).then((ok) => {
+    btn.dataset.done = ok ? 'true' : 'false';
+    window.setTimeout(() => delete btn.dataset.done, 1400);
+  });
 });
 
 // boot: seed() touches deck + storefront elements, so it runs after every

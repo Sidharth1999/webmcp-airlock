@@ -3565,6 +3565,98 @@ h4.ctl-group-label { margin: 0 0 var(--sp-2); }
   color: var(--ink-ghost);
 }
 .tl-empty[hidden] { display: none; }
+/* It also says how to put an agent on it, what to ask, and offers the
+   walkthrough — in the ledger's own typography: a machine value in the
+   instrument face, prose beside it, one idea per line, no frame. */
+.tl-empty { display: flex; flex-direction: column; gap: var(--sp-2); }
+.te-p { margin: 0; }
+.te-k {
+  margin: var(--sp-2) 0 0;
+  font-family: var(--font-instrument);
+  font-size: var(--text-2xs);
+  color: var(--ink-faint);
+}
+.te-list { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: 5px; }
+.te-row { display: flex; align-items: baseline; gap: var(--sp-2); min-width: 0; }
+.te-host {
+  flex: none;
+  min-width: 5.5em;
+  font-family: var(--font-instrument);
+  font-size: var(--text-2xs);
+  color: var(--actor-agent);
+}
+.te-t { color: var(--ink-dim); font-size: var(--text-xs); line-height: 1.5; min-width: 0; }
+.te-q { color: var(--ink); font-family: var(--font-prose); font-size: var(--text-xs); line-height: 1.5; min-width: 0; }
+/* the copy glyph: the ledger's 1.5px stroke family, at the machine-value slot */
+.te-copy {
+  margin-left: auto;
+  flex: none;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border: 0;
+  border-radius: 3px;
+  background: none;
+  color: var(--ink-ghost);
+  cursor: pointer;
+  align-self: center;
+}
+.te-copy svg { width: 12px; height: 12px; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linejoin: round; stroke-linecap: round; }
+.te-copy:hover { color: var(--actor-agent); background: oklch(100% 0 0 / 0.06); }
+.te-copy:focus-visible { outline: 2px solid var(--actor-agent); outline-offset: 1px; }
+.te-copy[data-done] { width: auto; padding: 0 3px; font-family: var(--font-instrument); font-size: var(--text-2xs); }
+.te-copy[data-done] svg { display: none; }
+.te-copy[data-done='true'] { color: var(--good); }
+.te-copy[data-done='true']::after { content: 'copied'; }
+.te-copy[data-done='false'] { color: var(--bad); }
+.te-copy[data-done='false']::after { content: 'not copied'; }
+.te-note { margin: 0; font-family: var(--font-instrument); font-size: var(--text-2xs); color: var(--ink-ghost); line-height: 1.5; }
+.te-walk { display: flex; align-items: center; gap: var(--sp-2); margin-top: var(--sp-2); }
+
+/* --- the walkthrough line: the caller is a script, said in the chrome ---
+   A row of the dock heading, present only while a walkthrough's work is on
+   the ledger. Machine words, one line, and the one way out. */
+#tool-rail { grid-template-rows: 34px auto auto minmax(0, 1fr) auto; }
+#tool-rail > .dock-head { grid-row: 1; }
+#tool-rail > .walk-line { grid-row: 2; }
+#tool-rail > .rail-modes { grid-row: 3; }
+#tool-rail > .dock-body { grid-row: 4; }
+#tool-rail > .rail-foot { grid-row: 5; }
+.walk-line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: baseline;
+  gap: 0 var(--sp-3);
+  padding: 5px var(--sp-4);
+  background: var(--s-chrome);
+  border-bottom: 1px solid var(--line);
+  font-family: var(--font-instrument);
+  font-size: var(--text-2xs);
+  color: var(--ink-ghost);
+  min-width: 0;
+}
+.walk-line[hidden] { display: none; }
+/* one sentence that wraps as prose does; the tag is the only coloured word */
+.wl-say { min-width: 0; line-height: 1.5; color: var(--ink-faint); }
+.wl-tag { color: var(--actor-agent); }
+.wl-end { display: inline-flex; align-items: baseline; gap: var(--sp-2); }
+.walk-line[data-state='failed'] .wl-state { color: var(--bad); }
+.wl-stop {
+  flex: none;
+  font: inherit;
+  color: var(--ink-dim);
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: 3px;
+  padding: 0 6px;
+  line-height: 1.5;
+  cursor: pointer;
+}
+.wl-stop:hover { color: var(--ink); border-color: var(--ink-faint); }
+.wl-stop:focus-visible { outline: 2px solid var(--actor-agent); outline-offset: 1px; }
 
 /* --- 8. incident command is a toolbar, not a panel --------------------- */
 .cmdbar {

@@ -1372,7 +1372,11 @@ body {
   gap: var(--sp-1);
   background: oklch(76% 0.13 310 / 0.07);
   box-shadow: none;
-  font-family: var(--font-instrument);
+  /* PROSE, not the instrument face. The card is sentences: what the agent
+     wants, what it costs, what the key does. Mono is reserved for machine
+     values, and inside this card that means the tool names on the evidence
+     chips and the raw untrusted excerpt — both of which set it themselves. */
+  font-family: var(--font-prose);
   font-size: var(--text-xs);
 }
 .ap-head { display: flex; align-items: baseline; gap: var(--sp-2); }
@@ -1471,7 +1475,7 @@ body {
   align-items: center;
   gap: var(--sp-2);
   color: var(--warn);
-  font-size: var(--text-2xs);
+  font-size: var(--text-xs);
   cursor: pointer;
 }
 .ap-key input { accent-color: var(--warn); }
@@ -1604,7 +1608,7 @@ body {
   gap: 2px;
   background: var(--panel-inset);
   border: 1px solid var(--line);
-  border-radius: var(--r-sm);
+  border-radius: 7px;
   padding: 2px;
 }
 .mode-switch button {
@@ -1616,19 +1620,28 @@ body {
   color: var(--ink-faint);
   background: transparent;
   border: none;
-  border-radius: 3px;
-  padding: 2px var(--sp-2);
+  border-radius: 5px;
+  padding: 3px var(--sp-3);
   cursor: pointer;
   white-space: nowrap;
   transition: color var(--dur-snap) var(--ease-snap),
               background var(--dur-snap) var(--ease-snap);
 }
 .mode-switch button:hover { color: var(--ink); }
-/* violet is reserved for the AGENT as an actor; a mode is neither */
+/* Violet is reserved for the AGENT as an actor; a mode is neither. But an
+   INVERTED WHITE BLOCK is not the alternative — it was the brightest object
+   in the dock and read as a default browser control. The selected segment
+   lifts off the inset ground instead: raised surface, full-strength ink, a
+   hairline and a shadow. Same idea as every segmented control that looks
+   made rather than assembled, and it stops shouting over the timeline. */
 .mode-switch button[aria-pressed='true'] {
-  color: var(--bg);
-  background: var(--ink);
+  color: var(--ink);
+  background: var(--panel-raised);
   font-weight: 600;
+  box-shadow:
+    inset 0 0 0 1px var(--line-strong),
+    inset 0 1px 0 oklch(100% 0 0 / 0.06),
+    0 1px 2px oklch(0% 0 0 / 0.35);
 }
 
 /* --- living site pane (M2-06): the product, feeling the world --- */
@@ -2193,7 +2206,27 @@ body {
 }
 .pl-slot .ap-diff,
 .pl-slot .ap-actor { display: none; }
-.pl-slot .ap-tier { margin-left: 0; }
+/* WHAT IT TOUCHES IS A TAG, NOT A LINE. Left-aligned and alone (the actor is
+   hidden inside a plan) it read as an orphaned fragment; right-aligned it
+   still owned a whole row for two words. It rides the END of the evidence
+   line — the two of them are the same register, so they are one row. */
+.pl-slot .approval-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
+.pl-slot .approval-card > * { grid-column: 1; }
+.pl-slot .ap-evidence { grid-row: 1; }
+.pl-slot .ap-head { grid-column: 2; grid-row: 1; align-self: center; justify-content: flex-end; padding-left: var(--sp-3); }
+.pl-slot .ap-tier {
+  margin-left: 0;
+  font-family: var(--font-prose);
+  color: var(--ink-ghost);
+}
+/* NO BOX INSIDE THE BOX. The evidence strip carries a tinted ground and a
+   violet edge, which is a third frame once it sits inside a step inside a
+   card. Within a plan it is a summary LINE that opens; the frame goes. */
+.pl-slot .ap-evidence {
+  background: none;
+  border-left: 0;
+  padding-left: 0;
+}
 
 /* --- a plan, on the console itself --------------------------------------
    The card says what the sequence is; these numbers say WHERE it lands, on
@@ -2249,13 +2282,17 @@ body {
    sentence below it is the agent SPEAKING, so it takes the prose face and
    a quote mark's worth of indent. A reviewer should be able to tell at a
    glance which half is fact and which half is claim. */
+/* A SUMMARY LINE THAT OPENS, not a panel. Tinted and edged, it was a third
+   frame inside a card that already has one — and it competed with the
+   evidence-check block, which is the one thing in this card that SHOULD
+   shout. The zero-read case keeps its frame below, because that case is not
+   detail: an agent proposing a write having read nothing is the finding. */
 .ap-evidence {
   display: flex;
   flex-direction: column;
   gap: var(--sp-1);
-  padding: var(--sp-2);
-  border-left: 2px solid var(--actor-agent-dim);
-  background: oklch(76% 0.13 310 / 0.05);
+  padding: var(--sp-2) 0 0;
+  border-top: 1px solid var(--line);
   font-size: var(--text-2xs);
 }
 .ap-ev-head {
@@ -2287,7 +2324,12 @@ body {
   font-size: var(--text-xs);
   line-height: 1.45;
 }
-.ap-evidence:has(.ap-ev-none) { border-left-color: var(--warn); background: oklch(80% 0.12 85 / 0.06); }
+.ap-evidence:has(.ap-ev-none) {
+  padding: var(--sp-2);
+  border-top: 0;
+  border-left: 2px solid var(--warn);
+  background: oklch(80% 0.12 85 / 0.06);
+}
 .ap-evidence:has(.ap-ev-none) .ap-ev-head { color: var(--warn); }
 
 .ap-ev-said {
@@ -2574,6 +2616,10 @@ body {
   0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklch, var(--actor-agent) 40%, transparent); }
   60%      { box-shadow: 0 0 0 6px color-mix(in oklch, var(--actor-agent) 0%, transparent); }
 }
+/* ONE MARKER PER BEAT. A plan mounts inside the live tail and carries its
+   own three-bar marker, so the tail's "now" dot was a second pip on the spine
+   20px above it — two markers for one entry. The plan's wins. */
+.tl-ev[data-kind='live']:has(.plan-card)::before { display: none; }
 /* the tail carries nothing until something is actually live */
 .tl-ev[data-kind='live'] {
   padding: 0;

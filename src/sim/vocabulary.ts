@@ -298,7 +298,16 @@ WRITE_ACTIONS['statuspage.post'] = {
     (['investigating', 'identified', 'monitoring', 'resolved'].includes(String(i.state))
       ? null
       : 'state must be investigating, identified, monitoring or resolved') ?? needString(i, 'text'),
-  describe: (i) => `tell customers: "${String(i.text).slice(0, 90)}" (${String(i.state)})`,
+  // A HARD SLICE CUTS MID-WORD, and this string is the headline of the step
+  // card: it read `tell customers: "... are working on a " (identified)`,
+  // which looks like a truncated payload rather than a sentence anyone chose
+  // to publish. Cut on a word boundary, and say so with an ellipsis INSIDE
+  // the quote, where the omission actually is.
+  describe: (i) => {
+    const full = String(i.text);
+    const cut = full.length > 90 ? `${full.slice(0, 90).replace(/\s+\S*$/, '')}…` : full;
+    return `tell customers, ${String(i.state)}: "${cut}"`;
+  },
 };
 
 WRITE_ACTIONS['alerts.silence'] = {

@@ -2657,6 +2657,22 @@ function clock(ms: number): string {
  * label, then a BIG value, then the context line — because a console's
  * headline numbers should be readable across a room, not 11px.
  */
+/** last `valuePerReq` the sim stated, so the burn can be derived (see below) */
+let valuePerReq: number | null = null;
+
+/** What this incident is costing per minute AT THE CURRENT ERROR RATE. */
+function burnPerMin(w: World): number | null {
+  if (valuePerReq === null) return null;
+  return w.traffic.rps * w.traffic.errRate * valuePerReq * 60;
+}
+
+/** Money at a glance: no cents once it is past a hundred, thousands as k. */
+function fmtMoney(n: number): string {
+  if (n >= 10_000) return `${(n / 1000).toFixed(1)}k`;
+  if (n >= 100) return n.toFixed(0);
+  return n.toFixed(2);
+}
+
 function renderStats(w: World, worst: Health): void {
   const el = document.querySelector<HTMLElement>('#stats')!;
   if (w.services.length === 0) {
@@ -2679,9 +2695,15 @@ function renderStats(w: World, worst: Health): void {
       tone: w.damage.usersErrored > 0 ? tone : undefined,
     },
     {
-      k: 'Revenue lost',
-      v: `$${w.damage.revenueLost.toFixed(2)}`,
-      sub: 'Σ rps × err × value per request',
+      // THE RATE LEADS, NOT THE TOTAL. The total is a fact about how long the
+      // clip has been running — forty seconds of a small fleet reads as an
+      // exquisitely engineered system protecting lunch money, which is how an
+      // outside reviewer put it. During an incident the number an operator
+      // acts on is the BURN, and it is the number that visibly collapses when
+      // the fix lands. The total keeps its place underneath, with the formula.
+      k: 'Revenue burn',
+      v: burnPerMin(w) === null ? `$${w.damage.revenueLost.toFixed(2)}` : `$${fmtMoney(burnPerMin(w)!)}/min`,
+      sub: `$${w.damage.revenueLost.toFixed(2)} lost so far · Σ rps × err × value/req`,
       tone: w.damage.revenueLost > 0 ? tone : undefined,
     },
     {
@@ -3036,6 +3058,15 @@ function renderEvents(events: Event[], w: World): void {
     }
   }
   for (const e of events) if (e.kind === 'action.executed') executedLog.push(e);
+  // THE BURN RATE NEEDS THE PRICE OF A REQUEST, and the world only carries the
+  // running total. Every `user.impact` event states the formula it used, so
+  // the render layer remembers the last one rather than the sim growing a
+  // field for a presentation concern.
+  for (const e of events) {
+    if (e.kind !== 'user.impact') continue;
+    const f = (e.data as { revenueLostFormula?: { valuePerReq?: number } }).revenueLostFormula;
+    if (typeof f?.valuePerReq === 'number') valuePerReq = f.valuePerReq;
+  }
   renderHoldings(executedLog, w);
   if (events.some((e) => e.kind === 'log.line')) applyLogFilter();
 

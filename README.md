@@ -39,10 +39,11 @@ never recovers. And the fleet is at its autoscaler ceiling, so shipping the fix
 
 | what you do | mean damage over 24 verified variants |
 | --- | --- |
-| nothing | 146.23 |
-| **cap the route, then ship the fix** | **9.10** |
+| nothing | 154.10 |
+| **cap the route, then ship the fix** | **12.43** |
+| the full seven-step response — own it, call sev1, freeze, tell customers, cap, lift the freeze, ship | **9.10** |
 | ship the fix, then cap the route | 170.61 |
-| silence the alerts, then ship | 537.34 — **api down in 24/24** |
+| silence the alerts, then ship | 573.75 — **api down in 24/24** |
 
 Nothing you can read on one screen says "shed load first". You get there by
 stitching an offered request rate against its organic share, a log line saying
@@ -99,9 +100,11 @@ Node 20+. No API keys, no accounts, no backend — the whole simulation runs in
 a Web Worker in your tab.
 
 **Drive it by hand first.** Press <kbd>Run sim</kbd>. Watch the storefront
-reveal its own failure without being asked. Then fix it: turn the flag off,
-roll a deploy forward, cap a route. Every control states what it costs.
-<kbd>⌘K</kbd> opens a command palette over the whole lever set.
+reveal its own failure without being asked. Then fix it from the **Response
+controls**: turn the flag off, roll a deploy forward, cap a route. Every
+control states what it costs. <kbd>⌘K</kbd> opens a command palette over the
+whole lever set; <kbd>⌘J</kbd> shows or hides the agent panel, whose footer
+counts the tools the current stage grants.
 
 ---
 
@@ -126,8 +129,9 @@ disabled and will silently see no tools.**
 - *"What can you do on this page, and what can't you?"* — it will read
   `explain_surface` and tell you what the current stage withholds.
 - *"Work out what is wrong here, but don't change anything yet."*
-- Then move the stage to Recovery and ask it to fix it. **Watch the approval
-  card, not the chat.**
+- Then move the stage to Recovery and ask it to fix it. **Watch the agent
+  panel, not the chat** — every read, finding, plan and step lands there as a
+  row on one ledger, and the decision is pinned to the bottom of it.
 
 **No agent to hand?** `npm run driver` plays both stories end to end against
 the real page — agent turns through the same execute path a host uses, human
@@ -156,7 +160,7 @@ trap actually costs more than doing nothing, both probed to the same horizon
 
 ## What to watch for
 
-Four things this console does that a chat transcript cannot:
+Six things this console does that a chat transcript cannot:
 
 1. **The approval card shows what the agent worked FROM** — the reads it
    actually made, read off the audit trail so they cannot be overstated, next
@@ -171,6 +175,15 @@ Four things this console does that a chat transcript cannot:
 4. **A plan lights up the console.** Before you approve anything, the rows the
    sequence will touch are numbered in place — 1 on the route, 2 on the
    service — and each step carries its price.
+5. **A tool call is a row, and the row opens onto its answer.** The agent
+   panel is one ledger: connect, each read, each finding, the plan, each step,
+   and what that step did, in the order they happened. Open a read and you get
+   the bytes the agent actually received — size, `asOfSeq`, the payload — and
+   a link onto the console surface it came from.
+6. **The storefront is in the story.** The shop breaks when checkout does and
+   reveals itself unasked. When "tell customers" executes, the operator's
+   status post appears on the shop, quoted verbatim off the same world. When
+   the fix ships, checkout comes back — on screen, not in a metric.
 
 ---
 
@@ -190,7 +203,9 @@ Four things this console does that a chat transcript cannot:
   the engine must never trust that a tool was unregistered.
 
 Full map: [`docs/architecture.md`](docs/architecture.md). Event schema:
-[`docs/schema.md`](docs/schema.md).
+[`docs/schema.md`](docs/schema.md). The whole tool surface — every
+description, schema, annotation, and the stage that grants it — is generated
+from the source: [`docs/webmcp-surface.md`](docs/webmcp-surface.md).
 
 ---
 
@@ -198,11 +213,12 @@ Full map: [`docs/architecture.md`](docs/architecture.md). Event schema:
 
 ```bash
 npm run typecheck     # TypeScript, strict
-npm test              # 187 unit + property tests
+npm test              # 206 unit + property tests
 npm run lint:sim      # determinism ban over src/sim
-npm run smoke         # 85 hit-tested Playwright gates against the real page
+npm run smoke         # 106 hit-tested Playwright gates against the real page
 npm run corpus        # regenerate + re-verify all 91 scenario variants
 npm run driver        # both scenarios, unattended, end to end
+npm run docs:tools    # regenerate docs/webmcp-surface.md from the tool specs
 ```
 
 `npm run smoke` samples a 900ms CSS transition on wall clock — **run it alone**;

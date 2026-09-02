@@ -2334,7 +2334,13 @@ function cautionFor(btn: HTMLButtonElement, key: string): boolean {
   foot.textContent = 'Click again to do it anyway.';
 
   box.append(who, why, foot);
-  btn.parentElement?.insertBefore(box, btn.nextSibling);
+  // A DEPLOY ROW IS A GRID, and its action cell is an `auto` track. Dropped
+  // beside the button inside that cell, the caution stretched Roll back to
+  // its own height (240px) and squeezed the deploy's title to one word per
+  // line. It files as a row of the grid instead, under the whole deploy row
+  // — the same track the Details disclosure already spans.
+  const host = btn.closest('.deploy-card') ? (btn.closest<HTMLElement>('.dc-actions') ?? btn) : btn;
+  host.parentElement?.insertBefore(box, host.nextSibling);
   // A warning below the fold is not a warning. `nearest` keeps this inside
   // the console's own scroller — `center` drags the whole shell (the bug the
   // stream hit earlier).

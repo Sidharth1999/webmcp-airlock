@@ -7,7 +7,8 @@
 import { spawn, spawnSync } from 'node:child_process';
 import { chromium } from 'playwright';
 
-const PORT = 8918;
+// SMOKE_PORT lets a worktree run this beside the main tree; 8918 stays the default.
+const PORT = Number(process.env.SMOKE_PORT ?? 8918);
 const URL = `http://localhost:${PORT}/`;
 
 function step(name, cmd, args) {

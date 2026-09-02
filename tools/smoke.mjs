@@ -1190,6 +1190,155 @@ try {
       (await rec.locator('#event-stream li[data-kind="mode.changed"]').count()) === 1
   );
   await rec.close();
+  // ---- a standalone proposal is a row on the ledger, not a card ---------
+  // One propose_* call with no plan behind it is the move a live agent makes
+  // most, and it was the last bordered card in the dock (its own left rule,
+  // mounted in the live tail). It files as a step row now: on the spine, the
+  // ask in the row's own expansion, and its observation directly beneath it
+  // once the write lands. Same viewport Sid reviews in.
+  const sa = await browser.newPage({ viewport: { width: 1512, height: 945 } });
+  sa.on('pageerror', (e) => pageErrors.push(e.message));
+  await sa.goto(URL, { waitUntil: 'networkidle' });
+  await sa.getByTestId('flag-toggle-new-checkout').waitFor({ timeout: 15_000 });
+  await sa.getByTestId('mode-recovery').click();
+  // whichever way the flag sits, ask for the other — a no-op write has no
+  // observation to land
+  const saFlag = (await sa.locator('[data-flag-id="new-checkout"]').getAttribute('data-flag-state')) === 'on' ? 'off' : 'on';
+  const saProp = JSON.parse(
+    await sa.evaluate(
+      (state) => window.__airlock.invoke('propose_flag_change', { id: 'new-checkout', state }),
+      saFlag
+    )
+  );
+  await sa.getByTestId(`approval-${saProp.proposalSeq}`).waitFor({ timeout: 5_000 });
+  check(
+    "a standalone proposal is a row on the ledger's spine, not a card",
+    (await sa
+      .locator(`#agent-timeline > [data-testid="ask-${saProp.proposalSeq}"][data-kind="step"][data-state="live"]`)
+      .count()) === 1 &&
+      (await sa
+        .locator(`[data-testid="ask-${saProp.proposalSeq}"] [data-testid="approval-${saProp.proposalSeq}"]`)
+        .count()) === 1 &&
+      (await sa.locator('#agent-timeline .approval-card').count()) === 0 &&
+      (await sa.locator('#airlock-cards > *').count()) === 0
+  );
+  check(
+    'it wears the step marker at the same x as every other beat, and says what it touches on the right',
+    await sa.evaluate((seq) => {
+      const row = document.querySelector(`[data-testid="ask-${seq}"]`);
+      const mark = row.querySelector(':scope > .tl-head > .tl-n.tl-n-ask');
+      const head = row.querySelector(':scope > .tl-head');
+      const connect = document.querySelector('#agent-timeline > .tl-ev[data-kind="connect"] > .tl-head');
+      return (
+        !!mark &&
+        Math.round(head.getBoundingClientRect().left) === Math.round(connect.getBoundingClientRect().left) &&
+        /a feature flag/.test(row.querySelector(':scope > .tl-head > .pl-touch').textContent) &&
+        row.querySelectorAll('.pl-cost').length === 1
+      );
+    }, saProp.proposalSeq)
+  );
+  await sa.getByTestId(`approve-${saProp.proposalSeq}`).click();
+  const saLanded = await sa
+    .waitForFunction(
+      (seq) => {
+        const row = document.querySelector(`[data-testid="ask-${seq}"]`);
+        return row?.dataset.state === 'done' && row.nextElementSibling?.dataset.kind === 'state';
+      },
+      saProp.proposalSeq,
+      { timeout: 10_000 }
+    )
+    .then(() => true, () => false);
+  check(
+    'its observation lands directly beneath it after approval, and the row stays as the receipt',
+    saLanded &&
+      (await sa.evaluate((seq) => {
+        const row = document.querySelector(`[data-testid="ask-${seq}"]`);
+        const obs = row.nextElementSibling;
+        return (
+          row.dataset.fold === 'true' &&
+          !row.querySelector(`[data-testid="approval-${seq}"]`) &&
+          obs.dataset.obsFor === `ask-${seq}` &&
+          /new-checkout/.test(obs.textContent)
+        );
+      }, saProp.proposalSeq))
+  );
+  // the key rung rides the row's own machine-value slot, and a refusal is
+  // an observation beneath the row, exactly as a rejected plan step gets
+  const saKey = JSON.parse(
+    await sa.evaluate(() =>
+      window.__airlock.invoke('propose_route_change', { id: 'checkout', target: 'web' })
+    )
+  );
+  await sa.getByTestId(`approval-${saKey.proposalSeq}`).waitFor({ timeout: 5_000 });
+  check(
+    'a two-key ask says "needs your key" on its row and arrives disarmed',
+    /needs your key/.test(
+      await sa.locator(`[data-testid="ask-${saKey.proposalSeq}"] > .tl-head > .pl-touch`).textContent()
+    ) && (await sa.getByTestId(`approve-${saKey.proposalSeq}`).isDisabled())
+  );
+  await sa.getByTestId(`reject-${saKey.proposalSeq}`).click();
+  const saRefused = await sa
+    .waitForFunction(
+      (seq) => document.querySelector(`[data-testid="ask-${seq}"]`)?.dataset.state === 'skipped',
+      saKey.proposalSeq,
+      { timeout: 10_000 }
+    )
+    .then(() => true, () => false);
+  check(
+    'rejecting it files the refusal directly beneath its row',
+    saRefused &&
+      (await sa.evaluate((seq) => {
+        const row = document.querySelector(`[data-testid="ask-${seq}"]`);
+        const next = row.nextElementSibling;
+        return (
+          !row.querySelector(`[data-testid="approval-${seq}"]`) &&
+          next?.dataset.kind === 'state' &&
+          next.dataset.refused === 'true' &&
+          document.querySelectorAll('#agent-timeline .approval-card').length === 0
+        );
+      }, saKey.proposalSeq))
+  );
+  await sa.close();
+
+  // ---- the click caution on a deploy row is a row of that grid ----------
+  // Inserted beside Roll back inside the deploy's `auto` action cell, the
+  // caution stretched the button to its own height (240px) and squeezed the
+  // deploy title to one word per line. The button keeps its height.
+  const cc = await browser.newPage({ viewport: { width: 1512, height: 945 } });
+  cc.on('pageerror', (e) => pageErrors.push(e.message));
+  // d-201 ships during the incident, so run until it is on the board, then
+  // hold the world still the way the counsel scene does
+  await cc.goto(URL + '?run=1', { waitUntil: 'networkidle' });
+  await cc.locator('[data-testid="rollback-d-201"]:enabled').waitFor({ timeout: 40_000 });
+  await cc.getByTestId('sim-run').click();
+  await cc.evaluate(() =>
+    window.__airlock.invoke('record_finding', {
+      summary: 'd-201 shipped an irreversible migration.',
+      ruledOut:
+        'Rolling d-201 back. api 1.9.3 reads the v1 session layout only, and 43,857 rows have already been written in v2 — the rollback takes the store down rather than healing it.',
+      advisesAgainst: 'deploy.rollback:d-201',
+    })
+  );
+  await cc.getByTestId('rollback-d-201').scrollIntoViewIfNeeded();
+  const ccBefore = await cc
+    .getByTestId('rollback-d-201')
+    .evaluate((n) => n.getBoundingClientRect().height);
+  await cc.getByTestId('rollback-d-201').click();
+  await cc.getByTestId('agent-caution').waitFor({ timeout: 5_000 });
+  check(
+    'the caution under a deploy row does not stretch Roll back to its own height',
+    await cc.evaluate((h0) => {
+      const btn = document.querySelector('[data-testid="rollback-d-201"]');
+      const box = document.querySelector('.agent-caution');
+      const card = btn.closest('.deploy-card');
+      return (
+        Math.abs(btn.getBoundingClientRect().height - h0) < 2 &&
+        box.parentElement === card &&
+        box.getBoundingClientRect().width > card.getBoundingClientRect().width * 0.8
+      );
+    }, ccBefore)
+  );
+  await cc.close();
 
   check('no page errors', pageErrors.length === 0);
   if (pageErrors.length) console.error('[smoke] page errors:', pageErrors);

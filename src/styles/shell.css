@@ -1390,8 +1390,44 @@ body {
 }
 .ap-tier { margin-left: auto; color: var(--ink-faint); font-size: var(--text-2xs); }
 .ap-diff { color: var(--ink); line-height: 1.5; }
-.ap-actions { display: flex; gap: var(--sp-2); margin-top: 2px; }
-.ap-actions .ctl-btn { margin-left: 0; }
+/* THE DECISION ROW. Two buttons of the same height and shape — one filled,
+   one outlined — and the shortcuts stop riding INSIDE them, where two extra
+   glyphs per button made the pair look busy at the exact moment it needs to
+   look simple. They sit once, on the right, in the machine face. */
+.ap-actions {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  margin-top: var(--sp-1);
+}
+.ap-actions .ctl-btn {
+  margin-left: 0;
+  min-height: 30px;
+  padding-inline: var(--sp-4);
+  border-radius: var(--r-md);
+  font-weight: 600;
+}
+.ap-kbd {
+  margin-left: var(--sp-2);
+  font-family: var(--font-instrument);
+  font-size: 10px;
+  color: var(--ink-ghost);
+}
+/* inside a plan step the shortcut hints collapse to one quiet trailing note */
+.pl-slot .ap-approve .ap-kbd,
+.pl-slot .ap-reject .ap-kbd { display: none; }
+.pl-slot .ap-actions::after {
+  content: '⌘ enter to approve · ⌘ del to reject';
+  margin-left: auto;
+  font-family: var(--font-instrument);
+  font-size: var(--text-2xs);
+  color: var(--ink-ghost);
+  white-space: nowrap;
+}
+.pl-slot .ap-reject {
+  border-color: var(--line-strong);
+  background: none;
+}
 /* the close control used to be pushed right by `.pane-sub`'s margin. The
    agent dock no longer has a subtitle, so it carries the push itself. */
 .dock-head .dock-close { margin-left: auto; }
@@ -1460,11 +1496,6 @@ body {
 }
 /* the chord rides on the button it fires, so the shortcut is discoverable
    at the moment it is useful rather than in a help screen nobody opens */
-.ap-kbd {
-  margin-left: var(--sp-2);
-  font-family: var(--font-instrument); font-size: 10px;
-  color: var(--ink-ghost);
-}
 .ap-approve { color: var(--good); }
 .ap-approve:hover:not(:disabled) { border-color: var(--good); background: oklch(75% 0.13 160 / 0.08); }
 .ap-reject { color: var(--bad); }
@@ -2027,14 +2058,19 @@ body {
   background: none;
   border: 1px solid var(--line-strong);
   color: var(--ink-ghost);
-  margin-top: 7px;
+  /* ON THE TITLE'S FIRST LINE, DERIVED — not a number someone eyeballed.
+     The line box is padding-block (4) + half of (font-size x line-height);
+     the marker is centred on that. It was a hardcoded 13px on the live step
+     and 7px everywhere else, so the number floated 7px below the sentence it
+     numbers — the first thing Sid pointed at in the card. */
+  margin-top: calc(4px + (var(--text-sm) * 1.45 - 17px) / 2);
 }
 .pl-step[data-state='live']::before {
   border-color: var(--actor-agent);
   background: var(--actor-agent);
   color: oklch(18% 0.03 310);
   font-weight: 600;
-  margin-top: 13px;
+  margin-top: calc(4px + (var(--text-md) * 1.35 - 17px) / 2);
 }
 .pl-step[data-state='done']::before {
   content: '✓';
@@ -2055,12 +2091,26 @@ body {
    column now literally reads action / observed / action / observed. */
 .pl-line {
   display: grid;
-  grid-template-columns: minmax(0, 1fr);
+  grid-template-columns: minmax(0, 1fr) auto;
   row-gap: 1px;
   min-height: 28px;
   padding-block: 4px;
   min-width: 0;
 }
+.pl-what { grid-column: 1; }
+/* what the action TOUCHES, on the action's own row, at caption weight */
+.pl-touch {
+  grid-column: 2;
+  align-self: baseline;
+  flex: none;
+  padding-left: var(--sp-3);
+  font-family: var(--font-prose);
+  font-size: var(--text-2xs);
+  color: var(--ink-ghost);
+  white-space: nowrap;
+}
+.pl-step:not([data-state='live']) .pl-touch { display: none; }
+.pl-obs { grid-column: 1 / -1; }
 .pl-what {
   display: block;
   width: 100%;
@@ -2158,9 +2208,9 @@ body {
 
 /* --- the live step: the only object on the list ------------------------ */
 .pl-step[data-state='live'] {
-  padding: var(--sp-2) var(--sp-3) var(--sp-3);
+  padding: var(--sp-3) var(--sp-4) var(--sp-3);
   margin: 6px 0;
-  grid-template-columns: 22px minmax(0, 1fr);
+  grid-template-columns: 26px minmax(0, 1fr);
   /* percentages must sum to 100: a short color-mix returns a colour WITH
      ALPHA, and this surface has to occlude nothing but must read as solid */
   background: color-mix(in oklch, var(--panel-raised) 94%, var(--actor-agent) 6%);
@@ -2168,6 +2218,9 @@ body {
   border-left: 2px solid var(--actor-agent);
   border-radius: var(--r-md);
 }
+/* the title's own row stops adding a second gap under itself: with the rules
+   gone the only thing carrying structure is spacing, and it has to be even */
+.pl-step[data-state='live'] .pl-line { padding-bottom: 0; }
 .pl-step[data-state='live'] .pl-what {
   color: var(--ink);
   font-weight: 600;
@@ -2180,27 +2233,33 @@ body {
 }
 /* the reason leads, so it reads as a sentence and not a caption */
 .pl-step[data-state='live'] .pl-because {
-  margin-top: var(--sp-2);
+  margin-top: var(--sp-3);
   color: var(--ink);
   font-size: var(--text-sm);
   line-height: 1.5;
 }
+/* ONE STEP BETWEEN BLOCKS. With the rules gone, spacing is the only thing
+   carrying the structure, so it has to be even: title, reason, price,
+   evidence, decision, each the same distance from the last. */
+.pl-slot .approval-card { margin-top: var(--sp-3); }
+/* NO RULES INSIDE THE CARD. It had three stacked hairlines — under the
+   reason, under the price, above the evidence — which turns one object into
+   a stack of bands and is most of why it read as crammed. Hierarchy comes
+   from space and colour, the way the reference Sid picked does it. */
 .pl-cost {
-  margin: var(--sp-2) 0 0;
-  padding-top: var(--sp-2);
-  border-top: 1px solid var(--line);
+  margin: var(--sp-3) 0 0;
   color: var(--ink-dim);
   font-size: var(--text-xs);
   line-height: 1.55;
 }
-/* the price gets a label on its own line, not a word jammed in front of a
-   sentence — it is the one thing on the card an operator must not skim */
+/* the price is ONE block, not a label band above a prose band: the word
+   leads the sentence in the warn colour and the sentence continues */
 .pl-cost-k {
-  display: block;
   color: var(--warn);
-  font-size: var(--text-2xs);
-  margin-bottom: 3px;
+  font-weight: 600;
+  margin-right: 6px;
 }
+.pl-cost-k::after { content: ' ·'; }
 .pl-because {
   margin: 5px 0 0;
   color: var(--ink-dim);
@@ -2245,13 +2304,13 @@ body {
 .pl-slot:empty { display: none; }
 .pl-slot .approval-card {
   margin: var(--sp-3) 0 0;
+  gap: var(--sp-3);
   background: none;
   /* INSIDE a card already, so it brings no frame of its own — the nested
      border was the last "card inside card" left in the dock. */
   border: 0;
-  border-top: 1px solid var(--line);
   border-radius: 0;
-  padding: var(--sp-3) 0 0;
+  padding: 0;
 }
 .pl-slot .ap-diff,
 .pl-slot .ap-actor { display: none; }
@@ -2259,10 +2318,7 @@ body {
    hidden inside a plan) it read as an orphaned fragment; right-aligned it
    still owned a whole row for two words. It rides the END of the evidence
    line — the two of them are the same register, so they are one row. */
-.pl-slot .approval-card { display: grid; grid-template-columns: minmax(0, 1fr) auto; }
-.pl-slot .approval-card > * { grid-column: 1; }
-.pl-slot .ap-evidence { grid-row: 1; }
-.pl-slot .ap-head { grid-column: 2; grid-row: 1; align-self: center; justify-content: flex-end; padding-left: var(--sp-3); }
+.pl-slot .ap-head { display: none; }
 .pl-slot .ap-tier {
   margin-left: 0;
   font-family: var(--font-prose);
@@ -2273,9 +2329,13 @@ body {
    card. Within a plan it is a summary LINE that opens; the frame goes. */
 .pl-slot .ap-evidence {
   background: none;
-  border-left: 0;
-  padding-left: 0;
+  border: 0;
+  padding: 0;
+  align-items: flex-start;
 }
+/* the chevron belongs to the words, not to the card's right edge */
+.pl-slot details.ap-evidence > summary { align-self: flex-start; }
+.pl-slot details.ap-evidence > summary::after { margin-left: 6px; }
 
 /* --- a plan, on the console itself --------------------------------------
    The card says what the sequence is; these numbers say WHERE it lands, on

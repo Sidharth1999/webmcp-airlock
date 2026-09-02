@@ -1587,7 +1587,16 @@ function renderPlan(e: Event): void {
     });
     const obs = document.createElement('code');
     obs.className = 'pl-obs';
-    line.append(what, obs);
+    // WHAT IT TOUCHES BELONGS TO THE ACTION, so it rides the action's own
+    // row. Parked next to the evidence line it read as a caption on the
+    // evidence, which is a different claim entirely.
+    const touches = document.createElement('span');
+    touches.className = 'pl-touch';
+    const spec = WRITE_ACTIONS[step.tool];
+    if (spec) {
+      touches.textContent = WHAT_IT_TOUCHES[spec.tierName] ?? spec.tierName;
+    }
+    line.append(what, touches, obs);
     li.append(line);
     // the live reading under the newest observation — the discrete diff says
     // the freeze is on, only this can say the queue is draining

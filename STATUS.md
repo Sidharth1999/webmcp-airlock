@@ -1,28 +1,130 @@
 # STATUS — live audit log
 
-## OPEN: THE AGENT PANEL NEEDS A TYPED TIMELINE, AND THE FONT THEME IS STILL WRONG
+## DONE 2026-09-02: THE AGENT PANEL IS A TYPED EVENT TIMELINE, AND S4 IS CLOSED
 
-**Agenda: `_handoff/2026-09-02-agent-panel-redesign.md`. Read it first.**
+Agenda was `_handoff/2026-09-02-agent-panel-redesign.md`. Both jobs shipped.
+Commits `7a43a38` (the redesign) and `a236042` (the close pass at 2x).
 
-Sid, after the density rebuild: the panel "looks better" but the state that
-pops up with the plan is still "overwhelming and crammed", and he wants the
-whole agent loop rendered as a SEQUENCE — wake, run tools, learn a hypothesis,
-propose, execute, **report intermediate state**, close — with every element
-TYPE distinguishable and older parts collapsible.
+### THE PANEL: one ordered list, six kinds, six silhouettes
 
-Two genuine gaps, not polish:
-- **there is no "state changed" beat after a step executes.** Approve a step
-  and the plan silently advances. Nothing says what it did to the world.
-- **there is no "agent connected" beat.** Presence is a header dot, never an
-  event on the timeline.
+Sid: *"the linear flow should be I wake up the agent, I see it run tools, I see
+it learn a hypothesis, it proposes a plan, we execute steps of the plan, it
+reports intermediate state, we continue executing steps, and final observation
+is incident closure. I don't see any of that sequence at all."*
 
-**S4 is NOT closed.** The system stack shipped and he still objects — and he
-named the offender: "Response stage". It is not the body face, it is the
-UPPERCASE MONO MICRO-CAP treatment used for every small label in the console
-(RESPONSE STAGE, WHY THIS ORDER, COSTS, INCIDENT COMMAND, ERR/SVC/LIVE BUILD,
-tools available). Changing the face never touched it. Put options in front of
-him before committing — his answer has reframed this job twice.
+He was right and it was structural. The dock rendered CONCLUSIONS: three of the
+seven beats had no representation, and the three that did were the same
+`.finding` element with a modifier class, so nothing on screen said these were
+different KINDS of thing.
 
+`tlAdd` is now the only way onto the timeline, so a beat cannot arrive without
+declaring its kind, and kind decides the marker, the colour and the density.
+Markers are different SHAPES, not different colours of one dot, because shape
+survives peripheral vision:
+
+| beat | kind | marker | colour |
+| --- | --- | --- | --- |
+| 1 the agent wakes | `connect` | ring | violet |
+| 2 it runs tools | `reads` | small square | ink |
+| 3 it learns a hypothesis | `finding` | diamond | violet |
+| 4 it proposes a plan | `plan` | three bars | violet |
+| 5 we execute steps | the plan's own numbered steps | | |
+| 6 **what the step did to the world** | `state` | chevron | green |
+| 7 incident closure | `resolved` | filled disc | green |
+
+Violet is the agent's claim; green is the world's answer. Only two entry kinds
+are green and neither of them is the agent talking.
+
+### THE TWO BEATS THAT DID NOT EXIST
+
+**`connect`.** Presence was a dot on the dock heading, never an event, so the
+timeline began mid-sentence with the dock simply starting to have content in
+it. It now files on the agent's first act and names the stage and the count.
+
+**`state` — the one that mattered.** You approved a step and the plan silently
+advanced; nothing said what the approval changed, which also made the airlock's
+whole argument unverifiable. A gate you cannot see the far side of is a gate on
+faith.
+
+It is DERIVED, not authored. The world is a pure fold of the event log, so the
+report is a diff of two folds: `snapshotFacts(world)` before the batch, after
+the batch, print what moved. Nothing is written per action, so it cannot drift
+from what actually happened and **a lever added later reports itself for free**.
+The finished receipt now reads:
+
+```
+owner            nobody     -> operator
+severity         not set    -> SEV1
+deploys          open       -> frozen
+status page      silent     -> identified
+/checkout limit  uncapped   -> 150 req/s
+deploys          frozen     -> open
+orders-api build 2.4.0      -> 2.4.2
+                 Error rate 43.0% -> 0.2% - 20 more users hit
+```
+
+That last line is a LIVE reading, not a measurement of the step, and it is
+retired when the next step supersedes it — left frozen it becomes a causal
+claim the console cannot support.
+
+### S4 CLOSED — THE FACE WAS NEVER THE VARIABLE
+
+He named the offender himself: "Response stage". Every small label in the
+console was 11px monospace, UPPERCASE, tracked 0.07em, and that TREATMENT is
+what reads as a particular kind of technical-product styling. Swapping
+JetBrains Mono for the system stack never touched it.
+
+Options A (prose face, sentence case) and B (mono kept, caps and tracking
+dropped) were built as real overrides, shot at 1512x945, and **put to him
+before anything was committed** (`log/type/`). He picked A.
+
+- small labels: sentence case, prose face, hierarchy from weight/colour/space
+- **monospace is not gone, it is RESERVED and now means something**: machine
+  values only — build ids, versions, service names, tool names, seq numbers,
+  metrics. If a person wrote it, it is prose; if the system emitted it, it is
+  mono.
+- one shared block in `shell.css` owns the treatment; the 18 rules that each
+  declared their own face/transform/tracking no longer do
+- the approval card was set in the instrument face THROUGHOUT — sentences
+  about what the agent wants and what it costs, in monospace. Now prose, with
+  mono kept for the tool chips and the raw untrusted excerpt.
+
+### ALSO FIXED, EACH ONE VISIBLE AT 1512x945
+
+- a finished plan KEEPS its steps: collapsing them threw away the answer to
+  "what did I agree to" and left a 380px void under the timeline
+- the argument for the ORDER folds once the first step has run — four lines
+  pinned above every later approval is the cram he named
+- the column ADVANCES to the newest beat. The live step is sticky to the
+  bottom, so `scrollIntoView` saw it as already visible and did nothing, and
+  the middle of the sequence stayed hidden behind the sticky card, chopped
+  mid-line
+- one voice per ask: narration line + airlock label + live step card were
+  three (with a plan, four) saying the same thing
+- a one-line step opens on click — an ellipsis you cannot open is a defect
+- no spine beside an empty timeline
+- one marker per beat (a plan carries its own; the tail's "now" dot stood down)
+- the stage switch was an inverted white block, the brightest object in the
+  dock; the selected segment lifts off the inset ground instead
+- the evidence strip is a summary LINE, not a third frame. The ZERO-READ case
+  keeps its frame: that case is not detail, it is the finding
+- `tell customers: "... are working on a " (identified)` — a hard 90-char slice
+  cut mid-word in the headline of a step card. Cuts on a word boundary now.
+
+### Test-file diffs, itemised per the hard rule
+**No test file was created, edited or deleted.** No pre-existing test failed.
+Tooling added: `tools/walk-plan.mjs` (drives the seven steps, shooting each
+beat), `tools/shot-css.mjs` and `tools/shot-el.mjs` (the type A/B comparison).
+
+### Verification
+`npm run smoke` GREEN **alone** - `npm test` **206** - `npm run typecheck` -
+`npm run lint:sim` - `npm run corpus` **91/91** - `node tools/capture-polish.mjs`
+clean, no console errors. Frames in `log/walk/` and `log/polish/`.
+
+### Still open
+- **the film has not been shot.** README still has `<LIVE-URL>` and `<REPO-URL>`.
+- S6's certified seven-step orchestration was NOT unpicked; every number in the
+  omission proof is unchanged.
 
 ## SID'S OPEN UX ROUND, S1-S9 — CLOSED 2026-09-02 (Wed, small hours)
 

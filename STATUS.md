@@ -1,5 +1,32 @@
 # STATUS — live audit log
 
+## CHECKPOINT 2026-09-02 17:40 EDT — standalone proposals on the ledger, Lighthouse 4/4, main at 67c0e8c
+
+- **Merged** `worktree-agent-a7bdf7f3ced930d6e` (clean, no conflicts): a
+  STANDALONE proposal is now a `kind=step` ledger row (`askRow()`), diamond in
+  the number slot, "needs your key" in the machine slot, observation lands
+  beneath on approval, refusal on reject; `.approval-card` only ever inside a
+  plan's `.pl-slot`; `#airlock-cards` empty for standalone asks. The click
+  caution (`.agent-caution`) on a deploy row now spans the card instead of
+  stretching Roll back 23→240px. Frames `log/standalone/`; tool
+  `tools/walk-standalone.mjs`.
+- **Lighthouse agentic 1/3 → 4/4** (`fd6c974`…`cb987d3`): llms.txt + SVG
+  favicon (the agent diamond), tabs in their own `role=tablist`, CLS 0.269 → 0
+  (shell `visibility:hidden` until the Worker's first message; `1839fd0` adds a
+  1.5s unconditional reveal so no host can see a blank page), `?mode=recovery|
+  diagnosis` boot param (`switchMode()`), `<main>` landmark, two lever labels.
+  Perf 100 · a11y 96 · best-practices 100 (local prod build; details and the
+  two caveats in `log/lighthouse/README.md`).
+- **Verification on merged main:** typecheck · 206 tests · lint:sim ·
+  `npm run smoke` ALONE **GREEN, 121 gates**. Test-file diffs since the last
+  checkpoint, all ADDS: walkthrough +6, landing +2, mode +1, standalone +6.
+  No existing gate edited.
+- Deploying this build next; then re-verify live (redirect, 13→27, llms.txt,
+  favicon, `?mode=recovery`).
+
+---
+
+
 ## CHECKPOINT 2026-09-02 16:50 EDT — LIGHTHOUSE AGENTIC 1/3 → 4/4 (Chrome's own category)
 
 A Lighthouse 13.4.1 run that morning counted us **1/3** on `agentic-browsing`

@@ -2039,7 +2039,11 @@ body {
   padding: var(--sp-3) var(--sp-3) var(--sp-3) var(--sp-3);
   margin: var(--sp-2) 0;
   grid-template-columns: 20px minmax(0, 1fr);
-  background: color-mix(in oklch, var(--panel-raised) 78%, var(--actor-agent) 6%);
+  /* THE PERCENTAGES MUST SUM TO 100. At 78%/6% color-mix scales the result and
+     returns a colour with ALPHA — so the live card was translucent, and the
+     step above it bled through the moment the card stuck to the bottom of a
+     scrolling thread. Opaque, because a sticky element has to occlude. */
+  background: color-mix(in oklch, var(--panel-raised) 94%, var(--actor-agent) 6%);
   border: 1px solid color-mix(in oklch, var(--actor-agent) 28%, var(--line));
   border-left: 2px solid var(--actor-agent);
   border-radius: var(--r-md);

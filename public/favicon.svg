@@ -1,0 +1,9 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 16 16" role="img" aria-label="Release Airlock">
+  <!-- The mark the ledger gives the agent's claims (#agent-cursor .ac-dot,
+       .tl-ev[data-kind='finding']::before): a diamond in the agent's violet,
+       on the console's panel ground. Same 1.5px stroke family as the rest of
+       the chrome, and the rounded join the 1px marker radius reads as. -->
+  <rect width="16" height="16" rx="3.5" fill="#0d131a"/>
+  <path d="M8 3.6 12.4 8 8 12.4 3.6 8Z" fill="#ca99ef" stroke="#ca99ef"
+        stroke-width="1.5" stroke-linejoin="round"/>
+</svg>

@@ -1,0 +1,19 @@
+# Release Airlock
+
+Release Airlock is a deploy console for an on-call engineer, and every lever in
+it is reachable by an agent through 27 [WebMCP](https://webmcp.devpost.com/)
+tools registered on `document.modelContext`. Twenty of those tools cannot
+execute anything — a write tool's entire effect is to put a card in front of
+the operator, and the engine re-checks the response stage, the tier and the
+dual key at decision time, not at proposal time.
+
+## The console
+
+- [Live console](https://release-airlock.vercel.app): the console itself, seeded and running. No install, and it works with no agent attached.
+- [Repository](<REPO-URL>): source, tests, the simulation, and the study.
+
+## Docs
+
+- [The WebMCP surface](docs/webmcp-surface.md): all 27 tools — name, description, input schema, and the response stage that grants each one. Generated from the tool descriptors.
+- [Feedback to the WebMCP spec](docs/spec-feedback.md): six things we had to build around, each as what we needed, what the spec gives today, and what we did instead.
+- [Lessons for tool authors](docs/lessons-for-tool-authors.md): what writing 27 tools taught us about the contract between a tool's description and a model that skims it.

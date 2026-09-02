@@ -5,6 +5,8 @@ import { chromium } from 'playwright';
 import { mkdirSync } from 'node:fs';
 
 const OUT = process.argv[2] ?? 'log/ux';
+// AIRLOCK_PORT lets a worktree shoot against its own dev server; 8917 stays the default.
+const BASE = `http://localhost:${process.env.AIRLOCK_PORT ?? 8917}`;
 mkdirSync(OUT, { recursive: true });
 
 // SID'S DISPLAY IS ~2330px WIDE. Capturing only 1440 hid every wide-layout
@@ -41,7 +43,7 @@ for (const [vp, viewport] of Object.entries(VIEWPORTS)) {
   });
 
   console.log(`\n[${vp}] ${viewport.width}x${viewport.height}`);
-  await page.goto('http://localhost:8917/?tick=120', { waitUntil: 'networkidle' });
+  await page.goto(`${BASE}/?tick=120`, { waitUntil: 'networkidle' });
   await page.getByTestId('deploy-card-d-200').waitFor({ timeout: 15000 });
 
   // 1. the very first thing a stranger sees
@@ -110,7 +112,7 @@ for (const [vp, viewport] of Object.entries(VIEWPORTS)) {
   rs.on('console', (m) => {
     if (m.type() === 'error') errors.push(m.text());
   });
-  await rs.goto('http://localhost:8917/?template=retry-storm&tick=120', { waitUntil: 'networkidle' });
+  await rs.goto(`${BASE}/?template=retry-storm&tick=120`, { waitUntil: 'networkidle' });
   await rs.getByTestId('sim-run').click();
   await rs.waitForFunction(() => document.querySelectorAll('#log-stream .log-row').length > 6, {
     timeout: 40000,

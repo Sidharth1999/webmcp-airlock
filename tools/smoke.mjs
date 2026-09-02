@@ -7,7 +7,8 @@
 import { spawn, spawnSync } from 'node:child_process';
 import { chromium } from 'playwright';
 
-const PORT = 8918;
+// SMOKE_PORT lets a worktree run this beside the main tree; 8918 stays the default.
+const PORT = Number(process.env.SMOKE_PORT ?? 8918);
 const URL = `http://localhost:${PORT}/`;
 
 function step(name, cmd, args) {
@@ -1120,6 +1121,55 @@ try {
       !(await cold.getByTestId('storefront').isVisible())
   );
   await cold.close();
+  // ---- the walkthrough: the film scene, playable from the PRODUCTION page --
+  // A judge with no WebMCP host attached must still be able to see the agent
+  // half. The dock's empty state says how to attach one and what to ask, and
+  // offers a scripted caller on the same execute path a host uses — with a
+  // standing disclosure in the heading while its work is on the ledger.
+  const walk = await browser.newPage({ viewport: { width: 1512, height: 945 } });
+  const walkErrors = [];
+  walk.on('pageerror', (e) => walkErrors.push(e.message));
+  await walk.goto(URL, { waitUntil: 'networkidle' });
+  check(
+    'the empty dock says how to attach an agent, what to ask, and offers the walkthrough',
+    (await walk.getByTestId('findings-empty').isVisible()) &&
+      (await walk.getByTestId('walk-start').isVisible()) &&
+      (await walk.locator('#findings-empty .te-q').count()) === 3 &&
+      (await walk.locator('#findings-empty .te-copy').count()) === 3 &&
+      (await walk.getByTestId('walk-line').isHidden())
+  );
+  await walk.getByTestId('walk-start').click();
+  await walk.locator('[data-testid="walk-line"][data-state="running"]').waitFor({ timeout: 10_000 });
+  check(
+    'while it runs, the dock heading discloses a scripted caller, and offers a stop',
+    /scripted caller, not a model/.test(await walk.getByTestId('walk-line').innerText()) &&
+      (await walk.getByTestId('walk-stop').innerText()) === 'Stop'
+  );
+  await walk.locator('[data-testid="walk-line"][data-state="ready"]').waitFor({ timeout: 90_000 });
+  check(
+    'the walkthrough reaches the refusal and the plan through the real tool path, then hands over',
+    (await walk.locator('#event-stream li[data-kind="action.blocked"][data-actor="agent"]').count()) >= 1 &&
+      (await walk.locator('#agent-timeline .tl-ev[data-kind="call"]').count()) >= 5 &&
+      (await walk.locator('.pl-step[data-state="live"] .ap-approve').count()) === 1 &&
+      /paused|tick/.test(await walk.getByTestId('sim-status').innerText())
+  );
+  check(
+    'the production walkthrough carries none of the dev harness',
+    (await walk.evaluate(() => document.querySelector('#review-banner') === null)) &&
+      !(await walk.content()).includes('review-banner')
+  );
+  await walk.getByTestId('walk-stop').click();
+  await walk.waitForTimeout(1200);
+  check(
+    'stopping the walkthrough returns the console to its empty state',
+    (await walk.getByTestId('findings-empty').isVisible()) &&
+      (await walk.getByTestId('walk-line').isHidden()) &&
+      (await walk.locator('#agent-timeline .tl-ev:not([data-kind="live"])').count()) === 0 &&
+      (await walk.locator('.approval-card').count()) === 0
+  );
+  check('no page errors during the walkthrough', walkErrors.length === 0);
+  if (walkErrors.length) console.error('[smoke] walkthrough page errors:', walkErrors);
+  await walk.close();
 
   check('no page errors', pageErrors.length === 0);
   if (pageErrors.length) console.error('[smoke] page errors:', pageErrors);

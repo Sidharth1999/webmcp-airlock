@@ -49,6 +49,52 @@ bundle has no trace of it.
 **The eighteen feedback items are all closed.** Nothing from Sid's review round
 is outstanding.
 
+## THE COUNTERFACTUAL IS A MEASUREMENT — 2026-09-01 (Tue, late)
+
+The one number the film needed and the one that could most easily have become
+an overclaim. It is neither an estimate nor a marketing figure: **it was
+already computed, 24 times, and nobody had looked.**
+
+`npm run corpus` runs every retry-storm candidate three ways to the same
+horizon — the right order, the wrong order, and doing nothing — and the sim is
+deterministic. Reading `study/corpus.json` back out:
+
+| | median | range |
+| --- | --- | --- |
+| this order | **$9.05** | $5.94-$12.84 |
+| doing nothing | $146.30 | $100.59-$203.86 |
+| reversed | **$538.33** | $370.26-$747.10 |
+
+and the reversed order **took the service down in 24 of 24**. So "worse than
+doing nothing" is not a turn of phrase here — it is 3.7x worse than doing
+nothing, measured.
+
+`tools/compile-corpus.ts` now writes `study/ordering.json` beside the corpus,
+so the figure cannot drift from the runs it describes, and the finished plan's
+receipt reports it **with its sample size attached**:
+
+> **THE OTHER ORDER, MEASURED** — Reversed, the same two levers cost $538.33
+> and left the service down — worse than doing nothing at all ($146.30). This
+> order: $9.05. *median of 24 deterministic runs · reversed order took the
+> service down in 24 of 24*
+
+**Why this is allowed under the framing law.** It is not the agent speaking and
+it is not attributed to the agent — it takes the console's instrument face and
+the neutral surface, never the agent's violet. The console is a simulator and
+says so everywhere, seed in the status bar included, so it is entitled to
+report a measured property of the scenario it just ran. What it must never do
+is state the figure without the sample size, and a smoke gate asserts exactly
+that: *a finished plan reports what the other order cost, with its sample size*.
+
+**Where it renders, and a bug caught on the way.** It was first attached to
+`reportPlanOutcome()`, which only fires once health is back to ok — so a plan
+that finished before the world had settled kept its receipt and said nothing.
+The claim is about these two levers in THIS sequence versus the reverse, which
+is true the moment the last step executes and does not depend on how the
+incident is going. Moved to plan completion. The gate caught it.
+
+**Test-file diff: ONE gate added.** Verified fail->pass.
+
 ## THE APP HAS A MOOD NOW — 2026-09-01 (Tue, late)
 
 Sid: *"are we already changing colour schema based on incident resolution?

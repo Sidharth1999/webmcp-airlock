@@ -1018,6 +1018,20 @@ try {
   // decision lands sooner than that, so the settled dock read "Nothing waiting
   // on you" with "Agent is waiting on your decision" directly beneath it — in
   // the exact frame the film ends on.
+  // The counterfactual is the one number that could have been an overclaim.
+  // It is a measurement — `npm run corpus` runs the right order, the wrong
+  // order and doing nothing to the same horizon across the whole family and
+  // writes study/ordering.json — so the gate is that the receipt reports it
+  // WITH its sample size, and never without.
+  check(
+    'a finished plan reports what the other order cost, with its sample size',
+    await pl.evaluate(() => {
+      const el = document.querySelector('[data-testid="plan-counterfactual"]');
+      if (!el) return false;
+      const t = el.textContent ?? '';
+      return /\$\d/.test(t) && /median of \d+ deterministic runs/.test(t);
+    })
+  );
   check(
     'a settled plan leaves nobody narrating a decision',
     await pl.evaluate(() => {

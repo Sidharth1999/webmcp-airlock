@@ -1,0 +1,9 @@
+{
+ "retry-storm": {
+  "runs": 24,
+  "rightOrderUsd": 9.05,
+  "wrongOrderUsd": 538.33,
+  "doNothingUsd": 146.3,
+  "wrongOrderCatastrophic": 24
+ }
+}

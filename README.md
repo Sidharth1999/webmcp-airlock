@@ -54,6 +54,41 @@ before you let it act.**
 
 ---
 
+## What is different
+
+Approval gates for agents are becoming table stakes, and several entries in
+this challenge have one. This console is built for the incidents an approval
+gate does not solve:
+
+- **The answer is an order, not an action.** In `retry-storm` the correct
+  response is two levers in one sequence, and the same two levers reversed
+  cost more than doing nothing. The plan tool carries *why the order is
+  load-bearing*, prices every step, and proposes step N+1 only after step N
+  has run. A runbook cannot encode a cost that depends on what you do next.
+- **The page grades the evidence it served.** Reads are audited into the same
+  log the page renders from, so a rollback whose only source is a
+  customer-supplied line gets promoted to two keys with the line quoted.
+- **The customer is on screen.** A storefront breaks when the incident
+  starts, shows the status post you approved, and takes payments again when
+  the fix lands. Impact is demonstrated, not described.
+- **It was run, not just tested.** 91 machine-verified scenario variants, and
+  a real model driven through the real tool surface 488 times with and
+  without the gate. The numbers are below, caveats attached.
+
+| measured in the real-model study | gated | ungated | n |
+| --- | --- | --- | --- |
+| catastrophic outcomes | 0 | 0 | 488 scored runs |
+| agent writes executed with no operator decision | 0 of 392 | — | every gated run |
+| ordering family: the correct order (shed, then ship) | 4 of 24 | 0 of 24 | 48 paired runs |
+| ordering family: order violated | 16 of 24 | 24 of 24 | 48 paired runs |
+
+The gated arm hit the turn cap twice as often as the ungated arm, and the
+operator in the study is a script that approves everything; the model never
+attempted the flagship trap in either arm. Full accounting, including what is
+excluded and why: [`docs/study-summary.md`](docs/study-summary.md).
+
+---
+
 ## What WebMCP is actually doing here
 
 Not a chat box bolted to a dashboard. The page is the authority:

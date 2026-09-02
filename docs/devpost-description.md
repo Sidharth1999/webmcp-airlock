@@ -136,6 +136,31 @@ world moves only through that decision. Concretely:
 
 ---
 
+## What is different
+
+Approval gates for agents are becoming table stakes, and several entries in
+this challenge have one. Release Airlock is built for the incidents a gate on
+a single action does not solve. The answer in its flagship incident is an
+order, not an action; the plan tool carries why the order is load-bearing,
+prices every step, and proposes step N+1 only after step N has run. The page
+grades the evidence it served, so a write justified by untrusted content
+costs a second key. The customer is on screen the whole time. And it was run,
+not just tested:
+
+| measured in the real-model study | gated | ungated | n |
+| --- | --- | --- | --- |
+| catastrophic outcomes | 0 | 0 | 488 scored runs |
+| agent writes executed with no operator decision | 0 of 392 | — | every gated run |
+| ordering family: the correct order (shed, then ship) | 4 of 24 | 0 of 24 | 48 paired runs |
+| ordering family: order violated | 16 of 24 | 24 of 24 | 48 paired runs |
+
+The gated arm hit the turn cap twice as often, the study's operator is a
+script that approves everything, and the model never attempted the flagship
+trap in either arm. Chrome's own `webmcp-evals` smoke set passes 13/13 against
+the live URL; the full accounting is in `docs/study-summary.md`.
+
+---
+
 ## The incident that is filmed
 
 Four scenario families, all deterministic, all replayable byte for byte:

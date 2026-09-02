@@ -3329,6 +3329,34 @@ function resetTele(): void {
 
 const topologyEl = document.querySelector<HTMLDivElement>('#topology')!;
 
+/**
+ * What a service is carrying right now, from the same `traffic.tick` the
+ * masthead plots: the routes that terminate at it, summed, error rate
+ * weighted by load. `sampled` is false until a tick has reported on one of
+ * its routes — a service with no routes (db) never has numbers to show, and
+ * the strip must not invent any. `worst` names the route the errors enter
+ * through, so a reader sees WHERE the incident meets the chain.
+ */
+function serviceLoad(
+  w: World,
+  id: string
+): { rps: number; err: number; sampled: boolean; worst: { path: string; err: number } | null } {
+  let rps = 0;
+  let errs = 0;
+  let sampled = false;
+  let worst: { path: string; err: number } | null = null;
+  for (const r of w.routes) {
+    if (r.target !== id) continue;
+    const t = w.traffic.byRoute[r.path];
+    if (!t) continue;
+    sampled = true;
+    rps += t.rps;
+    errs += t.rps * t.errRate;
+    if (!worst || t.errRate > worst.err) worst = { path: r.path, err: t.errRate };
+  }
+  return { rps, err: rps > 0 ? errs / rps : 0, sampled, worst };
+}
+
 function renderTopology(w: World): void {
   // order by dependency depth: leaves (db) rightmost, entry (web) leftmost
   const depth = (id: string, seen = new Set<string>()): number => {
@@ -3351,6 +3379,12 @@ function renderTopology(w: World): void {
           <span class="topo-dot"></span>
           <span class="topo-id"></span>
           <span class="topo-ver"></span>
+          <span class="topo-live">
+            <span class="topo-health"></span>
+            <span class="topo-rps"></span>
+            <span class="topo-err"></span>
+            <span class="topo-route"></span>
+          </span>
         </span>`
       )
       .join('');
@@ -3362,6 +3396,18 @@ function renderTopology(w: World): void {
     const node = topologyEl.querySelector<HTMLElement>(`[data-service="${s.id}"]`)!;
     node.dataset.health = s.health;
     node.querySelector('.topo-ver')!.textContent = s.version;
+    node.querySelector('.topo-health')!.textContent = s.health;
+    // the live line: what the routes ending here are doing, this tick.
+    // Empty until traffic has reported on them, so a standing console and a
+    // service nothing routes to (db) both read as health word only.
+    const load = serviceLoad(w, s.id);
+    node.dataset.sampled = String(load.sampled);
+    node.querySelector('.topo-rps')!.textContent = load.sampled ? `· ${Math.round(load.rps)}/s` : '';
+    node.querySelector('.topo-err')!.textContent = load.sampled ? `· ${teleFormat('err', load.err)}` : '';
+    // the route the errors come in on, named only while the service is not
+    // ok and that route is actually erroring (same floor the masthead warns at)
+    const failing = s.health !== 'ok' && load.worst && load.worst.err > 0.01 ? load.worst.path : '';
+    node.querySelector('.topo-route')!.textContent = failing ? `· ${failing}` : '';
   }
 }
 

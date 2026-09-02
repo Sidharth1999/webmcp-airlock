@@ -1,5 +1,43 @@
 # STATUS — live audit log
 
+## DONE 2026-09-02 (Wed, 12:30): THE LANDING URL OPENS IN THE STORY
+
+A judge who opened the live link cold landed on a nominal console ("ALL SYSTEMS
+RESPONDING · $0.00", no agent) and had to find "Run sim". Two URL params in
+`src/main.ts`, beside `template`/`tick`/`dev`, and nothing else — no copy, no
+banner, no narration:
+
+- `?run=1` — after `seed()`, presses Run sim through the button's own handler
+  (now the named `toggleRun()`; the listener calls the same function).
+- `?site=1` — opens the storefront through `setRegion('site', true)`, the
+  same call the activity-bar toggle makes.
+
+**Judge-facing landing URL:**
+`https://release-airlock.vercel.app/?template=retry-storm&run=1&site=1`
+Retry-storm breaks /checkout at tick 12 (~6s at the default tick) and sustains
+itself, so the page sits inside the incident until someone acts. Absent
+params ⇒ byte-for-byte the old default (seeded · paused, shop closed).
+
+Frames at 1512x945 in `log/landing/`: `01-t0.png` (running, shop open,
+nominal), `02-t15.png` (INCIDENT ACTIVE · ORDERS-API DEGRADED, red payments
+notice on the shop, "Try payment again", $67.07 impact, no overflow),
+`03-bare.png` (default untouched).
+
+### Test-file diff (adds only, nothing edited or removed) — Sid to eyeball
+`tools/smoke.mjs`, two `check(...)` gates appended before `no page errors`:
+1. `?template=retry-storm&run=1&site=1 opens running with the shop open, and
+   the shop is failing within 20s` — status bar ticking and not "paused",
+   button says Pause sim, `data-site='on'`, storefront visible, then
+   `#storefront[data-state=broken]` + `html[data-health=degraded]` within
+   20s and the payments banner visible.
+2. `the bare URL still opens seeded · paused with the storefront closed
+   (default untouched)` — after seed + 1.5s: "seeded · paused", "Run sim",
+   `data-site='off'`, storefront hidden.
+Smoke is now **108 gates** (was 106). Verification: smoke GREEN (alone) ·
+206 · typecheck · lint:sim.
+
+---
+
 ## DONE 2026-09-02 (Wed, 03:00–12:30): FABLE SESSION — LEGIBILITY AND SUBMISSION, PRODUCT FROZEN
 
 Sid handed the last stretch to Fable with a large budget. The read: the

@@ -618,6 +618,8 @@ const worker = new Worker(new URL('./sim/worker.ts', import.meta.url), { type: '
 const send = (msg: SimRequest) => worker.postMessage(msg);
 // a worker that never boots must not leave a blank page: show the shell anyway
 worker.addEventListener('error', () => revealShell());
+// and no host may ever be left looking at nothing: reveal regardless after 1.5s
+setTimeout(() => revealShell(), 1500);
 
 // read-tool RPC: tools ask the worker, the worker's log/world answer —
 // no mirrored state on the main thread (schema v1: one source of truth)

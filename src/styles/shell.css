@@ -365,6 +365,10 @@ body {
   border-bottom: 1px solid var(--line);
 }
 .panel-tabs .spacer { flex: 1; }
+/* the tabs' own tablist, so the strip can also carry the audit toggle and
+   the close button without breaking aria-required-children. Transparent
+   to layout: it inherits the strip's row and stretch. */
+.ptabs { display: flex; align-items: stretch; min-width: 0; }
 .ptab {
   font-family: var(--font-prose);
   font-size: var(--text-xs);

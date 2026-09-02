@@ -258,23 +258,30 @@ app.innerHTML = `
       <!-- EVIDENCE. Three views of one thing, so they are TABS, not three
            stacked panels that each lengthened the scroll. -->
       <section class="wb-panel" id="wb-panel" aria-label="Evidence">
-        <div class="panel-tabs" role="tablist" aria-label="Evidence">
-          <button type="button" role="tab" class="ptab" data-tab="changed" data-testid="tab-changed"
-                  id="tab-changed" aria-controls="zone-changed" aria-selected="true" tabindex="0">
-            Deploys<span class="ptab-count" id="tab-changed-count"></span>
-          </button>
-          <button type="button" role="tab" class="ptab" data-tab="activity" data-testid="tab-activity"
-                  id="tab-activity" aria-controls="zone-activity" aria-selected="false" tabindex="-1">
-            Activity<span class="ptab-count" id="tab-activity-count"></span>
-          </button>
-          <button type="button" role="tab" class="ptab" data-tab="logs" data-testid="tab-logs"
-                  id="tab-logs" aria-controls="zone-logs" aria-selected="false" tabindex="-1">
-            Logs<span class="ptab-count" id="tab-logs-count"></span>
-          </button>
-          <button type="button" role="tab" class="ptab" data-tab="chart" data-testid="tab-chart"
-                  id="tab-chart" aria-controls="err-chart" aria-selected="false" tabindex="-1">
-            Error rate
-          </button>
+        <div class="panel-tabs">
+          <!-- role=tablist may only contain tabs (aria-required-children), and
+               this strip also carries the audit toggle and the close button.
+               The tabs get their own tablist element inside the strip; the two
+               plain buttons are siblings of it, in the same flex row, so the
+               strip looks exactly as it did and the tree is legal. -->
+          <div class="ptabs" role="tablist" aria-label="Evidence">
+            <button type="button" role="tab" class="ptab" data-tab="changed" data-testid="tab-changed"
+                    id="tab-changed" aria-controls="zone-changed" aria-selected="true" tabindex="0">
+              Deploys<span class="ptab-count" id="tab-changed-count"></span>
+            </button>
+            <button type="button" role="tab" class="ptab" data-tab="activity" data-testid="tab-activity"
+                    id="tab-activity" aria-controls="zone-activity" aria-selected="false" tabindex="-1">
+              Activity<span class="ptab-count" id="tab-activity-count"></span>
+            </button>
+            <button type="button" role="tab" class="ptab" data-tab="logs" data-testid="tab-logs"
+                    id="tab-logs" aria-controls="zone-logs" aria-selected="false" tabindex="-1">
+              Logs<span class="ptab-count" id="tab-logs-count"></span>
+            </button>
+            <button type="button" role="tab" class="ptab" data-tab="chart" data-testid="tab-chart"
+                    id="tab-chart" aria-controls="err-chart" aria-selected="false" tabindex="-1">
+              Error rate
+            </button>
+          </div>
           <span class="spacer"></span>
           <button type="button" id="audit-toggle" data-testid="audit-toggle" aria-pressed="false"
                   title="filter the stream to who did what">Audit trail</button>

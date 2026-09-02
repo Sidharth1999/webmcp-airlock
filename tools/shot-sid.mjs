@@ -9,7 +9,7 @@ const page = await b.newPage({ viewport: { width: 1512, height: 945 } });
 const errs = [];
 page.on('pageerror', e => errs.push(String(e)));
 await page.goto(URL, { waitUntil: 'networkidle' });
-await page.waitForTimeout(3500);
+await page.waitForTimeout(Number(process.argv[5] ?? 3500));
 await page.screenshot({ path: `${OUT}/${NAME}.png` });
 console.log('shot ->', `${OUT}/${NAME}.png`, errs.length ? `ERRORS: ${errs}` : 'no page errors');
 await b.close();

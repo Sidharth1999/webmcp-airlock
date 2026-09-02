@@ -761,19 +761,64 @@ body {
 /* Inside the agent dock now, so it stacks rather than sitting in a gutter:
    a label row over the cards. The horizontal "Waiting on you" gutter cost
    101px of every width and bought nothing. */
+/* NOT A BOX ANY MORE. The airlock, the findings and the plan were three
+   separately bordered regions stacked in one column, which is what read as
+   "3 distinct cards ... it doesn't feel like one UI element". They are now
+   segments of a single thread: the frame is gone, and the only vertical
+   line in the dock is the thread's own spine. */
 .airlock {
   display: flex;
   flex-direction: column;
   gap: var(--sp-2);
   min-width: 0;
-  margin: 0 0 var(--sp-3);
-  padding: var(--sp-3);
-  background: oklch(24% 0.045 310 / 0.5);
-  border: 1px solid var(--actor-agent-dim);
-  border-left: 3px solid var(--actor-agent);
-  border-radius: var(--r-sm);
+  margin: 0;
+  padding: 0;
+  background: none;
+  border: 0;
 }
 .airlock[data-pending='0'] { display: none; }
+
+/* ---- THE AGENT THREAD: one spine, entries hanging off it -------------- */
+.agent-thread {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  padding-left: var(--sp-4);
+}
+/* the spine. One line for the whole column, so nothing inside it needs a
+   border of its own to say where it belongs. */
+.agent-thread::before {
+  content: '';
+  position: absolute;
+  left: 3px;
+  top: 4px;
+  bottom: 4px;
+  width: 1px;
+  background: linear-gradient(
+    180deg,
+    transparent,
+    var(--actor-agent-dim) 6%,
+    var(--actor-agent-dim) 94%,
+    transparent
+  );
+}
+/* every entry marks its own point on the spine */
+.agent-thread .finding,
+.agent-thread .plan-card,
+.agent-thread > .findings-region .ladder-head { position: relative; }
+.agent-thread .finding::before,
+.agent-thread .plan-card::before {
+  content: '';
+  position: absolute;
+  left: calc(var(--sp-4) * -1 + 1px);
+  top: 0.72em;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--actor-agent);
+}
+.agent-thread .finding[data-fold='true']::before { background: var(--ink-ghost); }
 
 /* THE Z AXIS INSTEAD OF A SECOND LAYOUT.
    A pending decision needs more room than the dock's resting width, and the
@@ -1751,19 +1796,19 @@ body {
    the left is the state at a glance — filled means done, ringed means this
    is the one you are being asked about, hollow means not yet asked. */
 .plan-card {
-  border: 0 solid var(--actor-agent-dim);
-  border-left: 3px solid var(--actor-agent);
-  background: oklch(76% 0.13 310 / 0.07);
-  padding: var(--sp-2) var(--sp-3);
-  margin: var(--sp-2) 0;
+  border: 0;
+  background: none;
+  padding: 0;
+  margin: var(--sp-2) 0 0;
   display: flex;
   flex-direction: column;
   gap: var(--sp-2);
   font-family: var(--font-instrument);
   font-size: var(--text-xs);
 }
-.plan-card[data-state='abandoned'] { border-color: var(--line); border-left-color: var(--ink-ghost); opacity: 0.85; }
-.plan-card[data-state='complete'] { border-color: var(--good); border-left-color: var(--good); }
+.plan-card[data-state='abandoned'] { opacity: 0.85; }
+.plan-card[data-state='abandoned']::before { background: var(--ink-ghost); }
+.plan-card[data-state='complete']::before { background: var(--good); }
 /* wrap rather than overflow: at a 570px dock the title and the state line
    together ran 3px past the card and bled over its edge */
 .pl-head { display: flex; align-items: baseline; gap: var(--sp-2); flex-wrap: wrap; }
@@ -1779,6 +1824,69 @@ body {
   color: var(--ink-faint); font-size: var(--text-2xs); text-align: right;
 }
 .plan-card[data-state='complete'] .pl-state { color: var(--good); }
+
+/* ---- the step rail: the whole plan in one line, at the top ------------- */
+.pl-rail {
+  list-style: none;
+  margin: 2px 0 0;
+  padding: 0;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  align-items: center;
+}
+.pl-pip {
+  width: 17px;
+  height: 17px;
+  border-radius: 50%;
+  display: grid;
+  place-items: center;
+  font-family: var(--font-instrument);
+  font-size: 10px;
+  line-height: 1;
+  border: 1px solid var(--actor-agent-dim);
+  color: var(--ink-ghost);
+  transition: background var(--dur-snap) var(--ease-snap),
+              color var(--dur-snap) var(--ease-snap),
+              border-color var(--dur-snap) var(--ease-snap);
+}
+/* the one you are being asked about: filled, and the only pip that moves */
+.pl-pip[data-state='live'] {
+  border-color: var(--actor-agent);
+  background: var(--actor-agent);
+  color: oklch(18% 0.03 310);
+  font-weight: 600;
+}
+.pl-pip[data-state='done'] {
+  border-color: var(--good);
+  background: color-mix(in oklch, var(--good) 22%, transparent);
+  color: var(--good);
+}
+.pl-pip[data-state='blocked'],
+.pl-pip[data-state='skipped'] { border-color: var(--bad); color: var(--bad); }
+.pl-pip[data-state='dropped'] { opacity: 0.4; }
+
+/* ---- THE LIVE STEP NEVER LEAVES THE SCREEN ----------------------------
+   S3, and the reason a seven-step plan is usable at all: with the sequence
+   this long the step being asked about is halfway down a scrolling column,
+   so the operator scrolls to find the decision and loses the reasoning, or
+   reads the reasoning and loses the decision. The live step sticks to the
+   bottom of the thread. Everything above it scrolls past normally. */
+.pl-step[data-state='live'] {
+  position: sticky;
+  bottom: 0;
+  z-index: 2;
+  background: linear-gradient(
+    180deg,
+    color-mix(in oklch, var(--panel) 88%, var(--actor-agent) 12%),
+    var(--panel)
+  );
+  box-shadow: 0 -10px 18px -8px oklch(0% 0 0 / 0.55);
+  margin-inline: calc(var(--sp-2) * -1);
+  padding-inline: var(--sp-2);
+  padding-block: var(--sp-2);
+  border-radius: var(--r-sm);
+}
 
 .pl-why { display: flex; flex-direction: column; gap: 2px; }
 .pl-why-k {
@@ -2151,15 +2259,30 @@ body {
 #storefront[data-state='broken'] .sf-feed { color: oklch(48% 0.02 160); }
 
 /* --- the agent's findings: the rail's actual job ------------------------- */
-.findings { display: flex; flex-direction: column; gap: var(--sp-2); margin-bottom: var(--sp-3); }
+.findings { display: flex; flex-direction: column; gap: var(--sp-3); margin-bottom: var(--sp-3); }
+/* An entry on the thread, not a card. No frame, no tint, no radius — the
+   spine already says these belong together, and three levels of border was
+   the "nested divs" tell. */
 .finding {
-  border: 1px solid color-mix(in oklch, var(--actor-agent) 32%, var(--line));
-  border-left: 2px solid var(--actor-agent);
-  border-radius: var(--r-sm);
-  padding: var(--sp-3);
-  background: color-mix(in oklch, var(--actor-agent) 5%, transparent);
+  border: 0;
+  padding: 0;
+  background: none;
+  cursor: pointer;
   animation: doing-in 240ms cubic-bezier(.2,.7,.3,1) both;
 }
+/* SUPERSEDED THINKING FOLDS. The current conclusion stays in full; earlier
+   ones keep one dimmed line and open again on click, so the operator reads
+   what the agent knows NOW without losing how it got there. */
+.finding[data-fold='true'] .finding-summary {
+  color: var(--ink-faint);
+  font-size: var(--text-xs);
+  display: -webkit-box;
+  -webkit-line-clamp: 1;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+.finding[data-fold='true'] .finding-ruled { display: none; }
+.finding[data-fold='true']:hover .finding-summary { color: var(--ink-dim); }
 .finding-summary {
   margin: 0;
   color: var(--ink);
@@ -2832,6 +2955,12 @@ h4.ctl-group-label { margin: 0 0 var(--sp-2); }
   border-bottom: 1px solid var(--line);
   background: oklch(0% 0 0 / 0.15);
 }
+/* inside the thread the same heading is a label on a line, not a titlebar */
+.agent-thread .ladder-head {
+  padding: 0 0 var(--sp-2);
+  border-bottom: 0;
+  background: none;
+}
 #tool-list {
   min-height: 0;
   overflow-y: auto;
@@ -2864,21 +2993,25 @@ h4.ctl-group-label { margin: 0 0 var(--sp-2); }
    findings and the ladder to zero height (#18), and the region has been flex
    since. The row declarations outlived it as dead code; a `grid-row` on a
    flex child does nothing, which is a trap for whoever reads it next. */
+/* NO FRAME, NO WELL, NO INNER SCROLLER. This was a bordered panel with its
+   own background and its own overflow, sitting next to two other bordered
+   panels — which is the "3 distinct cards" complaint precisely, and the inner
+   scroller is what put the agent's conclusions below a fold of their own. It
+   is a segment of the thread now: the thread scrolls, once, as one column. */
 .findings-region {
   min-height: 0;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr);
-  background: var(--s-well);
-  border: 1px solid var(--line);
-  border-radius: var(--r-md);
-  overflow: hidden;
+  grid-template-rows: auto auto;
+  background: none;
+  border: 0;
+  border-radius: 0;
 }
-.findings-region .findings { min-height: 0; overflow-y: auto; padding: var(--sp-2); }
+.findings-region .findings { min-height: 0; padding: 0; }
 .findings-region .findings:empty { display: block; }
 .findings-empty {
   grid-row: 2;
   align-self: start;
-  padding: var(--sp-3);
+  padding: 0 0 var(--sp-2);
   margin: 0;
   font-size: var(--text-xs);
   line-height: 1.6;

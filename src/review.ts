@@ -109,11 +109,11 @@ const SCENES: Scene[] = [
   },
   {
     id: 'plan',
-    title: 'A plan: two levers, in one order, priced',
+    title: 'A seven-step response, in one order, priced',
     tryThis: [
-      'Read WHY THIS ORDER before either step.',
-      'Approve step 1 — step 2 is only proposed after it executes.',
-      'Rings 1 and 2 on the console mark where it lands.',
+      'Read WHY THIS ORDER before any step.',
+      'Approve step 1 — the next is only proposed once it executes.',
+      'Rings on the console mark where each step lands.',
     ],
     template: 'retry-storm',
     async run(ctx) {
@@ -126,18 +126,49 @@ const SCENES: Scene[] = [
       await ctx.call('record_finding', {
         summary: `Offered rate on /checkout is ~4x its organic share while /browse is flat, and contention already cleared (#${seqs.at(2)}) — the load is retries sustaining themselves.`,
       });
+      await ctx.call('record_finding', {
+        summary: `Payments has storefront-web 4.1.0 queued on the shared node pool (#${seqs.at(0)}). It will take capacity api has none of, and nothing is stopping it.`,
+      });
       // A plan card is tall and the airlock is pinned above the deck, so at
       // 1350px the rows it numbers sit under the evidence panel. Close the
       // panel for this scene: the point here is the sequence landing on the
       // controls, and the reviewer can reopen it from the left rail.
       ctx.click('close-panel');
       await ctx.call('propose_plan', {
-        reason: `The fleet is at its autoscaler ceiling with no spare instances (#${seqs.at(1)}), so a rolling replacement withdraws capacity this incident cannot spare. Headroom has to exist before the fix ships; the other way round takes api down.`,
+        reason: `The fleet is at its autoscaler ceiling with no spare instances (#${seqs.at(1)}), so a rolling replacement withdraws capacity this incident cannot spare. Headroom has to exist before the fix ships. The freeze has to go on before payments rolls and come off before I ship — and it needs an owner before it will take at all.`,
         steps: [
+          {
+            tool: 'propose_acknowledge',
+            input: { by: 'operator' },
+            because: 'nobody owns this yet, and an estate-wide freeze is a commander action',
+          },
+          {
+            tool: 'propose_severity',
+            input: { level: 'sev1' },
+            because: 'checkout is failing for real customers, and the status page is keyed to a severity',
+          },
+          {
+            tool: 'propose_deploy_freeze',
+            input: { frozen: true },
+            because: 'payments 4.1.0 is queued on the shared pool and would take capacity api has none of',
+          },
+          {
+            tool: 'propose_status_update',
+            input: {
+              state: 'identified',
+              text: 'Checkout is failing for some customers. We have identified the cause and are working on a fix.',
+            },
+            because: 'customers are seeing card failures now; every minute unsaid is a support ticket',
+          },
           {
             tool: 'propose_rate_limit',
             input: { route: 'r-checkout', rps: 150 },
             because: 'buys headroom now — it rejects real customers and fixes nothing',
+          },
+          {
+            tool: 'propose_deploy_freeze',
+            input: { frozen: false },
+            because: 'the freeze stops my own rollout too — it has to come off before the fix can ship',
           },
           {
             tool: 'propose_rollforward',

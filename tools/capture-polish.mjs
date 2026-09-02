@@ -97,11 +97,27 @@ await scene('plan', async (p) => {
     { timeout: 20_000 }
   );
   await shot(p, '08-plan-step2-arrives');
-  await p.locator('.pl-step[data-state="live"] .ap-approve').first().click();
+  // WALK THE WHOLE SEQUENCE. This approved exactly twice and then waited for
+  // the plan to report complete, which was right while the longest plan in
+  // the product was an ordered pair and silently wrong the moment the
+  // certified response became seven steps. Drive until there is no live step
+  // left rather than counting them here.
+  for (let n = 0; n < 12; n++) {
+    const step = p.locator('.pl-step[data-state="live"]').first();
+    if (!(await step.count())) break;
+    // A STEP ON THE TWO-KEY RUNG STOPS HERE UNTIL THE KEY IS TURNED, and one
+    // of them is: telling customers is the only action in this sequence that
+    // leaves the building, so it is tier 4 and Approve stays disabled until
+    // the operator engages the key. Not a snag in the capture — the beat.
+    const key = step.locator('.ap-key-toggle').first();
+    if (await key.count()) await key.check();
+    await step.locator('.ap-approve').first().click();
+    await p.waitForTimeout(400);
+  }
   await p.waitForFunction(
     (i) => document.querySelector(`[data-testid="plan-${i}"]`)?.dataset.state === 'complete',
     id,
-    { timeout: 20_000 }
+    { timeout: 30_000 }
   );
   await p.waitForTimeout(1200);
   await shot(p, '09-plan-done-receipt');

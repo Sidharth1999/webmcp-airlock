@@ -394,6 +394,17 @@ app.innerHTML = `
         </div>
       </div>
       <div class="dock-body">
+        <!-- ONE THREAD, NOT THREE CARDS (Sid, 2026-09-02: "it's too ugly with
+             how it's cramming text and juxtaposing 3 different panels and it's
+             not fluid at all", and "it should look linear but not be so
+             disconnected"). The dock used to be a stack of separately bordered
+             regions — a review banner, an airlock box, a findings box — each
+             with its own frame, which is what read as card-inside-card. It is
+             now a single chronological thread hanging off one spine: what the
+             agent worked out, then what it proposes, in the order those things
+             happened. The live decision is pinned to the bottom of the thread
+             so it can never fall below the fold, which is the whole of S3. -->
+        <div class="agent-thread" id="agent-thread">
         <!-- THE AIRLOCK, inside the agent region.
              It used to be a pinned block in the CENTRE column, which meant
              the console had to be laid out twice — once with a decision
@@ -402,13 +413,13 @@ app.innerHTML = `
              asks now lives in one column, and when a decision is pending that
              column ELEVATES over the page instead of reshaping it. One
              reserved area, one axis. -->
-        <div class="airlock" id="airlock" data-pending="0">
-          <div class="al-label" data-state="settled"><span class="al-dot" aria-hidden="true"></span><span class="al-text">Nothing waiting on you</span></div>
-          <div class="al-cards" id="airlock-cards"></div>
-        </div>
-
-        <p class="agent-doing" id="agent-doing" aria-live="polite" hidden></p>
-
+        <!-- READ FIRST, PROPOSE SECOND — so the thread runs in that order.
+             This region used to sit BELOW the airlock, which put the thing
+             telling you what the agent is thinking off-screen exactly when a
+             decision was on screen. Newest conclusion sits last, against the
+             plan it led to; earlier ones fold to a line as they are superseded
+             ("it should be more incremental and hide old insights/thoughts as
+             it learns things"). -->
         <section class="findings-region" aria-label="What the agent has concluded">
           <div class="ladder-head">
             <span class="ladder-title">What the agent has worked out</span>
@@ -422,6 +433,13 @@ app.innerHTML = `
           </p>
         </section>
 
+        <p class="agent-doing" id="agent-doing" aria-live="polite" hidden></p>
+
+        <div class="airlock" id="airlock" data-pending="0">
+          <div class="al-label" data-state="settled"><span class="al-dot" aria-hidden="true"></span><span class="al-text">Nothing waiting on you</span></div>
+          <div class="al-cards" id="airlock-cards"></div>
+        </div>
+        </div>
       </div>
       <!-- CAPABILITY IS REFERENCE, so it lives at the EDGE and opens on
            demand. Collapsed inline it was still at the bottom of a scrolling
@@ -1312,6 +1330,8 @@ interface LivePlan {
   index: number;
   el: HTMLElement;
   stepEls: HTMLElement[];
+  /** one pip per step in the head rail, mirroring that step's state */
+  pips: HTMLElement[];
   /** the console row each step would land on, numbered in place */
   anchors: (HTMLElement | null)[];
   state: 'running' | 'complete' | 'abandoned';
@@ -1346,6 +1366,13 @@ function stepDescription(step: PlanStep): string {
  * summarises; the tail after an em dash, colon or bracket is the step's
  * elaboration and is exactly what a summary should drop.
  */
+/**
+ * The plan's one-line identity. Joining every step with "then" was fine for an
+ * ordered PAIR and becomes a seven-clause run-on the moment a real sequence
+ * arrives — it wrapped to three lines and buried the state line beside it. A
+ * long plan says how far it reaches and where it ends; the steps themselves
+ * are directly underneath and say the rest.
+ */
 function planSummary(steps: PlanStep[]): string {
   const short = steps.map((st) =>
     stepDescription(st)
@@ -1353,13 +1380,18 @@ function planSummary(steps: PlanStep[]): string {
       .trim()
       .replace(/[,;]$/, '')
   );
-  return short.join(', then ');
+  if (short.length <= 3) return short.join(', then ');
+  return `${short.length} steps — ${short[0]}, through to ${short[short.length - 1]}`;
 }
 
 function setStepState(plan: LivePlan, i: number, state: string, note: string): void {
   const el = plan.stepEls[i];
   if (!el) return;
   el.dataset.state = state;
+  // the head rail carries the same state, so "how far has this got" is
+  // answerable without scrolling a seven-step list
+  const pip = plan.pips[i];
+  if (pip) pip.dataset.state = state;
   el.querySelector<HTMLElement>('.pl-note')!.textContent = note;
   // the console row wears the same state, so the plan is legible from the
   // controls as well as from the card
@@ -1479,6 +1511,26 @@ function renderPlan(e: Event): void {
   head.append(who, state);
   el.append(head);
 
+  // THE PLAN AT A GLANCE, at the top, where Sid asked for it ("the proposed
+  // plan can sit at the beginning"). One pip per step carrying that step's own
+  // state, so a seven-step sequence reports how far it has got without the
+  // operator scrolling the list to find out. Purely a readout: every approval
+  // still happens on the step itself.
+  const rail = document.createElement('ol');
+  rail.className = 'pl-rail';
+  rail.dataset.testid = `plan-rail-${d.planId}`;
+  rail.setAttribute('aria-hidden', 'true');
+  const pips: HTMLElement[] = [];
+  steps.forEach((_, i) => {
+    const pip = document.createElement('li');
+    pip.className = 'pl-pip';
+    pip.dataset.state = 'pending';
+    pip.textContent = String(i + 1);
+    pips.push(pip);
+    rail.append(pip);
+  });
+  el.append(rail);
+
   // THE ORDER'S REASON COMES FIRST. It is what distinguishes this from a
   // batch, and the operator must weigh it before the first approval, not
   // discover it between steps.
@@ -1553,6 +1605,7 @@ function renderPlan(e: Event): void {
     index: 0,
     el,
     stepEls,
+    pips,
     anchors,
     state: 'running',
   };
@@ -2114,9 +2167,31 @@ function renderFinding(e: Event): void {
     card.append(ruled);
   }
 
-  host.prepend(card);
-  // the newest reading is the useful one; older ones stay in the audit trail
-  while (host.children.length > 3) host.lastElementChild!.remove();
+  // CHRONOLOGICAL, NEWEST LAST — the thread reads top to bottom and the
+  // freshest conclusion sits against the plan it led to. It used to prepend,
+  // which put the newest reading furthest from the decision it justified.
+  host.append(card);
+  // Older thinking FOLDS rather than vanishing: the current conclusion is in
+  // front, superseded ones keep one line each and open on click. Sid: "it
+  // should be more incremental and hide old insights/thoughts as it learns
+  // things". Six is where the spine stops being readable at 1512x945.
+  while (host.children.length > 6) host.firstElementChild!.remove();
+  foldOlderFindings(host);
+}
+
+/** Newest expanded; everything above it folded to its summary line. */
+function foldOlderFindings(host: HTMLElement): void {
+  const all = [...host.children] as HTMLElement[];
+  all.forEach((el, i) => {
+    const latest = i === all.length - 1;
+    el.dataset.fold = latest ? 'false' : 'true';
+    if (!el.dataset.wired) {
+      el.dataset.wired = '1';
+      el.addEventListener('click', () => {
+        el.dataset.fold = el.dataset.fold === 'true' ? 'false' : 'true';
+      });
+    }
+  });
 }
 
 function showAgentAttention(e: Event): void {

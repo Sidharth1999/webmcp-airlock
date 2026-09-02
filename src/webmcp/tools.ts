@@ -515,7 +515,7 @@ export function createAirlockTools(
     const tool: ToolDescriptor = {
       name: 'propose_plan',
       description:
-        'Propose an ORDERED sequence of 2-4 actions when the order itself matters — when doing the same steps in a different order would cost more. Give the reason the order is load-bearing; the operator reads it before approving anything. Each step is still approved separately, and step N+1 is not proposed until step N has run, so nothing executes ahead of the human.',
+        'Propose an ORDERED sequence of 2-8 actions when the order itself matters — when doing the same steps in a different order would cost more. Give the reason the order is load-bearing; the operator reads it before approving anything. Each step is still approved separately, and step N+1 is not proposed until step N has run, so nothing executes ahead of the human.',
       inputSchema: {
         type: 'object',
         properties: {
@@ -525,7 +525,7 @@ export function createAirlockTools(
           },
           steps: {
             type: 'array',
-            description: 'The actions in the order they must happen. 2 to 4 of them.',
+            description: 'The actions in the order they must happen. 2 to 8 of them.',
             items: {
               type: 'object',
               properties: {
@@ -551,7 +551,13 @@ export function createAirlockTools(
         if (raw.length < 2) {
           return reject('a plan needs at least 2 steps; for a single action, use its own propose tool.');
         }
-        if (raw.length > 4) return reject('a plan is capped at 4 steps.');
+        // EIGHT, NOT FOUR. The cap was four when the longest declared answer
+        // key in the product was an ordered PAIR, so it never bound on
+        // anything real. The certified response for retry-storm is seven
+        // steps — acknowledge, severity, freeze, tell customers, cap, lift,
+        // ship — and a four-step ceiling would have made the console reject
+        // its own compiler-verified answer.
+        if (raw.length > 8) return reject('a plan is capped at 8 steps.');
 
         const steps: { tool: string; input: Record<string, unknown>; because?: string }[] = [];
         for (const [n, r] of raw.entries()) {

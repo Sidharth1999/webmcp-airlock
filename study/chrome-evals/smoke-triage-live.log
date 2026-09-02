@@ -1,0 +1,87 @@
+
+[Smoke] Opening fresh page for "Incident status on arrival" at https://release-airlock.vercel.app...
+[Smoke] Case "Incident status on arrival" Step 1/1: Calling tool "airlock_status" with args: {}
+  └─ PASS: Output: {"asOfSeq":7,"humanSelection":null,"services":[{"id":"web","health":"ok","version":"3.1.0"},{"id":"api","health":"ok","version":"1.9.3"},{"id":"db","health":"ok","version":"15.4"}],"traffic":{"rps":0,"errRate":0,"p95":0,"byRoute":{}},"damage":{"usersErrored":0,"ticketsOpened":0,"revenueLost":0},"incidentOpen":false,"standing":[]}
+
+[Smoke] Opening fresh page for "Recent deploys" at https://release-airlock.vercel.app...
+[Smoke] Case "Recent deploys" Step 1/1: Calling tool "list_deploys" with args: {}
+  └─ PASS: Output: {"asOfSeq":7,"deploys":[{"id":"d-200","service":"api","version":"1.9.3","status":"live","at":0,"author":"mira@sim","areas":["browse"],"migration":null,"flags":[],"diff":"2f +18 -6","canary":null,"note":"browse: cache headers tune"}]}
+
+[Smoke] Opening fresh page for "Latest logs" at https://release-airlock.vercel.app...
+[Smoke] Case "Latest logs" Step 1/1: Calling tool "read_logs" with args: {}
+  └─ PASS: Output: {"asOfSeq":7,"lines":[]}
+
+[Smoke] Opening fresh page for "Change surface (flags, env, routes, migrations)" at https://release-airlock.vercel.app...
+[Smoke] Case "Change surface (flags, env, routes, migrations)" Step 1/1: Calling tool "list_changes" with args: {}
+  └─ PASS: Output: {"asOfSeq":7,"flags":[{"id":"new-checkout","state":"off"}],"env":[{"key":"SESSIONS_SCHEMA","value":"v1••••cy","at":0}],"routes":[{"id":"checkout","path":"/checkout","target":"api","tier":"route"}],"migrations":[]}
+
+[Smoke] Opening fresh page for "Localize the failing route" at https://release-airlock.vercel.app...
+[Smoke] Case "Localize the failing route" Step 1/1: Calling tool "traffic_history" with args: {}
+  └─ PASS: Output: {"asOfSeq":7,"ticks":[]}
+
+[Smoke] Opening fresh page for "Missing tool: ask the surface why" at https://release-airlock.vercel.app...
+[Smoke] Case "Missing tool: ask the surface why" Step 1/1: Calling tool "explain_surface" with args: {}
+  └─ PASS: Output: {"asOfSeq":7,"mode":"triage","changes":[]}
+
+[Smoke] Opening fresh page for "Acknowledge the incident" at https://release-airlock.vercel.app...
+[Smoke] Case "Acknowledge the incident" Step 1/1: Calling tool "propose_acknowledge" with args: {"by":"agent"}
+  └─ PASS: Output: {"status":"proposed","proposalSeq":8,"note":"Awaiting human approval in the console. Nothing has changed yet."}
+
+[Smoke] Opening fresh page for "Declare severity" at https://release-airlock.vercel.app...
+[Smoke] Case "Declare severity" Step 1/1: Calling tool "propose_severity" with args: {"level":"sev1"}
+  └─ PASS: Output: {"status":"proposed","proposalSeq":8,"note":"Awaiting human approval in the console. Nothing has changed yet."}
+
+[Smoke] Opening fresh page for "Escalate to the database on-call" at https://release-airlock.vercel.app...
+[Smoke] Case "Escalate to the database on-call" Step 1/1: Calling tool "propose_escalate" with args: {"team":"database"}
+  └─ PASS: Output: {"status":"proposed","proposalSeq":8,"note":"Awaiting human approval in the console. Nothing has changed yet."}
+
+[Smoke] Opening fresh page for "Silence alerts" at https://release-airlock.vercel.app...
+[Smoke] Case "Silence alerts" Step 1/1: Calling tool "propose_silence_alerts" with args: {"silenced":true}
+  └─ PASS: Output: {"status":"proposed","proposalSeq":8,"note":"Awaiting human approval in the console. Nothing has changed yet."}
+
+[Smoke] Opening fresh page for "Status page: investigating" at https://release-airlock.vercel.app...
+[Smoke] Case "Status page: investigating" Step 1/1: Calling tool "propose_status_update" with args: {"state":"investigating","text":"checkout"}
+  └─ PASS: Output: {"status":"proposed","proposalSeq":8,"note":"Awaiting human approval in the console. Nothing has changed yet."}
+
+[Smoke] Opening fresh page for "Record a finding with advice against the trap" at https://release-airlock.vercel.app...
+[Smoke] Case "Record a finding with advice against the trap" Step 1/1: Calling tool "record_finding" with args: {"summary":"d-201","advisesAgainst":"d-201"}
+  └─ PASS: Output: {"status":"recorded","note":"The operator can see this in the console."}
+
+[Smoke] Opening fresh page for "Ordered incident-command plan" at https://release-airlock.vercel.app...
+[Smoke] Case "Ordered incident-command plan" Step 1/1: Calling tool "propose_plan" with args: {"reason":"sample","steps":[{"tool":"propose_acknowledge","input":{"by":"agent"}},{"tool":"propose_severity","input":{"level":"sev1"}},{"tool":"propose_status_update","input":{"state":"investigating","text":"checkout"}}]}
+  └─ PASS: Output: {"status":"planned","planId":"plan-1","steps":3,"note":"The operator can see the whole order and its reason. Step 1 is proposed; the rest follow one at a time, only after the step before them has executed."}
+
+Smoke Test Summary for https://release-airlock.vercel.app
+
+┌─────────────────────────────────────────────────┬──────┬────────┬────────────────────────┬───────┐
+│ Case                                            │ Step │ Status │ Tool                   │ Error │
+├─────────────────────────────────────────────────┼──────┼────────┼────────────────────────┼───────┤
+│ Incident status on arrival                      │ 1    │ PASS   │ airlock_status         │ -     │
+├─────────────────────────────────────────────────┼──────┼────────┼────────────────────────┼───────┤
+│ Recent deploys                                  │ 1    │ PASS   │ list_deploys           │ -     │
+├─────────────────────────────────────────────────┼──────┼────────┼────────────────────────┼───────┤
+│ Latest logs                                     │ 1    │ PASS   │ read_logs              │ -     │
+├─────────────────────────────────────────────────┼──────┼────────┼────────────────────────┼───────┤
+│ Change surface (flags, env, routes, migrations) │ 1    │ PASS   │ list_changes           │ -     │
+├─────────────────────────────────────────────────┼──────┼────────┼────────────────────────┼───────┤
+│ Localize the failing route                      │ 1    │ PASS   │ traffic_history        │ -     │
+├─────────────────────────────────────────────────┼──────┼────────┼────────────────────────┼───────┤
+│ Missing tool: ask the surface why               │ 1    │ PASS   │ explain_surface        │ -     │
+├─────────────────────────────────────────────────┼──────┼────────┼────────────────────────┼───────┤
+│ Acknowledge the incident                        │ 1    │ PASS   │ propose_acknowledge    │ -     │
+├─────────────────────────────────────────────────┼──────┼────────┼────────────────────────┼───────┤
+│ Declare severity                                │ 1    │ PASS   │ propose_severity       │ -     │
+├─────────────────────────────────────────────────┼──────┼────────┼────────────────────────┼───────┤
+│ Escalate to the database on-call                │ 1    │ PASS   │ propose_escalate       │ -     │
+├─────────────────────────────────────────────────┼──────┼────────┼────────────────────────┼───────┤
+│ Silence alerts                                  │ 1    │ PASS   │ propose_silence_alerts │ -     │
+├─────────────────────────────────────────────────┼──────┼────────┼────────────────────────┼───────┤
+│ Status page: investigating                      │ 1    │ PASS   │ propose_status_update  │ -     │
+├─────────────────────────────────────────────────┼──────┼────────┼────────────────────────┼───────┤
+│ Record a finding with advice against the trap   │ 1    │ PASS   │ record_finding         │ -     │
+├─────────────────────────────────────────────────┼──────┼────────┼────────────────────────┼───────┤
+│ Ordered incident-command plan                   │ 1    │ PASS   │ propose_plan           │ -     │
+└─────────────────────────────────────────────────┴──────┴────────┴────────────────────────┴───────┘
+
+Passed steps: 13/13 across 13 case(s).
+

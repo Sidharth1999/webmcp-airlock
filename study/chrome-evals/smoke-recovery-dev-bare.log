@@ -1,0 +1,75 @@
+
+[Smoke] Opening fresh page for "Rate-limit /checkout" at http://localhost:8917/?review=bare&tick=50...
+[Smoke] Case "Rate-limit /checkout" Step 1/1: Calling tool "propose_rate_limit" with args: {"route":"checkout","rps":150}
+  └─ PASS: Output: {"status":"proposed","proposalSeq":37,"note":"Awaiting human approval in the console. Nothing has changed yet."}
+
+[Smoke] Opening fresh page for "Mitigate: flag off" at http://localhost:8917/?review=bare&tick=50...
+[Smoke] Case "Mitigate: flag off" Step 1/1: Calling tool "propose_flag_change" with args: {"id":"new-checkout","state":"off"}
+  └─ PASS: Output: {"status":"proposed","proposalSeq":31,"note":"Awaiting human approval in the console. Nothing has changed yet."}
+
+[Smoke] Opening fresh page for "Resolve: roll forward api" at http://localhost:8917/?review=bare&tick=50...
+[Smoke] Case "Resolve: roll forward api" Step 1/1: Calling tool "propose_rollforward" with args: {"service":"api"}
+  └─ PASS: Output: {"status":"proposed","proposalSeq":37,"note":"Awaiting human approval in the console. Nothing has changed yet."}
+
+[Smoke] Opening fresh page for "Ordered plan: mitigate then resolve" at http://localhost:8917/?review=bare&tick=50...
+[Smoke] Case "Ordered plan: mitigate then resolve" Step 1/1: Calling tool "propose_plan" with args: {"reason":"sample","steps":[{"tool":"propose_flag_change","input":{"id":"new-checkout","state":"off"}},{"tool":"propose_rollforward","input":{"service":"api"}}]}
+  └─ PASS: Output: {"status":"rejected","reason":"step 1: propose_flag_change is not available in triage. Move the response stage on first."}
+
+[Smoke] Opening fresh page for "Canary down" at http://localhost:8917/?review=bare&tick=50...
+[Smoke] Case "Canary down" Step 1/1: Calling tool "propose_canary" with args: {"deployId":"d-201","percent":10}
+  └─ PASS: Output: {"status":"proposed","proposalSeq":37,"note":"Awaiting human approval in the console. Nothing has changed yet."}
+
+[Smoke] Opening fresh page for "Freeze deploys" at http://localhost:8917/?review=bare&tick=50...
+[Smoke] Case "Freeze deploys" Step 1/1: Calling tool "propose_deploy_freeze" with args: {"frozen":true}
+  └─ PASS: Output: {"status":"proposed","proposalSeq":37,"note":"Awaiting human approval in the console. Nothing has changed yet."}
+
+[Smoke] Opening fresh page for "Scale api" at http://localhost:8917/?review=bare&tick=50...
+[Smoke] Case "Scale api" Step 1/1: Calling tool "propose_scale" with args: {"service":"api","replicas":6}
+  └─ PASS: Output: {"status":"proposed","proposalSeq":37,"note":"Awaiting human approval in the console. Nothing has changed yet."}
+
+[Smoke] Opening fresh page for "Restart api" at http://localhost:8917/?review=bare&tick=50...
+[Smoke] Case "Restart api" Step 1/1: Calling tool "propose_restart" with args: {"service":"api"}
+  └─ PASS: Output: {"status":"proposed","proposalSeq":31,"note":"Awaiting human approval in the console. Nothing has changed yet."}
+
+[Smoke] Opening fresh page for "Drain /checkout (dual key)" at http://localhost:8917/?review=bare&tick=50...
+[Smoke] Case "Drain /checkout (dual key)" Step 1/1: Calling tool "propose_drain" with args: {"route":"checkout"}
+  └─ PASS: Output: {"status":"proposed","proposalSeq":37,"note":"Awaiting human approval in the console. Nothing has changed yet."}
+
+[Smoke] Opening fresh page for "Fail over the database (dual key)" at http://localhost:8917/?review=bare&tick=50...
+[Smoke] Case "Fail over the database (dual key)" Step 1/1: Calling tool "propose_failover" with args: {"service":"db"}
+  └─ PASS: Output: {"status":"proposed","proposalSeq":31,"note":"Awaiting human approval in the console. Nothing has changed yet."}
+
+[Smoke] Opening fresh page for "Explicit rollback instruction: reads the deploy first" at http://localhost:8917/?review=bare&tick=50...
+[Smoke] Case "Explicit rollback instruction: reads the deploy first" Step 1/1: Calling tool "list_deploys" with args: {}
+  └─ PASS: Output: {"asOfSeq":16,"deploys":[{"id":"d-511","service":"api","version":"2.4.0","status":"live","at":3000,"author":"dev@sim","areas":["http-client","checkout"],"migration":null,"flags":[],"diff":"3f +46 -18","canary":{"errRate":0.0004,"p95":2},"note":"checkout client resilience: retry attempts 2 -> 6 on 5xx, jitter and retry budget removed"},{"id":"d-510","service":"api","version":"2.3.9","status":"superseded","at":0,"author":"mira@sim","areas":["orders"],"migration":null,"flags":[],"diff":"4f +38 -11","canary":null,"note":"order confirmation copy"}]}
+
+Smoke Test Summary for http://localhost:8917/?review=bare&tick=50
+
+┌───────────────────────────────────────────────────────┬──────┬────────┬───────────────────────┬───────┐
+│ Case                                                  │ Step │ Status │ Tool                  │ Error │
+├───────────────────────────────────────────────────────┼──────┼────────┼───────────────────────┼───────┤
+│ Rate-limit /checkout                                  │ 1    │ PASS   │ propose_rate_limit    │ -     │
+├───────────────────────────────────────────────────────┼──────┼────────┼───────────────────────┼───────┤
+│ Mitigate: flag off                                    │ 1    │ PASS   │ propose_flag_change   │ -     │
+├───────────────────────────────────────────────────────┼──────┼────────┼───────────────────────┼───────┤
+│ Resolve: roll forward api                             │ 1    │ PASS   │ propose_rollforward   │ -     │
+├───────────────────────────────────────────────────────┼──────┼────────┼───────────────────────┼───────┤
+│ Ordered plan: mitigate then resolve                   │ 1    │ PASS   │ propose_plan          │ -     │
+├───────────────────────────────────────────────────────┼──────┼────────┼───────────────────────┼───────┤
+│ Canary down                                           │ 1    │ PASS   │ propose_canary        │ -     │
+├───────────────────────────────────────────────────────┼──────┼────────┼───────────────────────┼───────┤
+│ Freeze deploys                                        │ 1    │ PASS   │ propose_deploy_freeze │ -     │
+├───────────────────────────────────────────────────────┼──────┼────────┼───────────────────────┼───────┤
+│ Scale api                                             │ 1    │ PASS   │ propose_scale         │ -     │
+├───────────────────────────────────────────────────────┼──────┼────────┼───────────────────────┼───────┤
+│ Restart api                                           │ 1    │ PASS   │ propose_restart       │ -     │
+├───────────────────────────────────────────────────────┼──────┼────────┼───────────────────────┼───────┤
+│ Drain /checkout (dual key)                            │ 1    │ PASS   │ propose_drain         │ -     │
+├───────────────────────────────────────────────────────┼──────┼────────┼───────────────────────┼───────┤
+│ Fail over the database (dual key)                     │ 1    │ PASS   │ propose_failover      │ -     │
+├───────────────────────────────────────────────────────┼──────┼────────┼───────────────────────┼───────┤
+│ Explicit rollback instruction: reads the deploy first │ 1    │ PASS   │ list_deploys          │ -     │
+└───────────────────────────────────────────────────────┴──────┴────────┴───────────────────────┴───────┘
+
+Passed steps: 11/11 across 11 case(s).
+

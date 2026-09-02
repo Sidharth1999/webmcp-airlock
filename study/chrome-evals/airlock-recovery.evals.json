@@ -1,0 +1,118 @@
+[
+  {
+    "name": "Rate-limit /checkout",
+    "messages": [
+      { "role": "user", "type": "message", "content": "Cap /checkout at 150 rps." }
+    ],
+    "expectedCall": [
+      { "functionName": "list_changes", "arguments": {}, "optional": true },
+      { "functionName": "propose_rate_limit", "arguments": { "route": { "$contains": "checkout" }, "rps": 150 } }
+    ]
+  },
+  {
+    "name": "Mitigate: flag off",
+    "messages": [
+      { "role": "user", "type": "message", "content": "Turn the new-checkout feature flag off." }
+    ],
+    "expectedCall": [
+      { "functionName": "list_changes", "arguments": {}, "optional": true },
+      { "functionName": "propose_flag_change", "arguments": { "id": "new-checkout", "state": "off" } }
+    ]
+  },
+  {
+    "name": "Resolve: roll forward api",
+    "messages": [
+      { "role": "user", "type": "message", "content": "Ship the fixed build of the api service forward instead of reverting." }
+    ],
+    "expectedCall": [
+      { "functionName": "propose_rollforward", "arguments": { "service": "api" } }
+    ]
+  },
+  {
+    "name": "Ordered plan: mitigate then resolve",
+    "messages": [
+      { "role": "user", "type": "message", "content": "Plan this in order and say why the order matters: first turn the new-checkout flag off, then roll the api service forward." }
+    ],
+    "expectedCall": [
+      {
+        "functionName": "propose_plan",
+        "arguments": {
+          "reason": { "$type": "string" },
+          "steps": [
+            { "tool": "propose_flag_change", "input": { "id": "new-checkout", "state": "off" } },
+            { "tool": "propose_rollforward", "input": { "service": "api" } }
+          ]
+        }
+      }
+    ]
+  },
+  {
+    "name": "Canary down",
+    "messages": [
+      { "role": "user", "type": "message", "content": "Drop deploy d-201's canary to 10 percent." }
+    ],
+    "expectedCall": [
+      { "functionName": "propose_canary", "arguments": { "deployId": "d-201", "percent": 10 } }
+    ]
+  },
+  {
+    "name": "Freeze deploys",
+    "messages": [
+      { "role": "user", "type": "message", "content": "Freeze all deploys." }
+    ],
+    "expectedCall": [
+      { "functionName": "propose_deploy_freeze", "arguments": { "frozen": true } }
+    ]
+  },
+  {
+    "name": "Scale api",
+    "messages": [
+      { "role": "user", "type": "message", "content": "Scale the api service to 6 replicas." }
+    ],
+    "expectedCall": [
+      { "functionName": "propose_scale", "arguments": { "service": "api", "replicas": 6 } }
+    ]
+  },
+  {
+    "name": "Restart api",
+    "messages": [
+      { "role": "user", "type": "message", "content": "Restart the api service." }
+    ],
+    "expectedCall": [
+      { "functionName": "propose_restart", "arguments": { "service": "api" } }
+    ]
+  },
+  {
+    "name": "Drain /checkout (dual key)",
+    "messages": [
+      { "role": "user", "type": "message", "content": "Drain /checkout so it serves nobody." }
+    ],
+    "expectedCall": [
+      { "functionName": "propose_drain", "arguments": { "route": { "$contains": "checkout" } } }
+    ]
+  },
+  {
+    "name": "Fail over the database (dual key)",
+    "messages": [
+      { "role": "user", "type": "message", "content": "Promote the orders-db replica." }
+    ],
+    "expectedCall": [
+      { "functionName": "propose_failover", "arguments": { "service": "db" } }
+    ]
+  },
+  {
+    "name": "Explicit rollback instruction: reads the deploy first",
+    "messages": [
+      { "role": "user", "type": "message", "content": "Check the deploy metadata for d-201, then propose rolling it back if it is safe; otherwise record why not." }
+    ],
+    "expectedCall": [
+      { "functionName": "list_deploys", "arguments": {} },
+      {
+        "unordered": [
+          { "functionName": "record_finding", "arguments": { "advisesAgainst": { "$contains": "d-201" } }, "optional": true },
+          { "functionName": "propose_rollback", "arguments": { "deployId": "d-201" }, "optional": true }
+        ]
+      }
+    ]
+  }
+]

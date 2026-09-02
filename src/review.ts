@@ -17,45 +17,21 @@
  * model — and the banner says so on screen, permanently, so a scene can never
  * be mistaken for a model doing the reasoning.
  *
- * Absent the query param this module is never imported.
+ * The runner and the film scene live in src/walkthrough.ts, which IS in the
+ * production bundle: the product's own "Watch a walkthrough" plays that one
+ * scene. Everything harness-shaped — this banner, the scene list, the other
+ * scenes — stays here. Absent the query param this module is never imported.
  */
 
 // its own stylesheet, so the harness's chrome is not in the CSS a judge loads
 import './styles/review.css';
+import { filmScene, play, type AirlockLike, type PlayState, type Scene as PlayableScene } from './walkthrough';
 
-interface AirlockLike {
-  invoke(name: string, input?: unknown): Promise<string>;
-}
-
-interface Scene {
-  id: string;
+interface Scene extends PlayableScene {
   /** shown in the banner: what this scene is */
   title: string;
   /** what the reviewer should do — one idea per line, never a paragraph */
   tryThis: string[];
-  template: string;
-  run(ctx: Ctx): Promise<void>;
-}
-
-interface Ctx {
-  air: AirlockLike;
-  /** invoke a tool and parse its JSON result */
-  call(name: string, input?: Record<string, unknown>): Promise<Record<string, unknown>>;
-  /** run the sim until `pred` holds, then pause it */
-  runUntil(pred: () => boolean, label: string): Promise<void>;
-  click(testId: string): void;
-  /** newest-first log seqs currently on screen */
-  logSeqs(): number[];
-}
-
-const sleep = (ms: number): Promise<void> => new Promise((r) => setTimeout(r, ms));
-
-async function waitFor(pred: () => boolean, label: string, timeoutMs = 45_000): Promise<void> {
-  const started = Date.now();
-  while (!pred()) {
-    if (Date.now() - started > timeoutMs) throw new Error(`review: timed out waiting for ${label}`);
-    await sleep(80);
-  }
 }
 
 const SCENES: Scene[] = [
@@ -180,81 +156,15 @@ const SCENES: Scene[] = [
     },
   },
   {
-    id: 'film',
+    // THE FILMED ARC, and the one scene the product plays for itself. The
+    // take, and why it exists, is `filmScene` in src/walkthrough.ts.
+    ...filmScene,
     title: 'A cap the page refused, then published',
     tryThis: [
       'Read the event stream: the agent asked for the cap in Triage and was refused.',
       'The plan appears only after Recovery.',
       'Reach for Silence alerts before you approve step 2.',
     ],
-    template: 'retry-storm',
-    /**
-     * THE FILMED ARC, rehearsable in one link.
-     *
-     * Two outside reviewers, independently, said the same thing about the
-     * eight stills: the capability change is DECLARED and never DEMONSTRATED.
-     * A sheet that goes from 13 to 27 is a settings modal that got longer
-     * unless something is first seen to be impossible.
-     *
-     * It was already impossible. In Triage `propose_rate_limit` is not
-     * published at all — `window.__airlock.list()` does not contain it — and
-     * reaching for it narrates "Agent tried something it cannot reach in this
-     * mode" and writes a `BLOCKED — not-available-in-mode` row into the
-     * stream. The whole beat existed and had never been in a scene, so it had
-     * never been shot and could not have been filmed.
-     *
-     * This scene is the take: the refusal, the unlock, the ordered plan, and
-     * the trap armed so the human can walk into it on camera.
-     */
-    async run(ctx) {
-      await ctx.runUntil(() => ctx.logSeqs().length > 6, 'log lines');
-
-      // 1. THE REFUSAL. Still in Triage: the agent reads, concludes, and
-      //    reaches for the cap it has just argued for. The page says no.
-      for (const t of ['airlock_status', 'list_deploys', 'read_logs', 'traffic_history']) {
-        await ctx.call(t);
-      }
-      const seqs = ctx.logSeqs();
-      await ctx.call('record_finding', {
-        summary: `Offered rate on /checkout is ~4x its organic share while /browse is flat, and contention already cleared (#${seqs.at(2)}) — the load is retries sustaining themselves.`,
-      });
-      await ctx.call('propose_rate_limit', { route: 'r-checkout', rps: 150 });
-      await sleep(1400); // let the refusal land on screen before anything else
-
-      // 2. THE UNLOCK. Recovery publishes the writes, and only now can the
-      //    plan be assembled at all.
-      ctx.click('mode-recovery');
-      await sleep(600);
-      await ctx.call('list_changes');
-
-      // 3. THE TRAP, ARMED. `alerts.silence` is free on its own and
-      //    catastrophic in front of a rollout, so the agent rules it out
-      //    BEFORE the human reaches for it. Counsel, never a block: the
-      //    button still works on the second click.
-      await ctx.call('record_finding', {
-        summary: 'Alert noise is the symptom, not the fault. The rollout in step 2 is guarded by those same alerts.',
-        ruledOut:
-          'Silencing alerts. On its own it costs nothing, but the rollout you are about to approve aborts on the alerts it would suppress — silence them and the guardrail is disarmed exactly when it is load-bearing.',
-        advisesAgainst: 'alerts.silence:true',
-      });
-
-      ctx.click('close-panel');
-      await ctx.call('propose_plan', {
-        reason: `The fleet is at its autoscaler ceiling with no spare instances (#${seqs.at(1)}), so a rolling replacement withdraws capacity this incident cannot spare. Headroom has to exist before the fix ships; the other way round takes api down.`,
-        steps: [
-          {
-            tool: 'propose_rate_limit',
-            input: { route: 'r-checkout', rps: 150 },
-            because: 'buys headroom now — it rejects real customers and fixes nothing',
-          },
-          {
-            tool: 'propose_rollforward',
-            input: { service: 'api' },
-            because: '2.4.2 is staged and green: retry attempts 2, full jitter, budget 10%',
-          },
-        ],
-      });
-    },
   },
   {
     id: 'abandon',
@@ -373,42 +283,15 @@ function banner(scene: Scene, state: 'running' | 'ready' | 'failed', detail = ''
 }
 
 /**
- * HOLD STILL WHILE A DECISION IS PENDING; MOVE AGAIN ONCE IT IS MADE.
+ * Play one scene, then stop. The runner is `play` in src/walkthrough.ts —
+ * it holds the world still while a decision is pending and moves it again
+ * once the decision is made. This is only the banner riding on its state.
  *
- * A scene pauses the sim so the reviewer can read the card in front of them
- * without the world sliding underneath. But that meant approving both steps
- * of a plan and watching nothing happen — the recovery a correct answer earns
- * needs ticks to arrive in. So once the airlock empties, the sim resumes and
- * the reviewer sees what their own decision did.
- */
-async function watchForYourDecision(
-  scene: Scene,
-  isRunning: () => boolean,
-  toggleRun: () => void
-): Promise<void> {
-  // NOT the airlock's pending count: a finished plan keeps its card on screen
-  // as the receipt, so that number never returns to zero. What matters is
-  // whether anything is still WAITING on them — an undecided approval card.
-  const awaiting = () => document.querySelector('.approval-card') !== null;
-  if (!awaiting()) return; // nothing was put to them; leave the world alone
-  await waitFor(() => !awaiting(), 'your decision', 15 * 60_000).catch(() => undefined);
-  if (awaiting()) return;
-  if (!isRunning()) toggleRun();
-  const el = document.querySelector<HTMLElement>('#review-banner');
-  if (!el) return;
-  // The banner goes QUIET once the decision is made. It used to announce
-  // "running — watch the console" and then tell the reviewer the sim was
-  // running again — the harness narrating its own showcase, which is the one
-  // register that must never appear on this page. The scene is over; the
-  // console speaks for itself from here.
-  el.dataset.state = 'running';
-  el.querySelector('.rv-state')!.textContent = '';
-}
-
-/**
- * Play one scene, then stop. `air` is the live tool surface; `pause` puts the
- * sim back in the state the reviewer expects to find it in — paused, so the
- * world holds still while they read the card in front of them.
+ * Once the reviewer has decided, the banner goes QUIET. It used to announce
+ * "running — watch the console" and then tell the reviewer the sim was
+ * running again — the harness narrating its own showcase, which is the one
+ * register that must never appear on this page. The scene is over; the
+ * console speaks for itself from here.
  */
 export async function run(opts: {
   air: AirlockLike;
@@ -419,46 +302,15 @@ export async function run(opts: {
   /** re-seed the console into a different scenario */
   seedTemplate: (id: string) => void;
 }): Promise<void> {
-  const { air, isRunning, toggleRun } = opts;
   const id = new URLSearchParams(location.search).get('review') ?? '';
   const scene = SCENES.find((s) => s.id === id) ?? SCENES[0]!;
-  banner(scene, 'running', 'setting the scene');
-
-  // Each scene names the scenario it needs. Re-seeding here rather than at
-  // boot keeps main.ts from having to know anything about scenes.
-  if (opts.template !== scene.template) {
-    opts.seedTemplate(scene.template);
-    await sleep(400);
-  }
-
-  const ctx: Ctx = {
-    air,
-    async call(name, input = {}) {
-      return JSON.parse(await air.invoke(name, input)) as Record<string, unknown>;
-    },
-    click(testId) {
-      document.querySelector<HTMLElement>(`[data-testid="${testId}"]`)?.click();
-    },
-    logSeqs() {
-      return [...document.querySelectorAll<HTMLElement>('#log-stream .log-row')].map((n) =>
-        Number(n.dataset.seq)
-      );
-    },
-    async runUntil(pred, label) {
-      banner(scene, 'running', `waiting for ${label}`);
-      if (!isRunning()) toggleRun();
-      await waitFor(pred, label);
-      if (isRunning()) toggleRun(); // hold the world still for the reviewer
-    },
+  const onState = (state: PlayState, detail: string): void => {
+    if (state === 'settled' || state === 'stopped') {
+      banner(scene, 'running');
+      document.querySelector('#review-banner .rv-state')?.replaceChildren();
+      return;
+    }
+    banner(scene, state, detail);
   };
-
-  try {
-    await scene.run(ctx);
-    await sleep(250);
-    banner(scene, 'ready');
-    void watchForYourDecision(scene, isRunning, toggleRun);
-  } catch (err) {
-    banner(scene, 'failed', String((err as Error).message ?? err));
-    throw err;
-  }
+  await play(scene, { ...opts, onState });
 }

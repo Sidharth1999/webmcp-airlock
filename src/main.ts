@@ -14,9 +14,12 @@ import orderingFacts from '../study/ordering.json';
 interface OrderingFact {
   runs: number;
   rightOrderUsd: number;
-  wrongOrderUsd: number;
+  /** the plan's OWN actions in the wrong sequence — not any other trap */
+  reversedUsd: number;
+  reversedCatastrophic: number;
+  worstOrderUsd: number;
+  worstOrderCatastrophic: number;
   doNothingUsd: number;
-  wrongOrderCatastrophic: number;
 }
 const ORDERING_FACTS = orderingFacts as Record<string, OrderingFact>;
 /** the scenario actually on screen; a re-seed moves it (see seed()) */
@@ -1622,14 +1625,18 @@ function appendOrderingFact(card: HTMLElement): void {
   head.textContent = 'the other order, measured';
   const body = document.createElement('p');
   body.className = 'pl-cf-body';
+  // SAY EXACTLY WHICH COUNTERFACTUAL THIS IS. The first version of this line
+  // took the worst order trap in the family and called it "reversed" — but
+  // the worst one is silence-then-ship, a DIFFERENT action set, and the
+  // reversal of these two levers costs a third of that. Overclaiming by
+  // conflation, in the one place built to avoid overclaiming. The receipt
+  // reports the reversal of THIS plan and nothing else.
   body.textContent =
-    `Reversed, the same two levers cost $${fact.wrongOrderUsd.toFixed(2)} and left the service down — ` +
+    `Reversed, these same two levers cost $${fact.reversedUsd.toFixed(2)} and still did not resolve — ` +
     `worse than doing nothing at all ($${fact.doNothingUsd.toFixed(2)}). This order: $${fact.rightOrderUsd.toFixed(2)}.`;
   const src = document.createElement('span');
   src.className = 'pl-cf-src';
-  src.textContent =
-    `median of ${fact.runs} deterministic runs · reversed order took the service down in ` +
-    `${fact.wrongOrderCatastrophic} of ${fact.runs}`;
+  src.textContent = `median of ${fact.runs} deterministic runs · same levers, wrong sequence`;
   box.append(head, body, src);
   card.append(box);
 }

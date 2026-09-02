@@ -9,6 +9,7 @@ import {
   RETRY_STORM_SPACE,
   compileCorpus,
 } from '../src/study/compiler';
+import { metaFor } from '../src/sim/templates';
 
 const results = [
   MIGRATION_TRAP_SPACE,
@@ -51,20 +52,53 @@ const median = (xs: number[]): number => {
   const i = Math.floor(a.length / 2);
   return a.length % 2 ? a[i]! : (a[i - 1]! + a[i]!) / 2;
 };
+/**
+ * NOT EVERY ORDER TRAP IS "THE SAME LEVERS REVERSED", and conflating them is
+ * an overclaim. retry-storm declares three: rollforward-then-cap and
+ * rollback-then-cap (the plan's own actions in the wrong sequence, ~$170), and
+ * silence-then-ship (a DIFFERENT action set, catastrophic in 24 of 24, ~$538).
+ * Taking the max across all three and calling it "reversed" shipped a receipt
+ * that put the silence figure on the reversal. Classify by whether the trap is
+ * a PERMUTATION of a declared solution: that is the reversal, and the rest are
+ * reported as the worst wrong move, separately and by name.
+ */
+const sameSet = (a: string[], b: string[]): boolean =>
+  a.length === b.length && [...a].sort().join('|') === [...b].sort().join('|');
+
 const orderingFacts: Record<string, unknown> = {};
 for (const r of results) {
   const withOrder = r.accepted.filter((c) => c.probes.orderTraps.length > 0);
   if (withOrder.length === 0) continue;
-  const right = withOrder.map((c) => Math.min(...c.probes.solutions.map((s) => s.damageRevenueLost)));
-  const wrong = withOrder.map((c) => Math.max(...c.probes.orderTraps.map((o) => o.damageRevenueLost)));
-  const nothing = withOrder.map((c) => c.probes.null.damageRevenueLost);
-  const catastrophic = withOrder.filter((c) => c.probes.orderTraps.some((o) => o.catastrophic)).length;
+  const right: number[] = [];
+  const reversed: number[] = [];
+  const worst: number[] = [];
+  const nothing: number[] = [];
+  let worstCatastrophic = 0;
+  let reversedCatastrophic = 0;
+  for (const c of withOrder) {
+    const meta = metaFor(c.candidate.templateId, c.candidate.params);
+    if (!meta) continue;
+    right.push(Math.min(...c.probes.solutions.map((s) => s.damageRevenueLost)));
+    nothing.push(c.probes.null.damageRevenueLost);
+    const rev = (meta.orderTraps ?? [])
+      .map((seq, i) => ({ seq, run: c.probes.orderTraps[i] }))
+      .filter((x) => x.run && meta.solutions.some((sol) => sameSet(sol, x.seq)));
+    if (rev.length) {
+      reversed.push(Math.max(...rev.map((x) => x.run!.damageRevenueLost)));
+      if (rev.some((x) => x.run!.catastrophic)) reversedCatastrophic++;
+    }
+    worst.push(Math.max(...c.probes.orderTraps.map((o) => o.damageRevenueLost)));
+    if (c.probes.orderTraps.some((o) => o.catastrophic)) worstCatastrophic++;
+  }
+  if (reversed.length === 0) continue;
   orderingFacts[r.space.templateId] = {
-    runs: withOrder.length,
+    runs: reversed.length,
     rightOrderUsd: Number(median(right).toFixed(2)),
-    wrongOrderUsd: Number(median(wrong).toFixed(2)),
+    reversedUsd: Number(median(reversed).toFixed(2)),
+    reversedCatastrophic,
+    worstOrderUsd: Number(median(worst).toFixed(2)),
+    worstOrderCatastrophic: worstCatastrophic,
     doNothingUsd: Number(median(nothing).toFixed(2)),
-    wrongOrderCatastrophic: catastrophic,
   };
 }
 writeFileSync('study/ordering.json', JSON.stringify(orderingFacts, null, 1) + '\n');

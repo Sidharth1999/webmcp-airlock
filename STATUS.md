@@ -95,6 +95,32 @@ incident is going. Moved to plan completion. The gate caught it.
 
 **Test-file diff: ONE gate added.** Verified fail->pass.
 
+### AND THE FIRST VERSION OF IT OVERCLAIMED, in the place built not to
+The receipt initially read *"Reversed, the same two levers cost $538.33 and
+left the service down."* **$538.33 is not the reversal.** retry-storm declares
+THREE order traps: rollforward-then-cap and rollback-then-cap — the plan's own
+actions in the wrong sequence, ~$170 and never catastrophic — and
+silence-then-ship, which is a DIFFERENT action set, catastrophic in 24 of 24,
+$538. The generator took `max()` across all three and labelled it "reversed".
+
+Caught by `docs/devpost-description.md`, which had the correct four-row table
+written into it overnight and disagreed with the number on screen. **The
+existing document was right and the new code was wrong.**
+
+`compile-corpus.ts` now classifies an order trap by whether it is a PERMUTATION
+of a declared solution — that is the reversal — and reports the worst trap
+separately and by name:
+
+| | median |
+| --- | --- |
+| this order | $9.05 |
+| doing nothing | $146.30 |
+| **the same two levers reversed** | **$170.47**, never resolves, never catastrophic |
+| silence then ship (a different move) | $538.33, service down in 24 of 24 |
+
+The receipt reports the reversal of THIS plan and nothing else. The silence
+figure belongs with the counsel at that lever, not on this card.
+
 ## THE APP HAS A MOOD NOW — 2026-09-01 (Tue, late)
 
 Sid: *"are we already changing colour schema based on incident resolution?

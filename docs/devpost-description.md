@@ -1,19 +1,48 @@
-# Devpost description — DRAFT 1 (2026-09-01, overnight)
+# Devpost description — DRAFT 2 (2026-09-01, night)
 
-**Status: a draft for Sid to cut, not copy.** Two things need checking before
-any of this is pasted:
+**Status: a draft for Sid to cut, not copy.**
 
-1. **The required field list.** STATUS and build-plan record exactly ONE
-   mandated prompt — *"what can people and agents do together that was
-   difficult or impossible before"* — and M6-03's check says "the 4 mandated
-   prompts". I did not find the other three written down anywhere in the repo,
-   so the sections below are organised around the one that IS recorded plus
-   Devpost's standard fields. **Verify against the live submission form.**
-2. **The framing law** (STATUS, twice): do NOT sell this as "we added prompt
-   injection". The novel conjunction is the identity thesis, and it leads.
+## The required fields, VERIFIED against the live rules (2026-09-01)
 
-The thesis, verbatim, per the standing instruction that it appears in the
-first three sentences and answers the mandated prompt word for word:
+Draft 1 said the repo recorded ONE mandated prompt while M6-03's check said
+four, and asked for the live form to be checked. Checked, at
+<https://webmcp.devpost.com/rules>. **M6-03 is right and there are four**, only
+one of which was written down here:
+
+| # | The prompt | covered below by |
+| --- | --- | --- |
+| 1 | Why the use case fits WebMCP | *Why this belongs in the page* |
+| 2 | How it improves the user experience | *What it does* |
+| 3 | **What humans and agents can accomplish together that was not possible before** | the mandated-prompt section — thesis verbatim |
+| 4 | WebMCP implementation details | *How it was built* |
+
+Also required, and none of it is prose:
+
+- **A working live URL** the judges can open in Chrome with WebMCP enabled, or
+  in ChatGPT's in-app browser. **BLOCKED by the stealth rule until submission.**
+- **A public repo** — GitHub, GitLab or Bitbucket — with complete source, and
+  an **open source licence file**, with the licence *visible in the repo's
+  About section*. `LICENSE` exists (MIT, Sidharth Ramanan). The About-section
+  visibility is a GitHub setting, so it has to be checked after the repo is
+  pushed, not before.
+- **The video, ≤3 minutes**, publicly visible on YouTube, with audio covering
+  what was built and how WebMCP was used, and no third-party trademarks or
+  copyrighted music. (Which is why the host layer is shown working as designed
+  for ~5 seconds and is never the on-screen antagonist.)
+- **Deadline: Thursday 3 September 2026, 1:00pm PDT.**
+
+### Two placeholders that must not ship
+`README.md` still contains `<LIVE-URL>` (line 87) and `<REPO-URL>` (line 92).
+Both are blocked on the same thing — the repo going public and the app being
+deployed — so they cannot be filled tonight. They are the last two edits before
+submission.
+
+## The framing law
+STATUS says it twice: do NOT sell this as "we added prompt injection". The
+novel conjunction is the identity thesis, and it leads.
+
+The thesis, verbatim, per the standing instruction that it appears in the first
+three sentences and answers the mandated prompt word for word:
 
 > **The page knows something about the evidence that neither the model nor
 > generic host authorization knows, and uses that knowledge to change what the
@@ -74,6 +103,23 @@ None of that is expressible from the server side, because the server never
 served the evidence and does not know what the operator is looking at.
 
 ---
+
+## Why this use case belongs in the page
+*(mandated prompt 1 — why the use case fits WebMCP)*
+
+Deploy and incident tooling is the case where "who is allowed to do what"
+changes minute to minute, and where the cost of a wrong action is asymmetric:
+a rollback is cheap on Tuesday and takes the store down mid-migration. That
+authority is a property of the PAGE'S STATE — which incident stage you are in,
+which build is live, whether a migration has already written rows — and it is
+knowledge that lives nowhere else. A backend MCP server would have to
+re-derive it and then keep it in sync with the UI, and the two would drift.
+WebMCP removes the second copy: the same state that decides which buttons a
+human sees decides which verbs an agent has.
+
+That is the whole reason this is a web page and not an API. **Stage change →
+visible controls change → callable tools change**, from one source, with no
+policy layer in between that can disagree with the screen.
 
 ## What it does
 

@@ -866,6 +866,43 @@ try {
   );
   await ev.close();
 
+  // ---- the agent's objection has to be READABLE ------------------------
+  // `.wb-centre` is `overflow: hidden`, and the counsel popover always opened
+  // to the RIGHT of its control. The storefront reveals itself when checkout
+  // starts failing, which puts the centre at its 560px floor — exactly where
+  // the counsel scene gets reviewed — and the objection was clipped to a
+  // violet sliver about fifteen pixels wide. Counsel nobody can read is not
+  // counsel.
+  const cs = await browser.newPage();
+  cs.on('pageerror', (e) => pageErrors.push(e.message));
+  await cs.goto(URL + '?tick=120', { waitUntil: 'networkidle' });
+  await cs.getByTestId('sim-run').click();
+  await cs.waitForFunction(
+    () => (document.querySelector('#sit-state')?.textContent ?? '').includes('INCIDENT'),
+    null,
+    { timeout: 40_000 }
+  );
+  await cs.evaluate(async () => {
+    await window.__airlock.invoke('record_finding', {
+      summary: 'The failing checkout path is the new session schema, not the build.',
+      ruledOut:
+        'Rolling d-201 back. api 1.9.3 reads the v1 session layout only, and 43,857 rows have already been written in v2 — the rollback takes the store down rather than healing it.',
+      advisesAgainst: 'deploy.rollback:d-201',
+    });
+  });
+  await cs.getByTestId('rollback-d-201').scrollIntoViewIfNeeded();
+  await cs.getByTestId('rollback-d-201').hover();
+  await cs.getByTestId('agent-counsel').waitFor({ timeout: 5_000 });
+  check(
+    "the agent's objection stays inside the console it is spoken in",
+    await cs.evaluate(() => {
+      const box = document.querySelector('.agent-counsel').getBoundingClientRect();
+      const pane = document.querySelector('.wb-centre').getBoundingClientRect();
+      return box.right <= pane.right + 1 && box.left >= pane.left - 1 && box.width > 60;
+    })
+  );
+  await cs.close();
+
   // ---- the plan: a sequence, priced, approved one step at a time --------
   // retry-storm's answer is two levers in ONE ORDER and the reverse order is
   // worse than doing nothing, so the surface has to be able to show a

@@ -2872,6 +2872,13 @@ h4.ctl-group-label { margin: 0 0 var(--sp-2); }
   pointer-events: none;
   animation: counsel-in var(--dur-agent) var(--ease-agent);
 }
+/* ...on whichever side is actually on screen — see showHoverCounsel. */
+.agent-counsel[data-side='left'] { left: auto; right: calc(100% + 10px); }
+.agent-counsel[data-side='below'] {
+  left: auto;
+  right: 0;
+  top: calc(100% + 6px);
+}
 @keyframes counsel-in {
   from { opacity: 0; transform: translateY(-3px); }
   to   { opacity: 1; transform: none; }

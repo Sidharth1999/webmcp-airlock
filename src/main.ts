@@ -2026,6 +2026,22 @@ function showHoverCounsel(btn: HTMLElement): void {
   why.textContent = advice.ruledOut ?? advice.summary;
   box.append(who, why);
   btn.parentElement?.insertBefore(box, btn.nextSibling);
+  // KEEP THE OBJECTION ON SCREEN. `.wb-centre` is `overflow: hidden` — the
+  // console is a region, not a page — so a popover that always opens to the
+  // RIGHT is clipped the moment its control sits near the pane's edge. With
+  // the storefront open (it reveals itself when checkout starts failing) the
+  // centre is at its 560px floor, which is exactly where the counsel scene
+  // gets reviewed: the agent's objection shipped as a violet sliver about
+  // fifteen pixels wide. Flip it to the other side, and put it under the
+  // control if neither side fits.
+  const pane = document.querySelector('.wb-centre');
+  if (pane) {
+    const lim = pane.getBoundingClientRect();
+    if (box.getBoundingClientRect().right > lim.right - 8) {
+      box.dataset.side = 'left';
+      if (box.getBoundingClientRect().left < lim.left + 8) box.dataset.side = 'below';
+    }
+  }
   moveAgentCursor(btn);
 }
 

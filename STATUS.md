@@ -119,6 +119,31 @@ still true after you decide and is left alone.
 nobody narrating a decision*. Verified fail→pass: RED with the fix stashed,
 GREEN with it in. No existing gate touched.
 
+### A defect the polish shot set found: the agent's objection was a sliver
+`.wb-centre` is `overflow: hidden` — the console is a region, not a page — and
+the counsel popover always opened to the RIGHT of its control. The storefront
+reveals itself when checkout starts failing, which puts the centre at its 560px
+floor, and there the objection was **clipped to about fifteen pixels**. It is in
+the committed `sid-07-agent-counsel` capture and nobody looked closely. Counsel
+nobody can read is not counsel, and this is the half of the thesis Sid called
+"the half nobody else builds". It now flips to whichever side is on screen, and
+drops under the control if neither side fits.
+**Second test-file diff: ONE gate added** — *the agent's objection stays inside
+the console it is spoken in*, driven with the storefront open. Verified
+fail→pass. No existing gate touched.
+
+### `tools/capture-polish.mjs` — the shot set for the AI review
+Fifteen states at 1512×945 only, covering the flows AND the transitions that
+`capture-ux.mjs` does not: the strip once command is taken, the layout with the
+evidence panel put away, the capability sheet in Triage AND Recovery (the pair
+IS gate 1), the palette with an open ask, the plan across all three of its
+states, the abandoned plan, the dual-key rung, the objection, and evidence vs
+bare. **Two traps paid for here:** a scene sets itself up by RUNNING THE SIM, so
+a fixed timeout shoots the page before the agent has acted — wait on the review
+banner's `data-state="ready"`. And the counsel shot needs the reviewer's
+GESTURE: shooting the scene without hovering the lever shows the finding and not
+the counsel.
+
 **Card air is unchanged doctrine.** With the storefront closed the controls card
 has ~230px of room under its last row. That is a void inside a card edge, which
 this repo's ux-debt doctrine already calls honest — not bare ground.

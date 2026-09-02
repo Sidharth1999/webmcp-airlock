@@ -1,5 +1,44 @@
 # STATUS — live audit log
 
+## CHECKPOINT 2026-09-02 13:35 EDT — walkthrough merged, landing URL live, field known
+
+- **Merged** `worktree-agent-a11359104200e88cf` (`57f171b`): the empty dock says
+  how to attach an agent + three copyable prompts + "Watch a walkthrough ·
+  scripted caller, not a model"; film scene + runner live in `src/walkthrough.ts`,
+  `review.ts` is harness-only. Only conflict was both branches appending gates
+  before `no page errors`; both blocks kept. Smoke GREEN alone after merge.
+- **Live URL is the story.** `.deploy/release-airlock/vercel.json` 307-redirects a
+  bare `/` (no `template` query) to `/?template=retry-storm&run=1&site=1`. App
+  default untouched (gate asserts it). Deployed `dpl_BS8Enda9NYkN5YjCqMU9tRhqadgS`;
+  bundle `index-Czef3k7D.js`. Verified: redirect, 13 tools on the real
+  `document.modelContext`, walkthrough control present, shop open.
+  Frame: `log/landing/02-t15.png`.
+- **Chrome MCP tab cannot tick the sim** (background-tab throttling) — verify
+  running states with Playwright frames, never with that tab.
+- **Field (see `_handoff/2026-09-02-external-grading.md` + this entry):** the
+  safety trio (state-dependent registration, proposal-only writes, evidence
+  gating) is table stakes (~20/25/12 entries). Direct twins: **Incident
+  Commander** (PurpleWizard07; live on Netlify; 22 tools on the real API; 5
+  single-cause incidents; approval tokens; reads carry a `reason`; 58/60 evals
+  via Claude Agent SDK; Lighthouse agentic 4/4; origin-trial token; created
+  Aug 30, 30 commits, 7 test files) and **WebOps Commander** (la3679; 15 static
+  tools; no live URL). Ours differs on: ORDER + plan tool, provenance from
+  served evidence, the storefront, 91-variant corpus + 488 real-model runs.
+  README + Devpost now carry a "What is different" section with the study
+  table (`9e130bf`).
+- **Lighthouse 13.4.1 agentic-browsing on the live build: 1/3** (tools listed,
+  schemas valid; FAIL a11y-tree: close button inside `role=tablist`; FAIL CLS
+  0.269; llms.txt N/A). Fix agent running on main. **Chrome webmcp-evals CLI:
+  smoke 13/13 triage vs production, 11/11 recovery vs dev** (no LLM);
+  LLM runs cost-gated (~$0.12–0.60), commands in `study/chrome-evals/README.md`.
+- **In flight on a worktree branch:** standalone proposal as a ledger row (the
+  path a live judge's real agent will hit) + the Roll-back-stretch fix.
+- Test-file diffs this checkpoint: smoke gates ADDED by the landing (2) and
+  walkthrough (6) work; none edited. `PORT` line env-overridable, default same.
+
+---
+
+
 ## DONE 2026-09-02 (Wed, 12:30): THE LANDING URL OPENS IN THE STORY
 
 A judge who opened the live link cold landed on a nominal console ("ALL SYSTEMS

@@ -809,11 +809,16 @@ body {
   white-space: nowrap;
   padding-top: 3px;
 }
+/* NO OUTER GLOW on anything the agent owns. Violet is the right hue — it is
+   the one colour in the palette that is not already a system state — but a
+   lavender dot with a halo is the reflexive "AI magic layer" treatment, and
+   two outside reviewers named it independently as the one cheap-looking thing
+   in the console. The identity stays; the luminance goes. An actor in an ops
+   system is clinical, not glowing. */
 .al-dot {
   width: 7px; height: 7px;
   border-radius: 50%;
   background: var(--actor-agent);
-  box-shadow: 0 0 8px 2px oklch(76% 0.13 310 / 0.4);
 }
 .al-cards { display: grid; gap: var(--sp-2); min-width: 0; }
 
@@ -929,16 +934,24 @@ body {
   color: var(--ink-ghost);
 }
 
-/* --- designed empty states: never leave a region blank ------------------ */
+/* --- designed empty states: never leave a region blank ------------------
+   A DASHED BOX WITH A CENTRED GREY SENTENCE is the one stock component-library
+   pattern in this console, and both outside reviewers picked it out by name
+   ("says component library placeholder"). The copy is the good part — "Nothing
+   published. Customers have not been told anything." is a fact about the
+   incident, not a placeholder. So keep the sentence and drop the costume: a
+   quiet inset well, left-aligned like every other row in the console, with a
+   rule above it rather than a dashed rectangle around it. */
 .empty {
-  padding: var(--sp-5) var(--sp-4);
-  text-align: center;
-  color: var(--ink-ghost);
+  padding: var(--sp-4);
+  text-align: left;
+  color: var(--ink-faint);
   font-family: var(--font-prose);
   font-size: var(--text-xs);
   line-height: 1.6;
-  border: 1px dashed var(--line-strong);
-  border-radius: var(--r-md);
+  background: var(--s-well);
+  border-top: 1px solid var(--line);
+  border-radius: 0 0 var(--r-sm) var(--r-sm);
 }
 .empty[hidden] { display: none; }
 @media (prefers-reduced-motion: reduce) {
@@ -1002,7 +1015,6 @@ body {
   width: 9px; height: 9px;
   border-radius: 50%;
   background: var(--actor-agent);
-  box-shadow: 0 0 10px 2px oklch(76% 0.13 310 / 0.45);
 }
 #agent-cursor .ac-label {
   font-family: var(--font-prose);
@@ -1010,8 +1022,12 @@ body {
   font-weight: 600;
   letter-spacing: 0;
   text-transform: capitalize;
-  color: oklch(96% 0.02 310);
-  background: oklch(50% 0.14 310 / 0.75);
+  /* the pill was a solid violet lozenge floating over the controls, which is
+     exactly the "annotation from an AI demo framework" look. Neutral ground,
+     violet text and a hairline: it labels an actor, it does not glow. */
+  color: var(--actor-agent);
+  background: var(--s-chrome);
+  border: 1px solid var(--actor-agent-dim);
   border-radius: 999px;
   padding: 1px var(--sp-2);
 }
@@ -1184,8 +1200,17 @@ body {
 #event-stream.audit li[data-kind='mode.changed'] { display: flex; }
 
 /* --- approval diff-cards (M3-03) --------------------------- */
+/* ONE BORDER PER OBJECT. The dock was four nested rectangles — dock, the
+   violet `.airlock` frame, this card, and the tool box inside it — three of
+   them violet-tinted, each with its own stroke. Both outside reviewers named
+   it independently as the closest thing to cheap in the console ("looks like
+   nested divs"). A real elevation ladder alternates border and fill: the
+   `.airlock` frame keeps the stroke, the card inside it becomes a fill shift
+   with only its left rail. The rail is load-bearing — every state on this
+   card (dual-key tier, provenance, complete, abandoned) is signalled through
+   `border-left-color`, so dropping the surrounding border costs no meaning. */
 .approval-card {
-  border: 1px solid var(--actor-agent-dim);
+  border: 0 solid var(--actor-agent-dim);
   border-left: 3px solid var(--actor-agent);
   border-radius: 0;
   padding: var(--sp-2) var(--sp-3);
@@ -1707,7 +1732,7 @@ body {
    the left is the state at a glance — filled means done, ringed means this
    is the one you are being asked about, hollow means not yet asked. */
 .plan-card {
-  border: 1px solid var(--actor-agent-dim);
+  border: 0 solid var(--actor-agent-dim);
   border-left: 3px solid var(--actor-agent);
   background: oklch(76% 0.13 310 / 0.07);
   padding: var(--sp-2) var(--sp-3);
@@ -1840,20 +1865,30 @@ body {
   font-family: var(--font-instrument);
   font-size: var(--text-2xs);
   font-variant-numeric: tabular-nums;
-  background: var(--panel);
+  /* The ring straddles the controls card's left border on purpose — the
+     number belongs to the plan in the dock and points at the row in the
+     console, so it should sit on the seam. It was reading as MISRENDERED
+     rather than deliberate: `--panel` matched neither the card it half sits
+     on nor the ground it half sits over, so it looked like a badge that had
+     been clipped. Take the card's own surface, and knock a ring of the page
+     ground out around it, so the seam is something the badge punches through
+     instead of something that cuts it. */
+  background: var(--s-raised);
   border: 1px solid var(--actor-agent-dim);
+  box-shadow: 0 0 0 3px var(--bg);
   color: var(--ink-faint);
   pointer-events: none;
 }
 .plan-anchor[data-plan-state='live']::before {
   border-color: var(--actor-agent);
   color: var(--actor-agent);
-  box-shadow: 0 0 0 3px oklch(76% 0.13 310 / 0.18);
+  box-shadow: 0 0 0 3px var(--bg), 0 0 0 4px var(--actor-agent-dim);
 }
 .plan-anchor[data-plan-state='done']::before {
   content: '✓';
   border-color: var(--good);
   background: var(--good);
+  box-shadow: 0 0 0 3px var(--bg);
   color: var(--panel);
 }
 .plan-anchor[data-plan-state='live'] { outline: 1px solid var(--actor-agent-dim); outline-offset: 2px; }
@@ -2125,7 +2160,7 @@ body {
   color: var(--ink-ghost);
   font-family: var(--font-instrument);
   font-size: var(--text-2xs);
-  letter-spacing: .1em;
+  letter-spacing: var(--tracking-label);
   text-transform: uppercase;
   margin-bottom: 2px;
 }
@@ -2153,7 +2188,7 @@ body {
   display: block;
   font-family: var(--font-instrument);
   font-size: var(--text-2xs);
-  letter-spacing: .1em;
+  letter-spacing: var(--tracking-label);
   text-transform: uppercase;
   color: var(--actor-agent);
   margin-bottom: 4px;
@@ -2175,7 +2210,7 @@ body {
 .ladder-title {
   font-size: var(--text-2xs);
   font-family: var(--font-instrument);
-  letter-spacing: .1em; text-transform: uppercase;
+  letter-spacing: var(--tracking-label); text-transform: uppercase;
   color: var(--ink-ghost);
 }
 .ladder .ts-count { margin-left: auto; font-variant-numeric: tabular-nums;
@@ -2227,7 +2262,7 @@ body {
 .rail-modes-label {
   font-family: var(--font-instrument);
   font-size: var(--text-2xs);
-  letter-spacing: .1em; text-transform: uppercase;
+  letter-spacing: var(--tracking-label); text-transform: uppercase;
   color: var(--ink-ghost);
 }
 /* the read/write badge is secondary to the sentence it annotates */
@@ -2263,7 +2298,7 @@ body {
 }
 .scenario .sc-k {
   font-family: var(--font-instrument); font-size: var(--text-2xs);
-  letter-spacing: .08em; text-transform: uppercase; color: var(--ink-ghost);
+  letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--ink-ghost);
 }
 .scenario .sc-v { font-size: var(--text-xs); color: var(--ink); font-weight: 500; }
 .sc-menu {
@@ -2297,7 +2332,7 @@ body {
 .ctl-group-label {
   font-family: var(--font-instrument);
   font-size: var(--text-2xs);
-  letter-spacing: .12em; text-transform: uppercase;
+  letter-spacing: var(--tracking-label); text-transform: uppercase;
   color: var(--ink-ghost);
   margin: var(--sp-4) 0 var(--sp-2);
   padding-bottom: 4px;
@@ -2358,7 +2393,7 @@ body {
   display: inline-block;
   font-family: var(--font-instrument);
   font-size: var(--text-2xs);
-  letter-spacing: .08em; text-transform: uppercase;
+  letter-spacing: var(--tracking-label); text-transform: uppercase;
   color: var(--ink-ghost);
   margin-bottom: 3px;
 }
@@ -2610,7 +2645,7 @@ h4.ctl-group-label { margin: 0 0 var(--sp-2); }
 .pi-group {
   grid-area: group;
   font-family: var(--font-instrument); font-size: var(--text-2xs);
-  letter-spacing: .08em; text-transform: uppercase; color: var(--ink-ghost);
+  letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--ink-ghost);
   padding-top: 2px;
 }
 .pi-label { grid-area: label; font-size: var(--text-sm); }
@@ -2685,6 +2720,13 @@ h4.ctl-group-label { margin: 0 0 var(--sp-2); }
    Traffic / Data & DNS groups land near 430, so every row wrapped its verb
    onto a second line. */
 @container ctlgroup (min-width: 400px) {
+  /* The primary verb FILLS its track. Content-width buttons in a fixed track
+     right-align to the same edge and start at three different ones, so Flush
+     / Fail over / Cut over staggered down the Data & DNS group while the
+     Release rows above them looked square — the panel was one property away
+     from the grid it already implied. */
+  .ctl-row > .lever,
+  .ctl-row > .ctl-btn:not(.ctl-menu-btn) { width: 100%; }
   .ctl-row {
     grid-template-columns:
       40px                      /* kind      */

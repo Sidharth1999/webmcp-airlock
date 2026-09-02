@@ -469,9 +469,29 @@ document.querySelector('#health-demo')?.addEventListener('click', (e) => {
   if (btn) setHealth(btn.dataset.healthSet as Health);
 });
 
-document.querySelector('#wbs-webmcp')!.textContent = hasWebMCP()
-  ? 'WebMCP ready'
-  : 'WebMCP not detected';
+/**
+ * WHAT THE STATUS BAR SAYS ABOUT WebMCP.
+ *
+ * It used to be a ONE-SHOT read at boot that said `WebMCP not detected` when
+ * `navigator.modelContext` was absent — which is most of the time, including
+ * in every screenshot and in any browser where the host attaches after load.
+ * Two things were wrong with it. It never updated, so a host that arrived a
+ * second later was never acknowledged. And it reported the wrong subject: the
+ * page's job here is to PUBLISH a tool surface, and it does that whether or
+ * not a client has attached yet. "Not detected" described the visitor and
+ * read as "this feature is broken".
+ *
+ * So: say what the page did, then say whether anyone is on the other end.
+ * Both halves are true in every state, and it is re-read on every render.
+ */
+function renderWebMCPStatus(active: number): void {
+  const el = document.querySelector<HTMLElement>('#wbs-webmcp');
+  if (!el) return;
+  el.dataset.host = hasWebMCP() ? 'on' : 'off';
+  el.textContent = hasWebMCP()
+    ? `WebMCP · ${active} published · host attached`
+    : `WebMCP · ${active} published`;
+}
 
 // ---- sim worker wiring (M2-02) ------------------------------------------
 // Engine lives in the Worker; the main thread only paces it (real time is
@@ -3588,6 +3608,7 @@ function renderCapability(tools: AirlockTools): void {
   const writes = active.filter((t) => !t.readOnly && t.name !== 'record_finding');
   const countEl = document.querySelector<HTMLElement>('#tool-count');
   if (countEl) countEl.textContent = String(active.length);
+  renderWebMCPStatus(active.length);
   // the count is only true for the stage you are on, so the sheet says which
   const stageEl = document.querySelector<HTMLElement>('#surface-stage');
   if (stageEl) stageEl.textContent = `${tools.mode()} stage · ${active.length} available now`;

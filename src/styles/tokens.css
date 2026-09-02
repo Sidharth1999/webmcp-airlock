@@ -63,8 +63,12 @@
   /* --- ink ------------------------------------------------ */
   --ink: oklch(92% 0.008 250);
   --ink-dim: oklch(70% 0.012 250);
-  --ink-faint: oklch(52% 0.014 250);
-  --ink-ghost: oklch(40% 0.014 250);
+  /* The bottom two steps were 52% and 40% on a 13.5% ground, and read as
+     accidentally faded rather than deliberately subordinate — `flag`, `svc`,
+     `primary: db` and the whole status bar were sludge. Lifted one step each;
+     the ladder still has four clearly separate rungs. */
+  --ink-faint: oklch(58% 0.014 250);
+  --ink-ghost: oklch(47% 0.014 250);
 
   /* --- actor colors (thread of agency) -------------------- */
   --actor-human: oklch(76% 0.10 250);   /* cool blue — the human hand */
@@ -90,7 +94,13 @@
   --text-md: 1rem;         /* 16px — prose */
   --text-lg: 1.1875rem;    /* 19px — pane-level headings */
   --text-xl: 1.375rem;     /* 22px — the situation line */
-  --tracking-label: 0.09em;
+  /* ONE value for every uppercase label. The sheet had drifted to four —
+     0.08em, 0.09em, 0.1em and 0.12em on labels doing identical jobs — which
+     is the kind of thing that reads as assembled rather than set. Reduced
+     ~22% at the same time: at 11px these were tracked far enough apart to
+     read as texture instead of type. */
+  --tracking-label: 0.07em;
+  /* identity only — the wordmark, where the wide setting is the point */
   --tracking-wide: 0.14em;
 
   /* --- one spring family (SPEC: single motion physics) ---- */

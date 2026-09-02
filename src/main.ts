@@ -158,7 +158,13 @@ app.innerHTML = `
       </button>
       <button type="button" class="act-btn" data-toggle="rail" data-restore="rail" data-testid="restore-rail"
               aria-pressed="true" aria-label="Agent panel" title="Agent">
-        <svg viewBox="0 0 20 20" aria-hidden="true"><rect x="4" y="6" width="12" height="9" rx="2.5"/><path d="M10 3v3M7 10h.01M13 10h.01"/></svg>
+        <!-- THE AGENT MARK. It was a cartoon robot head — two eyes and an
+             antenna — which is the reflexive "AI" pictogram and the one
+             thing in this activity bar that was not drawn in the same
+             language as the rest of it. It is the diamond the ledger
+             already uses for the agent's own claims, so the button that
+             opens the agent's column wears the agent's own silhouette. -->
+        <svg viewBox="0 0 20 20" aria-hidden="true"><path d="M10 3.2 16.8 10 10 16.8 3.2 10Z"/><circle cx="10" cy="10" r="2.1" fill="currentColor" stroke="none"/></svg>
       </button>
       <button type="button" class="act-btn" data-toggle="site" data-testid="site-toggle"
               aria-pressed="false" aria-label="Storefront" title="Storefront — what customers see">
@@ -332,18 +338,28 @@ app.innerHTML = `
             </nav>
           </div>
           <div class="sf-hero">
-            <span class="sf-hero-kicker">New for Fall</span>
+            <span class="sf-hero-kicker">New for fall</span>
             <span class="sf-hero-line">Field-tested goods, guaranteed for the long trail.</span>
           </div>
           <div class="sf-banner" data-testid="sf-banner" role="status"></div>
+          <!-- THE STATUS PAGE, WHERE CUSTOMERS ACTUALLY READ IT. Approving
+               "tell customers" moved a panel in the operator's console and
+               nothing at all on the shop, so the one step of the seven whose
+               entire purpose is the customer was invisible to them. This
+               quotes the published post verbatim — it is the same string that
+               left the building, not a second copy written for the shop. -->
+          <a class="sf-status" data-testid="sf-status" href="#" hidden>
+            <span class="sf-status-k"></span>
+            <span class="sf-status-t"></span>
+          </a>
           <div class="sf-grid">
-            <div class="sf-card"><div class="sf-img"><svg viewBox="0 0 100 100" aria-hidden="true"><rect x="26" y="18" width="48" height="60" rx="4" fill="#3f6b52"/><path d="M50 18v60" stroke="#2b4c39" stroke-width="2"/><path d="M38 18l12 14 12-14" fill="#31543f"/><rect x="18" y="22" width="10" height="40" rx="4" fill="#3f6b52"/><rect x="72" y="22" width="10" height="40" rx="4" fill="#3f6b52"/><rect x="32" y="52" width="12" height="9" rx="2" fill="#2b4c39"/><rect x="56" y="52" width="12" height="9" rx="2" fill="#2b4c39"/></svg></div><div class="sf-name">Field Jacket</div><div class="sf-price">$128</div></div>
-            <div class="sf-card"><div class="sf-img"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M28 34h44l-4 46H32z" fill="#c8a173"/><path d="M40 34c0-9 4-14 10-14s10 5 10 14" stroke="#8a6b45" stroke-width="3" fill="none" stroke-linecap="round"/><rect x="40" y="50" width="20" height="14" rx="2" fill="#a8834f"/></svg></div><div class="sf-name">Canvas Tote</div><div class="sf-price">$42</div></div>
-            <div class="sf-card"><div class="sf-img"><svg viewBox="0 0 100 100" aria-hidden="true"><rect x="38" y="26" width="24" height="54" rx="9" fill="#6f8fc4"/><rect x="43" y="14" width="14" height="12" rx="3" fill="#3f5c8d"/><rect x="38" y="44" width="24" height="12" fill="#5679b3"/><path d="M62 32c5 3 5 9 0 12" stroke="#3f5c8d" stroke-width="3" fill="none" stroke-linecap="round"/></svg></div><div class="sf-name">Trail Bottle</div><div class="sf-price">$28</div></div>
-            <div class="sf-card"><div class="sf-img"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M28 56a22 22 0 0 1 44 0z" fill="#c48f9a"/><rect x="24" y="56" width="52" height="13" rx="6" fill="#a86f7d"/><circle cx="50" cy="26" r="7" fill="#a86f7d"/></svg></div><div class="sf-name">Wool Beanie</div><div class="sf-price">$34</div></div>
-            <div class="sf-card"><div class="sf-img"><svg viewBox="0 0 100 100" aria-hidden="true"><rect x="30" y="32" width="36" height="42" rx="5" fill="#8d9c5c"/><rect x="30" y="32" width="36" height="8" rx="4" fill="#6f7d43"/><path d="M66 44h7a8 8 0 0 1 0 16h-7" stroke="#6f7d43" stroke-width="5" fill="none" stroke-linecap="round"/></svg></div><div class="sf-name">Camp Mug</div><div class="sf-price">$22</div></div>
-            <div class="sf-card"><div class="sf-img"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M32 40h36v34a6 6 0 0 1-6 6H38a6 6 0 0 1-6-6z" fill="#78889a"/><rect x="30" y="30" width="40" height="11" rx="5" fill="#56657a"/><path d="M36 30c0-5 6-8 14-8s14 3 14 8" stroke="#56657a" stroke-width="3" fill="none"/><rect x="32" y="56" width="36" height="4" fill="#66768a"/></svg></div><div class="sf-name">Dry Sack</div><div class="sf-price">$36</div></div>
+<article class="sf-card"><div class="sf-img"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M21 27 34 20v54H21z" fill="#3d5c47"/><path d="M79 27 66 20v54h13z" fill="#3d5c47"/><path d="M34 20 50 27 66 20l2 63H32z" fill="#4a6b52"/><path d="M34 20 50 27 44 45z" fill="#5e7f66"/><path d="M66 20 50 27 56 45z" fill="#5e7f66"/><path d="M50 27v56" stroke="#314d3a" stroke-width="1.4"/><rect x="34" y="55" width="13" height="11" rx="1.5" fill="#3d5c47"/><rect x="53" y="55" width="13" height="11" rx="1.5" fill="#3d5c47"/><path d="M21 69h13v6H21zM66 69h13v6H66z" fill="#314d3a"/><circle cx="50" cy="50" r="1.5" fill="#cbb68c"/><circle cx="50" cy="62" r="1.5" fill="#cbb68c"/><circle cx="50" cy="74" r="1.5" fill="#cbb68c"/></svg></div><div class="sf-name">Field Jacket</div><div class="sf-meta"><span class="sf-price">$128.00</span><span class="sf-rate" aria-label="4.8 out of 5, 212 reviews"><svg class="sf-star" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 .8l1.6 3.3 3.6.5-2.6 2.5.6 3.6L6 9l-3.2 1.7.6-3.6L.8 4.6l3.6-.5z"/></svg>4.8 <span class="sf-rate-n">(212)</span></span></div></article><article class="sf-card"><div class="sf-img"><span class="sf-badge" data-kind="sale">Sale</span><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M34 31c0-15 7-22 16-22s16 7 16 22" stroke="#8a6b45" stroke-width="4.5" fill="none" stroke-linecap="round"/><path d="M22 31h56l-5 60H27z" fill="#c9a274"/><path d="M22 31h56l-1.2 13H23.2z" fill="#b58d5c"/><rect x="39" y="55" width="22" height="17" rx="2" fill="#a8834f"/><path d="M39 63.5h22" stroke="#8a6b45" stroke-width="1.2"/><path d="M30 44l-2 47M70 44l2 47" stroke="#b58d5c" stroke-width="1.1"/></svg></div><div class="sf-name">Canvas Tote</div><div class="sf-meta"><span class="sf-price"><span class="sf-was">$42.00</span>$38.00</span><span class="sf-rate" aria-label="4.6 out of 5, 486 reviews"><svg class="sf-star" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 .8l1.6 3.3 3.6.5-2.6 2.5.6 3.6L6 9l-3.2 1.7.6-3.6L.8 4.6l3.6-.5z"/></svg>4.6 <span class="sf-rate-n">(486)</span></span></div></article><article class="sf-card"><div class="sf-img"><svg viewBox="0 0 100 100" aria-hidden="true"><rect x="41" y="6" width="18" height="13" rx="3.5" fill="#31456b"/><rect x="36" y="17" width="28" height="77" rx="11" fill="#5b7fb8"/><rect x="36" y="41" width="28" height="15" fill="#3f5c8d"/><rect x="41" y="25" width="4.5" height="58" rx="2.2" fill="#8fadda" opacity=".5"/><path d="M64 26c8 4 8 13 0 17" stroke="#31456b" stroke-width="4" fill="none" stroke-linecap="round"/><path d="M36 66h28" stroke="#4a6ea6" stroke-width="1.2"/></svg></div><div class="sf-name">Trail Bottle</div><div class="sf-meta"><span class="sf-price">$28.00</span><span class="sf-rate" aria-label="4.9 out of 5, 1,043 reviews"><svg class="sf-star" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 .8l1.6 3.3 3.6.5-2.6 2.5.6 3.6L6 9l-3.2 1.7.6-3.6L.8 4.6l3.6-.5z"/></svg>4.9 <span class="sf-rate-n">(1,043)</span></span></div></article><article class="sf-card"><div class="sf-img"><svg viewBox="0 0 100 100" aria-hidden="true"><circle cx="50" cy="15" r="9" fill="#a2687a"/><path d="M19 66a31 33 0 0 1 62 0z" fill="#c08a99"/><path d="M29 45q21-16 42 0" stroke="#d7a6b2" stroke-width="2.2" fill="none"/><path d="M35 34q15-9 30 0" stroke="#d7a6b2" stroke-width="1.8" fill="none"/><rect x="16" y="66" width="68" height="20" rx="9" fill="#a2687a"/><path d="M27 68v16M39 68v16M51 68v16M63 68v16M74 68v16" stroke="#8d5567" stroke-width="1.5"/></svg></div><div class="sf-name">Wool Beanie</div><div class="sf-meta"><span class="sf-price">$34.00</span><span class="sf-rate" aria-label="4.7 out of 5, 318 reviews"><svg class="sf-star" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 .8l1.6 3.3 3.6.5-2.6 2.5.6 3.6L6 9l-3.2 1.7.6-3.6L.8 4.6l3.6-.5z"/></svg>4.7 <span class="sf-rate-n">(318)</span></span></div></article><article class="sf-card"><div class="sf-img"><span class="sf-badge" data-kind="low">Low stock</span><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M65 36h9a14 14 0 0 1 0 28h-9" stroke="#6f7d43" stroke-width="7.5" fill="none" stroke-linecap="round"/><path d="M20 25h46v52a9 9 0 0 1-9 9H29a9 9 0 0 1-9-9z" fill="#8d9c5c"/><path d="M20 25h46v10H20z" fill="#ece7da"/><path d="M20 35h46v3.5H20z" fill="#6f7d43"/><circle cx="32" cy="55" r="1.7" fill="#ece7da" opacity=".45"/><circle cx="52" cy="66" r="1.4" fill="#ece7da" opacity=".4"/><circle cx="42" cy="46" r="1.1" fill="#ece7da" opacity=".38"/><circle cx="57" cy="52" r="1" fill="#ece7da" opacity=".3"/></svg></div><div class="sf-name">Camp Mug</div><div class="sf-meta"><span class="sf-price">$22.00</span><span class="sf-rate" aria-label="4.5 out of 5, 627 reviews"><svg class="sf-star" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 .8l1.6 3.3 3.6.5-2.6 2.5.6 3.6L6 9l-3.2 1.7.6-3.6L.8 4.6l3.6-.5z"/></svg>4.5 <span class="sf-rate-n">(627)</span></span></div></article><article class="sf-card"><div class="sf-img"><svg viewBox="0 0 100 100" aria-hidden="true"><path d="M25 11h50v15H25z" fill="#4e5d70"/><path d="M25 11q25 9 50 0v4q-25 9-50 0z" fill="#3e4b5c"/><path d="M27 24h46v58a11 11 0 0 1-11 11H38a11 11 0 0 1-11-11z" fill="#6b7c90"/><rect x="23" y="23" width="54" height="6" rx="3" fill="#2f3a47"/><rect x="43" y="19" width="14" height="10" rx="2.5" fill="#c8b06a"/><path d="M27 47h46M27 62h46" stroke="#5c6d81" stroke-width="1.5"/></svg></div><div class="sf-name">Dry Sack</div><div class="sf-meta"><span class="sf-price">$36.00</span><span class="sf-rate" aria-label="4.8 out of 5, 154 reviews"><svg class="sf-star" viewBox="0 0 12 12" aria-hidden="true"><path d="M6 .8l1.6 3.3 3.6.5-2.6 2.5.6 3.6L6 9l-3.2 1.7.6-3.6L.8 4.6l3.6-.5z"/></svg>4.8 <span class="sf-rate-n">(154)</span></span></div></article>
           </div>
+          <ul class="sf-trust">
+            <li>Free shipping over $75</li>
+            <li>30-day returns</li>
+            <li>Repairs for life</li>
+          </ul>
           <div class="sf-checkout">
             <div class="sf-cart-line">
               <span class="sf-cart-items">1 item · Field Jacket</span>
@@ -352,6 +368,10 @@ app.innerHTML = `
             <button type="button" class="sf-buy" data-testid="sf-buy">Checkout · $48.00</button>
             <div class="sf-feed" data-testid="sf-feed"></div>
           </div>
+          <footer class="sf-foot">
+            <span class="sf-foot-links"><a href="#">Help</a><a href="#">Shipping</a><a href="#">Returns</a><a href="#">Contact</a></span>
+            <span class="sf-foot-c">© Aperture Supply Co.</span>
+          </footer>
           <div class="sf-outage" data-testid="sf-outage">
             <div class="sf-outage-code">502</div>
             <div class="sf-outage-msg">We can't reach the store right now.</div>
@@ -361,7 +381,7 @@ app.innerHTML = `
     </section>
 
     <div id="agent-cursor" data-testid="agent-cursor" data-state="off" aria-hidden="true">
-      <span class="ac-dot"></span><span class="ac-label">agent</span>
+      <svg class="ac-dot" viewBox="0 0 12 12"><path d="M6 .9 11.1 6 6 11.1.9 6Z"/></svg><span class="ac-label">agent</span>
     </div>
 
     <div class="wb-sash" data-sash="rail" role="separator" tabindex="0"
@@ -3184,6 +3204,7 @@ const storefront = document.querySelector<HTMLDivElement>('#storefront')!;
 const sfBanner = document.querySelector<HTMLDivElement>('.sf-banner')!;
 const sfBuy = document.querySelector<HTMLButtonElement>('.sf-buy')!;
 const sfFeed = document.querySelector<HTMLDivElement>('.sf-feed')!;
+const sfStatus = document.querySelector<HTMLElement>('.sf-status')!;
 const CHECKOUT_BROKEN_ERR = 0.05;
 const ORDER_NO_START = 4021;
 let orderNo = ORDER_NO_START;
@@ -3212,7 +3233,47 @@ function renderSite(w: World): void {
     sfFeed.textContent = 'Your basket is saved.';
   }
   // 'down' shows the outage overlay via CSS; feed/banner stay as they were
+
+  // WHAT THE OPERATOR PUBLISHED, ON THE PAGE THE CUSTOMER IS ON. Step 4 of the
+  // certified plan is "tell customers", and until now approving it moved a
+  // panel in the console and nothing whatsoever on the shop — the one step
+  // whose entire justification is the customer ("every minute unsaid is a
+  // support ticket") had no customer-visible effect at all, which made the
+  // shop a decoration for six of the seven steps.
+  //
+  // It quotes the post verbatim: the same string that went out, read off the
+  // world, never a second copy written to look good here. A resolved post
+  // takes the notice down, because a status banner that outlives its incident
+  // is the most common way a real status page lies.
+  const posts = w.incident.statusPosts;
+  const post = posts.length ? posts[posts.length - 1]! : null;
+  const showing = post && post.state !== 'resolved';
+  sfStatus.hidden = !showing;
+  if (showing) {
+    // A WARNING OUTLIVING ITS INCIDENT IS THE COMMONEST WAY A STATUS PAGE
+    // LIES. Once checkout is serving, this post is no longer a warning — it
+    // is the last thing customers were told, and it is out of date. It keeps
+    // the operator's words verbatim either way; only the frame around them
+    // changes, because only the frame is ours to write. The seven-step plan
+    // never posts the all-clear, so the strip standing down to "Last update"
+    // is also the console being honest that somebody still owes one.
+    const stale = state === 'ok';
+    sfStatus.dataset.state = stale ? 'stale' : post.state;
+    sfStatus.querySelector<HTMLElement>('.sf-status-k')!.textContent = stale
+      ? 'Last update'
+      : (STATUS_WORD[post.state] ?? 'Update');
+    // textContent, never innerHTML: operator-authored copy is still untrusted
+    sfStatus.querySelector<HTMLElement>('.sf-status-t')!.textContent = post.text;
+  }
 }
+
+/** How a status page names its own states to shoppers, not to engineers. */
+const STATUS_WORD: Record<string, string> = {
+  investigating: 'Investigating',
+  identified: 'Known issue',
+  monitoring: 'Monitoring the fix',
+  resolved: 'Resolved',
+};
 
 // ---- logs pane: the human's read_logs -----------------------------------
 // THE PARITY RULE. Every read the agent can make is a pure function over the

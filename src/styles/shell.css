@@ -910,7 +910,16 @@ body {
    controls ended up hidden and the approval ended up behind the storefront.
    The dock leaves the grid and rises over the page instead. Nothing below it
    moves, so there is one console layout, not one per state. */
-.wb[data-decision='pending'] #tool-rail {
+/* ...BUT NEVER OVER THE STOREFRONT. The customer's view is the only surface
+   on this page that shows the incident the way the people paying for it see
+   it, and the whole seven-step arc is a decision — so the dock elevated at
+   the plan and stayed elevated across all seven approvals, covering half the
+   shop for the entire sequence, including the frame where checkout comes back.
+   The store healed where nobody could watch it. With the shop open the dock
+   stays in the grid; the ledger is a run list now and does not need the extra
+   120px it used to buy. (Sid, 2026-09-02: "are we able to see the site become
+   fixed? otherwise the site simulator is fairly useless".) */
+.wb[data-decision='pending']:not([data-site='on']) #tool-rail {
   position: absolute;
   top: 40px;
   bottom: 24px;
@@ -1164,10 +1173,12 @@ body {
 /* idle means it stopped looking, so it goes away — a label parked on a
    region the agent is no longer reading is a claim that is not true any more */
 #agent-cursor[data-state='idle'] { opacity: 0; pointer-events: none; }
+/* the same diamond the ledger gives the agent's claims, so "the agent is
+   looking here" and "the agent concluded this" are one silhouette */
 #agent-cursor .ac-dot {
   width: 9px; height: 9px;
-  border-radius: 50%;
-  background: var(--actor-agent);
+  flex: none;
+  fill: var(--actor-agent);
 }
 #agent-cursor .ac-label {
   font-family: var(--font-prose);
@@ -1398,6 +1409,10 @@ body {
 .ap-actions {
   display: flex;
   align-items: center;
+  /* IT WRAPS RATHER THAN CLIPS. With the shop open the dock is 410px, and a
+     nowrap keyboard hint pinned right of two buttons was cut mid-word — an
+     instruction you cannot finish reading is worse than one on its own line. */
+  flex-wrap: wrap;
   gap: var(--sp-2);
   margin-top: var(--sp-1);
 }
@@ -1683,7 +1698,9 @@ body {
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: var(--sp-4);
+  /* the checkout is the LAST thing, not a thing floated 350px below the
+     grid: real pages end where their content ends */
+  gap: var(--sp-3);
   background: linear-gradient(180deg, oklch(98.5% 0.004 250), oklch(96.5% 0.006 250));
   color: oklch(24% 0.02 250);
   border-radius: var(--r-lg);
@@ -1693,11 +1710,16 @@ body {
   box-shadow: 0 20px 50px oklch(0% 0 0 / 0.45), inset 0 1px 0 oklch(100% 0 0 / 0.8);
 }
 .sf-chrome { display: flex; align-items: baseline; }
+/* A LOGO THAT WRAPS IS NOT A LOGO. "Aperture Supply / Co." on two lines was
+   the single loudest tell that this is a mock: no shop on earth ships that. */
 .sf-brand {
   font-family: var(--font-display);
   font-weight: 650;
-  letter-spacing: 0.005em;
-  font-size: var(--text-lg);
+  letter-spacing: -0.01em;
+  font-size: 16px;
+  line-height: 1.1;
+  white-space: nowrap;
+  flex: none;
   color: oklch(20% 0.03 250);
 }
 .sf-nav { margin-left: auto; font-size: var(--text-xs); font-weight: 500; color: oklch(52% 0.02 250); }
@@ -1711,11 +1733,10 @@ body {
   gap: var(--sp-1);
 }
 .sf-hero-kicker {
-  font-size: var(--text-2xs);
-  font-weight: 700;
-  letter-spacing: var(--tracking-wide);
-  text-transform: uppercase;
-  opacity: 0.75;
+  font-size: var(--text-xs);
+  font-weight: 600;
+  letter-spacing: 0;
+  opacity: 0.78;
 }
 .sf-hero-line {
   font-family: var(--font-display);
@@ -1747,8 +1768,10 @@ body {
 }
 .sf-grid {
   display: grid;
-  grid-template-columns: repeat(3, 1fr);
-  gap: var(--sp-4);
+  /* minmax(0,1fr): a bare 1fr floors at MIN-CONTENT, so "$128.00 ★4.8 (212)"
+     on one line pushed the third column off the pane */
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--sp-3);
 }
 .sf-card {
   border: 1px solid oklch(90% 0.008 250);
@@ -2328,26 +2351,127 @@ body {
   font-size: 11px; font-weight: 600; font-variant-numeric: tabular-nums;
 }
 
-/* --- catalogue: typographic, not six big beige squares -------------------
-   The illustration supports the product; it does not dominate the card. */
+/* --- catalogue -----------------------------------------------------------
+   THE PRODUCT FILLS ITS FRAME. A 15%-of-the-tile pictogram floating in beige
+   is an icon set; a shop shows you the thing. The art is still drawn rather
+   than photographed, so it earns realism the other way — it fills the crop,
+   it sits on a ground shadow, and the card carries what a real listing
+   carries beside it: a rating, a review count, and occasionally a reason to
+   buy today. */
 .sf-card { padding: var(--sp-2) var(--sp-2) var(--sp-3); gap: 0; }
 .sf-img {
-  height: 86px;
-  background: linear-gradient(170deg, oklch(97.5% 0.008 95), oklch(94.5% 0.012 95));
+  position: relative;
+  height: 116px;
+  background:
+    radial-gradient(60% 26% at 50% 90%, oklch(84% 0.012 95 / .55), transparent 70%),
+    linear-gradient(170deg, oklch(97.8% 0.008 95), oklch(94% 0.012 95));
   border: 1px solid oklch(92% 0.008 95);
 }
-.sf-img svg { width: 62%; height: 62%; }
+.sf-img svg { width: 88%; height: 88%; }
+.sf-badge {
+  position: absolute;
+  top: 6px; left: 6px;
+  padding: 2px 6px;
+  border-radius: 3px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0;
+  line-height: 1.5;
+}
+.sf-badge[data-kind='sale'] { background: oklch(46% 0.16 25); color: #fff; }
+.sf-badge[data-kind='low'] { background: oklch(93% 0.03 80); color: oklch(40% 0.09 60); }
 .sf-name {
   margin-top: var(--sp-2);
   font-size: 14px; font-weight: 600; letter-spacing: -.005em;
   color: oklch(28% 0.015 160);
 }
-.sf-price { margin-top: 2px; font-size: 13px; color: oklch(48% 0.02 160); }
+/* price and rating share a line where there is room and stack where there is
+   not — at three columns in a 480px pane there is not */
+.sf-meta {
+  margin-top: 3px;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 1px var(--sp-2);
+}
+.sf-price {
+  font-size: 13px;
+  font-weight: 550;
+  color: oklch(30% 0.015 160);
+  font-variant-numeric: tabular-nums;
+}
+.sf-was {
+  margin-right: 5px;
+  color: oklch(58% 0.02 160);
+  text-decoration: line-through;
+  font-weight: 400;
+}
+.sf-rate {
+  display: inline-flex; align-items: center; gap: 3px;
+  font-size: 11.5px; color: oklch(50% 0.02 160);
+  font-variant-numeric: tabular-nums;
+}
+.sf-star { width: 10px; height: 10px; fill: oklch(72% 0.13 75); flex: none; }
+.sf-rate-n { color: oklch(62% 0.015 160); }
+
+/* the small print every real shop puts under its grid */
+.sf-trust {
+  display: flex; flex-wrap: wrap; gap: var(--sp-2) var(--sp-4);
+  margin: 0; padding: var(--sp-3) 0 0;
+  list-style: none;
+  border-top: 1px solid oklch(91% 0.008 160);
+  font-size: 12px; color: oklch(50% 0.02 160);
+}
+.sf-trust li { position: relative; }
+.sf-foot {
+  display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sp-2) var(--sp-4);
+  padding-top: var(--sp-3);
+  border-top: 1px solid oklch(91% 0.008 160);
+  font-size: 11.5px; color: oklch(58% 0.015 160);
+}
+.sf-foot-links { display: flex; gap: var(--sp-3); }
+.sf-foot-links a { color: inherit; text-decoration: none; }
+.sf-foot-links a:hover { color: oklch(30% 0.02 160); text-decoration: underline; }
+.sf-foot-c { margin-left: auto; }
+
+/* --- THE STATUS PAGE, ON THE SHOP ---------------------------------------
+   Quiet by construction: a shop that shouts about its own outage above the
+   fold loses the customers who could still check out. It reads like the
+   notice strip a real store puts under its header — and it is the operator's
+   published words, so it is set as a quotation, not as UI copy. */
+.sf-status {
+  display: flex; align-items: baseline; gap: var(--sp-2);
+  padding: 9px var(--sp-3);
+  border: 1px solid oklch(89% 0.03 80);
+  border-left: 3px solid oklch(72% 0.13 75);
+  border-radius: var(--r-sm);
+  background: oklch(98% 0.014 85);
+  color: oklch(38% 0.04 70);
+  font-size: 12.5px;
+  line-height: 1.45;
+  text-decoration: none;
+}
+.sf-status[hidden] { display: none; }
+.sf-status:hover { border-color: oklch(80% 0.06 80); }
+.sf-status-k { flex: none; font-weight: 650; color: oklch(44% 0.11 65); }
+.sf-status-t { min-width: 0; }
+.sf-status[data-state='monitoring'] {
+  border-color: oklch(89% 0.04 165); border-left-color: oklch(66% 0.12 165);
+  background: oklch(98% 0.014 165); color: oklch(36% 0.04 165);
+}
+.sf-status[data-state='monitoring'] .sf-status-k { color: oklch(42% 0.1 165); }
+/* the incident is over and nobody has posted the all-clear: not a warning
+   any more, just the last thing anyone said */
+.sf-status[data-state='stale'] {
+  border-color: oklch(91% 0.008 160); border-left-color: oklch(80% 0.01 160);
+  background: oklch(98% 0.004 160); color: oklch(52% 0.015 160);
+}
+.sf-status[data-state='stale'] .sf-status-k { color: oklch(46% 0.015 160); }
 
 /* --- checkout: a cart summary, not an alarm ------------------------------
    A shop's primary action is confident and dark. Failure is communicated by
    the banner and the inline line beneath, not by turning the button red. */
-.sf-checkout { align-items: stretch; gap: var(--sp-2); max-width: 420px; margin-inline: auto; width: 100%; }
+.sf-checkout { align-items: stretch; gap: var(--sp-2); max-width: 420px; margin: var(--sp-2) auto 0; width: 100%; }
 .sf-cart-line {
   display: flex; align-items: baseline; justify-content: space-between;
   padding-bottom: var(--sp-2);
@@ -2556,10 +2680,17 @@ body {
   color: var(--ink-ghost);
 }
 /* an entry that opens says so, at rest — not on hover */
+/* THE CARET BELONGS TO THE FIRST LINE, like the machine value beside it. The
+   head is baseline-aligned, so `align-self: center` centred the caret over the
+   WHOLE head — on a title that wraps to two lines it drifted to the midpoint
+   between them while the meta stayed on line one. An empty flex item takes its
+   bottom margin edge as its baseline, so 1px of it optically centres the caret
+   on the first line's text at any wrap depth. */
 .tl-ev:not([data-leaf='true']) > .tl-head::after {
   content: '';
   flex: none;
-  align-self: center;
+  align-self: baseline;
+  margin-bottom: 1px;
   width: 5px; height: 5px;
   border-right: 1.5px solid var(--ink-ghost);
   border-bottom: 1.5px solid var(--ink-ghost);
@@ -2574,6 +2705,11 @@ body {
    the row grows from where it is instead of anything sliding in. */
 .tl-body {
   display: grid;
+  /* minmax(0,1fr), not the implicit `auto`: an auto grid column sizes to
+     MAX-CONTENT, so the row's expansion measured itself against its longest
+     unbroken line and overhung the dock by 37px at 410px wide — the clipped
+     "Costs" line and the clipped keyboard hint were both this. */
+  grid-template-columns: minmax(0, 1fr);
   grid-template-rows: 1fr;
   transition: grid-template-rows var(--dur-snap) var(--ease-snap);
   padding-top: 5px;
@@ -2582,6 +2718,7 @@ body {
   min-height: 0;
   overflow: hidden;
   display: grid;
+  grid-template-columns: minmax(0, 1fr);
   gap: var(--sp-2);
   min-width: 0;
 }

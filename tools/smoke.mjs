@@ -1171,6 +1171,26 @@ try {
   if (walkErrors.length) console.error('[smoke] walkthrough page errors:', walkErrors);
   await walk.close();
 
+  // ---- ?mode=<stage>: the response stage as a boot param -----------------
+  // Chrome's webmcp-evals CLI drives a URL, and 9 of the 11 recovery cases are
+  // tools that do not exist in triage — so the recovery set could not be run
+  // against the deployed page at all. `?mode=recovery` moves the stage through
+  // the same switchMode() the operator's click calls.
+  const rec = await browser.newPage({ viewport: { width: 1512, height: 945 } });
+  rec.on('pageerror', (e) => pageErrors.push(e.message));
+  await rec.goto(URL + '?template=retry-storm&mode=recovery', { waitUntil: 'networkidle' });
+  await rec.getByTestId('mode-recovery').waitFor({ timeout: 15_000 });
+  await rec.waitForTimeout(600);
+  check(
+    '?template=retry-storm&mode=recovery boots on the Recovery stage with 27 tools in the dock footer',
+    (await rec.getByTestId('mode-recovery').getAttribute('aria-pressed')) === 'true' &&
+      (await rec.locator('#wbs-mode').textContent()) === 'recovery' &&
+      (await rec.locator('#tool-count').textContent()) === '27' &&
+      (await rec.evaluate(() => window.__airlock.mode())) === 'recovery' &&
+      (await rec.locator('#event-stream li[data-kind="mode.changed"]').count()) === 1
+  );
+  await rec.close();
+
   check('no page errors', pageErrors.length === 0);
   if (pageErrors.length) console.error('[smoke] page errors:', pageErrors);
 } finally {

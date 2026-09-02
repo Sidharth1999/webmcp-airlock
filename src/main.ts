@@ -25,6 +25,11 @@ const DEFAULT_TEMPLATE = 'migration-trap';
 const params = new URLSearchParams(location.search);
 const requestedTemplate = params.get('template') ?? DEFAULT_TEMPLATE;
 const AUTO_RUN = params.get('run') === '1';
+// ?mode=<stage>: boot with the response stage already moved. Composes with
+// every other boot param; an unknown or absent value leaves the default.
+const BOOT_MODE = (MODES as readonly string[]).includes(params.get('mode') ?? '')
+  ? (params.get('mode') as Mode)
+  : null;
 const OPEN_SITE = params.get('site') === '1';
 /**
  * Scenario names as an operator would see them. Deliberately symptom-level:
@@ -4690,11 +4695,10 @@ const airlockTools = createAirlockTools(
 renderToolRail(airlockTools);
 
 // mode switching is the operator's ritual: swap the surface, record the
-// mode.changed event (with the registration diff) into the same log
-document.querySelector('#mode-switch')!.addEventListener('click', (e) => {
-  const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-mode]');
-  if (!btn) return;
-  const to = btn.dataset.mode as Mode;
+// mode.changed event (with the registration diff) into the same log.
+// One function, so the click and the `?mode=` boot param cannot drift: both
+// go through `setMode` and both put `mode.changed` on the record.
+function switchMode(to: Mode): void {
   const { from, added, removed } = airlockTools.setMode(to);
   if (from === to) return;
   send({
@@ -4704,6 +4708,12 @@ document.querySelector('#mode-switch')!.addEventListener('click', (e) => {
     data: { from, to, toolsAdded: added, toolsRemoved: removed, reason: 'operator switched mode in console' },
   });
   renderToolRail(airlockTools);
+}
+
+document.querySelector('#mode-switch')!.addEventListener('click', (e) => {
+  const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-mode]');
+  if (!btn) return;
+  switchMode(btn.dataset.mode as Mode);
 });
 
 // ---- walkthrough: the film scene, played from the product ----------------
@@ -4827,6 +4837,16 @@ document.querySelector<HTMLElement>('#findings-empty')!.addEventListener('click'
 // boot: seed() touches deck + storefront elements, so it runs after every
 // element ref above is initialized
 seed(TEMPLATE_ID);
+// ?mode=diagnosis | recovery: boot with the response stage already moved,
+// through the same `switchMode` the operator's click calls — so `setMode`
+// swaps the registered surface and `mode.changed` lands on the log exactly as
+// it would have. It has to run after seed(), which calls `airlockTools.reset()`
+// and would put the stage back to triage.
+// Why it exists: Chrome's webmcp-evals CLI drives a URL, and 9 of the 11
+// recovery cases are tools that are ABSENT in triage — correct behaviour, and
+// unrunnable against the production URL without a way in.
+// (study/chrome-evals/README.md names this as the blocker.)
+if (BOOT_MODE) switchMode(BOOT_MODE);
 // ?site=1 / ?run=1: the two gestures a visitor would make — the storefront's
 // activity-bar toggle, then Run sim — made for them. After seed(), which
 // resets the pacer and the storefront; through the same code the buttons use.

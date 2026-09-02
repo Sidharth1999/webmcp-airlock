@@ -57,12 +57,20 @@ the scene had moved the stage and returned `{status:"rejected", reason:
 counts that as PASS because it only flags `error`/`success:false`. Honest
 recovery count: 10/11 proposed + 1 correctly rejected-by-stage.
 
-Blocker for running the recovery set on the production URL: there is no
-way to boot the page in recovery. A `?mode=recovery` boot param (3 lines in
-`src/main.ts` next to the `#mode-switch` click handler: read `params.get('mode')`,
-call `airlockTools.setMode` and record `mode.changed` exactly as the click
-does) would make the whole set runnable against release-airlock.vercel.app.
-Not applied — product change, needs the smoke gate.
+~~Blocker for running the recovery set on the production URL: there is no way
+to boot the page in recovery.~~ **Applied 2026-09-02.** `?mode=recovery` (and
+`?mode=diagnosis`) moves the response stage at boot through the same
+`switchMode()` the operator's click calls, so `airlockTools.setMode` swaps the
+registered surface and `mode.changed` lands on the log exactly as it would
+have. It composes with `?template=`, `?tick=`, `?run=1` and `?site=1`; an
+unknown value leaves the default. Smoke gates it
+(`?template=retry-storm&mode=recovery` boots on Recovery with 27 tools in the
+dock footer). The recovery set is now runnable against
+release-airlock.vercel.app:
+
+    node webmcp-evals.js --chrome-channel chrome smoke \
+      -u "https://release-airlock.vercel.app/?mode=recovery" \
+      -e study/chrome-evals/airlock-recovery.evals.json -v
 
 ## Cost-gated commands (NOT run — author decides)
 

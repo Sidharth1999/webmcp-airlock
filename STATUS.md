@@ -1,5 +1,119 @@
 # STATUS — live audit log
 
+## DONE 2026-09-02 (late): ONE LEDGER, AND TOOL CALL OUTPUTS
+
+Agenda was `_handoff/2026-09-02-agent-ledger-SPEC.md`. Both jobs shipped.
+Commit `e67d40d`. Verified frame by frame at 1512x945 with
+`node tools/walk-ledger.mjs log/ledger` (new tool, see below).
+
+### 1. THE TWO GRAMMARS ARE NOW ONE
+
+The panel was a row grammar (`.tl-ev` on the thread's spine: connect, reads,
+findings) with a CARD grammar stacked inside its tail (`.plan-card` in
+`#airlock-cards`: its own frame, its own inner spine, its own numbering, its
+own step density rules). Sid read that as *"there is still no linear ledger"*
+four separate times, and he was reading it correctly.
+
+There is now one row builder, `tlRow()`, and one silhouette per kind on one
+spine. Every beat is the same shape — marker, prose title, machine value on
+the right, an expansion underneath:
+
+| beat | kind | marker |
+| --- | --- | --- |
+| the agent attaches | `connect` | ring |
+| **each** tool call | `call` | small square |
+| a conclusion | `finding` | diamond |
+| an order is proposed | `plan` | three bars |
+| a step of it | `step` | the step's number, in the marker slot |
+| what that step did | `state` | green chevron |
+| it is over | `resolved` | filled disc |
+
+- The PLAN is a row. It opens onto the reason the order is load-bearing, and
+  that reason is open when the plan lands and folds itself away once the first
+  step has actually run. It is not a card and it has no frame.
+- Its STEPS are rows under it, on the same spine, at the same x.
+- Each step's OBSERVATION is a row directly beneath that step. The alternation
+  is now spatial and top-level: violet marker, green marker, violet, green,
+  seven times. Read the column and it is action, observation, action.
+- Reads are no longer merged into "Read 5 sources". Five calls are five rows,
+  because *"we see it call tools"* is a sequence, not a count.
+- Nothing is hidden. 24 rows fit the dock at 1512x945 with no scroll at every
+  beat including the last; state decides density and `data-pin` keeps whatever
+  a person opened by hand.
+
+DOM note for whoever comes next: the seven step rows live in an
+`<ol class="tl pl-steps">` inside the plan row, not as siblings of it. That is
+deliberate — smoke resolves `.pl-step`, `.pl-cost` and `.pl-why-t` as
+DESCENDANTS of `[data-testid="plan-<id>"]`, and a plan is one object for reset
+and abandonment. The nested list has zero padding and no spine of its own, so
+on screen there is one list and one spine.
+
+### 2. TOOL CALL OUTPUTS — this had never been built
+
+The reads row expanded to tool NAMES plus a hand-written phrase. Sid asked
+four times for the OUTPUT the agent received.
+
+`runToolQuery()` (src/main.ts) now wraps `runWorkerQuery` and captures each
+read's result on the way past, into `toolResults`, one FIFO queue per tool.
+These are the same bytes the tool's `execute` stringified for the agent — not
+a re-derivation, and not a second read of the world at render time, which
+would drift the moment the world moved. Ordering is safe: `queryResult`
+resolves in a microtask, the `tool.called` event that builds the row arrives
+in the next message task.
+
+The row opens onto: `It got back  822 bytes · as of #37`, the payload
+pretty-printed and token-tinted (keys, strings, numbers, literals), and
+`show me where`, which lands on the console surface the answer came from.
+That is the provenance chain end to end — row → bytes → surface.
+
+**The event log is untouched.** Pages stay <=1.2KB and schema v1 is signed
+off; the log still records `resultBytes` only.
+
+### 3. FROM SID AT THE DESK, SAME SESSION
+
+- **`show me where` did nothing** for four of the six reads. It looked for a
+  `hidden` PANE while the whole PANEL region was closed — with the region off,
+  the pane is not `hidden`, so it found nothing to switch to and returned. It
+  asks for the tab BY NAME now (`READ_TAB`), and `selectTab` opens the region
+  as part of selecting. Separately, `read_logs` pointed at `#zone-activity`,
+  which is the activity feed, not where the logs are; it points at
+  `#zone-logs`.
+- **The `DEV SCENE …` banner read as demo narration.** It cannot be deleted:
+  it is the standing disclosure that the caller in a `?review=` scene is a
+  SCRIPT and not a model. So the disclosure stays and the voice goes — it is
+  `dev scene <scene id>` and a machine state word, never the scene's sales
+  copy and never "your turn". Its uppercase tracked-out tag was also the last
+  micro-cap left in the console after S4; that is gone too.
+- A finding opened onto a verbatim copy of itself. The claim IS the title now,
+  with its citations rendered into the title so they work folded and open.
+- A stopped plan put its whole sentence in the row's machine-value slot, which
+  squeezed the title to three wrapped lines. One word there, sentence below.
+- An empty airlock still printed a "now" pip on the spine under the last step.
+- Narration ("Agent is checking flags…") stayed on screen under a pending
+  approval — a second, staler voice above the two buttons. Cleared when a card
+  lands.
+
+### VERIFICATION — no test file was changed
+
+`npm run smoke` GREEN (run alone) · `npm test` 206 · `npm run typecheck` ·
+`npm run lint:sim` · `npm run corpus` 91/91 · `node tools/capture-polish.mjs`.
+
+**Test-file diff: none.** `tools/smoke.mjs` is byte-identical. The one new
+file is `tools/walk-ledger.mjs`, a CAPTURE tool, not a gate: it shoots the
+agent panel cropped at 2x from the empty state through every beat to the
+resolution, and opens a tool call on the way past — "the output is openable"
+is a claim that has to be photographed, not asserted. Frames in `log/ledger/`.
+
+### KNOWN, NOT DONE
+
+A STANDALONE proposal (no plan) still renders as an `.approval-card` inside
+the airlock at the tail of the ledger, with its own left rule — the one place
+a second grammar survives. It is not on the seven-beat path and not in the
+film, and unifying it touches four smoke gates that resolve `.approval-card`
+inside `#airlock-cards`. Left deliberately; see `log/polish/13-evidence-strip.png`.
+
+---
+
 ## DONE 2026-09-02: THE AGENT PANEL IS A TYPED EVENT TIMELINE, AND S4 IS CLOSED
 
 Agenda was `_handoff/2026-09-02-agent-panel-redesign.md`. Both jobs shipped.

@@ -1,5 +1,110 @@
 # STATUS — live audit log
 
+## SID'S OPEN UX ROUND, S1-S9 — CLOSED 2026-09-02 (Wed, small hours)
+
+The agenda was `_handoff/2026-09-02-sid-feedback-and-ui-rework.md`. All nine
+items are done, plus five more Sid raised during the session. He set the order
+himself: straight S1 -> S9, with S6 pulled to the front after he pushed twice
+on it.
+
+| item | what it was | outcome |
+| --- | --- | --- |
+| S1 | incident command is a button wall | one line at 1512, labels shortened, full wording on aria/title |
+| S2 | the dock is three disconnected cards | one thread, one spine, no nested frames |
+| S3 | findings need scrolling | reads-then-proposes order + the live step pinned |
+| S4 | the faces look unprofessional | system stack; roles kept, no webfont at all |
+| S5 | the scene chips do nothing | deleted |
+| S6 | no complex orchestration sequence | a certified SEVEN-step response |
+| S7 | demo language in the product | four more empty states cleaned |
+| S8 | readout collides with the stat cards | duplication removed, gutter added |
+| S9 | controls card wastes height | deck content-sized, panel takes the slack |
+
+### S6 IS THE ONE THAT MATTERED, AND THE DIAGNOSIS WAS A WIRING BUG
+Sid: "How the freaking hell do we have so many controls and not a single
+scenario that showcases the value of the product?" Twenty write verbs existed;
+ELEVEN reached a template. Nine set a field nothing read. The compiler only
+certifies a step as required if removing it changes the outcome, so an inert
+verb could never BE a required step and no answer key could exceed two. The
+ceiling was in the wiring, not the fiction — writing a longer scenario would
+have failed identically.
+
+Three levers made real, each honouring copy the product already showed:
+`deploy.freeze` now blocks deploys (its cost copy always promised "including
+the fix you are about to ship"); `incident.acknowledge` gates the freeze;
+`incident.severity` gates `statuspage.post`. Another team's rollout was added
+to retry-storm on the SHARED NODE POOL — deliberately on web, because a foreign
+deploy to api would supersede d-511 and silently invalidate the rollback answer
+key. `statuspage.post` is paid for in support tickets, which the world already
+accumulated and nothing ever surfaced.
+
+**`TemplateMeta.orchestration` is new and separate from `solutions`.** Solutions
+is the minimum set of levers that ends the incident and is what `correctPath`
+scores; orchestration is the full ordered response. The compiler runs it, then
+runs it AGAIN once per step with that step left out, and rejects the candidate
+if any omission is free. A long answer key proves nothing by being long.
+
+```
+full 7-step                       $8.58   0 tickets   resolves
+best minimal 2-step              $11.73
+do nothing                      $152.96  50 tickets
+
+without incident.acknowledge     $11.73   the other team ships
+without incident.severity                 43 tickets, page stays silent
+without deploy.freeze:true       $11.73   the other team ships
+without statuspage.post                   43 tickets
+without ratelimit.set           $198.14   NEVER RESOLVES
+without deploy.freeze:false      $84.97   NEVER RESOLVES (own fix blocked)
+without deploy.rollforward       $84.97   NEVER RESOLVES
+```
+
+**Numbers moved.** `study/ordering.json` is now right order $12.41, do nothing
+$153.98, reversed $170.47 (never catastrophic), worst trap $574.28
+(catastrophic 24/24). The four-row shape of the claim is unchanged; only the
+magnitudes moved, because the scenario now contains a foreign rollout.
+
+### THINGS SID RAISED MID-SESSION, ALSO DONE
+- the agent panel keeps the three tabs, the tools modal, the shortcut and the
+  agent cursor — he named those as working, and none were touched
+- superseded thinking folds to a line as the agent learns
+- the trace carries the READS ("read 5 sources"), not just the conclusions
+- it ends: "Checkout is serving again and the error rate is back to baseline"
+- the `?review=` banner is a one-line footer, not a yellow card at the top
+- "operator takes ownership of the incident" -> "take ownership of the
+  incident", fixed in vocabulary.ts so it is right everywhere at once
+
+### TWO CAPS AND ONE DOCTRINE LINE, OVERTURNED
+- `propose_plan` rejected anything over 4 steps: the console would have refused
+  its own compiler-verified answer. Now 8.
+- `capture-polish.mjs` approved exactly twice then waited for completion. It now
+  drives until no live step remains, and TURNS THE KEY — `statuspage.post` is
+  tier 4, the only action in the sequence that leaves the building.
+- ux-debt called a void inside a bordered card "honest". Sid: "a void is a
+  void." Overturned, not cited.
+
+### A REGRESSION I INTRODUCED AND CAUGHT BY LOOKING
+The readout took the newest live deploy across the whole estate, so once another
+team's rollout existed an api incident reported "LIVE BUILD d-513 payments" —
+the storefront's build, named as the thing at fault, on the line an operator
+reads first. It now names the build live on the DEGRADED service.
+
+### Test-file diffs, itemised per the hard rule
+**No pre-existing test was edited or deleted.** One pre-existing test did fail
+(`compiler.test.ts` "verifies every retry-storm variant independently") and it
+was a REAL defect in my change — the foreign deploy was scheduled at an absolute
+tick, which disabled the mechanism on every variant whose storm opens later, so
+`breakAtTick=16` correctly reported the freeze as decorative. Fixed in the
+source. Added: 9 gates in `airlock.test.ts`, 10 in `retry-storm.test.ts`.
+
+### Verification at handoff
+`npm test` 206 (was 187) · `npm run smoke` GREEN alone · `npm run typecheck` ·
+`npm run lint:sim` · `npm run corpus` 91/91 across four families ·
+`node tools/capture-polish.mjs` clean, no console errors.
+
+**Still open for the wall (Thu 3 Sep, 1pm PDT):** the film is not shot, and
+`README.md` still has `<LIVE-URL>` (line 87) and `<REPO-URL>` (line 92), both
+blocked on the repo going public and the app being deployed.
+
+
 ## HOW TO REVIEW THE AGENT UX — start here (2026-09-01, revised after Sid's review)
 
 **Dev server 8917 is always up. Open one link, look, click. No console, no

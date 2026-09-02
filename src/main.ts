@@ -1363,6 +1363,40 @@ const approvalToProposal = new Map<number, number>();
 /** proposalSeq → planId, so a step's card lands inside its own step slot. */
 const planForProposal = new Map<number, string>();
 
+/**
+ * THE RUN LIST — the whole response as one ordered list that never scrolls.
+ *
+ * This replaced a plan CARD containing steps containing state reports, which
+ * is the shape Sid rejected four times: *"I want an ACTION to be followed by
+ * an OBSERVATION/reporting of state"*, *"too much scrolling as you walk
+ * through actions"*, *"we need to hide old content better"*. Nesting the
+ * alternation two levels down meant the rhythm was there and unreadable, and
+ * a card that grew by two rows per approval overflowed the dock by step 5.
+ *
+ * The pattern is the one every engineer already knows from a CI run view:
+ * ONE ordered list of all seven steps, all of them on screen from the moment
+ * the plan arrives. State decides density and nothing else moves:
+ *
+ *   queued  one dim line               "cap r-checkout at 150 req/s"
+ *   live    the same line, expanded in place — reason, price, evidence, keys,
+ *           and the only two buttons on the surface
+ *   done    back to one line, now carrying what it DID to the world on the
+ *           right of the same row: "deploys  open -> frozen"
+ *
+ * Three things fall out of that which the card could not give:
+ *   · the alternation is top-level and spatial — read the column and it is
+ *     action, observation, action, observation, seven times
+ *   · the live step's POSITION down the list is the progress bar, so no pips
+ *     and no "4 of 7" label are needed
+ *   · nothing ever teleports. The step you just approved is the line directly
+ *     above the one you are being asked about now, in the same DOM node it
+ *     was in a second ago.
+ *
+ * Budget at 660x780 with step 4 live: 6 collapsed lines at 32px = 192, the
+ * live step ~250, the investigation line and two findings ~90, the reason for
+ * the order ~26 folded. It fits with room, and it fits at every step.
+ */
+
 function stepDescription(step: PlanStep): string {
   const spec = WRITE_ACTIONS[step.tool];
   if (!spec) return actionKey(step.tool, step.input);
@@ -1373,48 +1407,26 @@ function stepDescription(step: PlanStep): string {
   }
 }
 
-/**
- * THE PLAN'S HEAD NAMES WHAT IT DOES, not what shape it is.
- *
- * "agent proposes 2 steps, in this order" said four things the card already
- * shows: it sits in the AGENT dock, under "waiting on you", above a numbered
- * list, above a block headed WHY THIS ORDER. The one thing the head can say
- * that nothing else does is WHICH plan this is — which is the only thing that
- * matters once it collapses to a receipt and the steps are gone.
- *
- * Built from `stepDescription`, so it cannot drift from the steps it
- * summarises; the tail after an em dash, colon or bracket is the step's
- * elaboration and is exactly what a summary should drop.
- */
-/**
- * The plan's one-line identity. Joining every step with "then" was fine for an
- * ordered PAIR and becomes a seven-clause run-on the moment a real sequence
- * arrives — it wrapped to three lines and buried the state line beside it. A
- * long plan says how far it reaches and where it ends; the steps themselves
- * are directly underneath and say the rest.
- */
-function planSummary(steps: PlanStep[]): string {
-  const short = steps.map((st) =>
-    stepDescription(st)
-      .split(/\s*[—:(]/)[0]!
-      .trim()
-      .replace(/[,;]$/, '')
-  );
-  if (short.length <= 3) return short.join(', then ');
-  return `${short.length} steps — ${short[0]}, through to ${short[short.length - 1]}`;
-}
-
 function setStepState(plan: LivePlan, i: number, state: string, note: string): void {
   const el = plan.stepEls[i];
   if (!el) return;
   el.dataset.state = state;
-  // the head rail carries the same state, so "how far has this got" is
-  // answerable without scrolling a seven-step list
-  const pip = plan.pips[i];
-  if (pip) pip.dataset.state = state;
   el.querySelector<HTMLElement>('.pl-note')!.textContent = note;
+  // A REFUSAL IS AN OBSERVATION TOO. The note lives in the detail, which is
+  // collapsed for every state but `live`, so a rejected step said nothing at
+  // all — the one row on the list where the operator most needs to see their
+  // own decision reflected back. It takes the observation slot, because that
+  // is what happened to the world: nothing.
+  if (state === 'skipped' || state === 'blocked' || state === 'dropped') {
+    const obs = el.querySelector<HTMLElement>('.pl-obs');
+    if (obs) {
+      obs.textContent = note;
+      obs.dataset.landed = 'true';
+      obs.dataset.refused = 'true';
+    }
+  }
   // the console row wears the same state, so the plan is legible from the
-  // controls as well as from the card
+  // controls as well as from the list
   const anchor = plan.anchors[i];
   if (anchor) anchor.dataset.planState = state;
 }
@@ -1435,19 +1447,13 @@ function advancePlan(plan: LivePlan): void {
   if (!step) {
     plan.state = 'complete';
     plan.el.dataset.state = 'complete';
-    plan.el.querySelector<HTMLElement>('.pl-state')!.textContent = 'every step executed';
-    // A finished plan is a RECEIPT, not a live decision: at full height it
-    // pushed everything the agent had worked out below the fold. It keeps one
-    // line and opens again on click, because the sequence you agreed to is
-    // exactly what you want to re-read when something goes wrong later.
-    plan.el.dataset.collapsed = 'true';
-    // The measured counterfactual belongs HERE, not on incident resolution.
-    // It was tied to `reportPlanOutcome()` at first, which only fires once
-    // health is back to ok — so a plan that finished before the world had
-    // settled kept its receipt and said nothing about the order. The claim is
-    // about these two levers in THIS sequence versus the reverse; that is
-    // true the moment the last step executes, and it does not depend on how
-    // the incident happens to be going.
+    plan.el.querySelector<HTMLElement>('.pl-state')!.textContent = '';
+    // THE RECEIPT IS THE LIST. A finished plan used to fold to a one-line
+    // summary, which threw away the only record of what the approvals bought.
+    // Nothing folds: the seven lines each carry their own observation, and
+    // with the live step gone they all fit at once. The footer states the
+    // thing the whole airlock exists to be able to say.
+    showReceipt(plan);
     clearPlanAnchors(plan);
     syncAirlock();
     return;
@@ -1455,7 +1461,6 @@ function advancePlan(plan: LivePlan): void {
   setStepState(plan, plan.index, 'live', 'waiting on your decision');
   void proposeToWorker(step.tool, step.input).then((res) => {
     if (res.outcome === 'blocked') {
-      // the airlock refused it — the plan stops here, and says why
       setStepState(plan, plan.index, 'blocked', res.reason ?? 'refused by the airlock');
       plan.state = 'abandoned';
       plan.el.dataset.state = 'abandoned';
@@ -1467,6 +1472,24 @@ function advancePlan(plan: LivePlan): void {
     plan.currentProposalSeq = res.seq;
     planForProposal.set(res.seq, plan.id);
   });
+}
+
+/**
+ * THE ONE NUMBER THE AIRLOCK EXISTS TO BE ABLE TO PRINT.
+ *
+ * Not "every step executed" — that is a report on the clicking. Seven writes
+ * reached this world and a human passed every one of them, which is either
+ * true or it is not, and the console can count it off the log rather than
+ * assert it. `metrics` already tallies agent writes that never got through.
+ */
+function showReceipt(plan: LivePlan): void {
+  const foot = plan.el.querySelector<HTMLElement>('.pl-receipt');
+  if (!foot) return;
+  const n = plan.steps.length;
+  foot.hidden = false;
+  foot.querySelector<HTMLElement>('.plr-count')!.textContent =
+    `${n} of ${n} approved by you`;
+  foot.querySelector<HTMLElement>('.plr-bypass')!.textContent = '0 writes went round you';
 }
 
 /** The slot a proposal's approval card belongs in, if it belongs to a plan. */
@@ -1485,16 +1508,15 @@ function planDecided(proposalSeq: number, executed: boolean): void {
   const plan = plans.get(id);
   if (!plan || plan.state !== 'running') return;
   if (executed) {
-    setStepState(plan, plan.index, 'done', 'executed');
-    // THE ARGUMENT FOR THE ORDER IS PRE-DECISION READING. Once you have
-    // approved the first step you have weighed it; leaving four lines of it
-    // pinned above every subsequent decision is the cram Sid named. It folds
-    // to its heading and opens again on click.
+    // THE ARGUMENT FOR THE ORDER IS PRE-DECISION READING. Once the first step
+    // is approved it folds to its heading and opens again on click.
     plan.el.dataset.advanced = 'true';
-    // BEAT 6, filed against the step that caused it: what this approval did
-    // to the world, before the next step is put to anyone.
+    setStepState(plan, plan.index, 'done', 'executed');
+    // BEAT 6 — what this approval did to the world, landing on the SAME LINE
+    // as the action that caused it. This is the alternation, and putting it
+    // anywhere else is what made it unreadable before.
     const host = plan.stepEls[plan.index];
-    if (host) renderStateReport(host, diffFacts(prevFacts, snapshotFacts(world ?? undefined)));
+    if (host) landObservation(host, diffFacts(prevFacts, snapshotFacts(world ?? undefined)));
     plan.index += 1;
     advancePlan(plan);
     return;
@@ -1521,48 +1543,9 @@ function renderPlan(e: Event): void {
   el.dataset.testid = `plan-${d.planId}`;
   el.dataset.planId = d.planId;
 
-  const head = document.createElement('button');
-  head.type = 'button';
-  head.className = 'pl-head';
-  head.addEventListener('click', () => {
-    el.dataset.collapsed = el.dataset.collapsed === 'true' ? 'false' : 'true';
-  });
-  const who = document.createElement('span');
-  who.className = 'pl-actor';
-  who.textContent = planSummary(steps);
-  const state = document.createElement('span');
-  state.className = 'pl-state';
-  // The head carries STATE, not a sales line. "one at a time — nothing runs
-  // ahead of you" was explanation that belongs in a voiceover, it was the
-  // thing overflowing the card's edge, and the behaviour is self-evident the
-  // moment you see step 2 sitting locked underneath step 1.
-  head.title = 'Approved one step at a time — nothing runs ahead of you';
-  head.append(who, state);
-  el.append(head);
-
-  // THE PLAN AT A GLANCE, at the top, where Sid asked for it ("the proposed
-  // plan can sit at the beginning"). One pip per step carrying that step's own
-  // state, so a seven-step sequence reports how far it has got without the
-  // operator scrolling the list to find out. Purely a readout: every approval
-  // still happens on the step itself.
-  const rail = document.createElement('ol');
-  rail.className = 'pl-rail';
-  rail.dataset.testid = `plan-rail-${d.planId}`;
-  rail.setAttribute('aria-hidden', 'true');
-  const pips: HTMLElement[] = [];
-  steps.forEach((_, i) => {
-    const pip = document.createElement('li');
-    pip.className = 'pl-pip';
-    pip.dataset.state = 'pending';
-    pip.textContent = String(i + 1);
-    pips.push(pip);
-    rail.append(pip);
-  });
-  el.append(rail);
-
-  // THE ORDER'S REASON COMES FIRST. It is what distinguishes this from a
-  // batch, and the operator must weigh it before the first approval, not
-  // discover it between steps.
+  // THE ORDER'S REASON COMES FIRST and it is the only prose above the list.
+  // It is what distinguishes this from a batch, and the operator must weigh
+  // it before the first approval rather than discover it between steps.
   const why = document.createElement('div');
   why.className = 'pl-why';
   const k = document.createElement('button');
@@ -1575,7 +1558,9 @@ function renderPlan(e: Event): void {
   const body = document.createElement('p');
   body.className = 'pl-why-t';
   renderCitedText(body, String(d.reason ?? ''));
-  why.append(k, body);
+  const state = document.createElement('span');
+  state.className = 'pl-state';
+  why.append(k, state, body);
   el.append(why);
 
   const list = document.createElement('ol');
@@ -1587,28 +1572,40 @@ function renderPlan(e: Event): void {
     li.className = 'pl-step';
     li.dataset.state = 'pending';
     li.dataset.testid = `plan-step-${d.planId}-${i}`;
-    // A QUIET STEP IS ONE LINE, AND ONE LINE ELLIPSISES. Step 4's text is a
-    // customer-facing sentence, so the receipt ended in "…" with no way to
-    // read the rest — an ellipsis you cannot open is a defect, not a density
-    // choice. The full text is on the title, and the line opens on click.
+
+    // ---- the LINE: what it does, and once it has run, what that did -------
+    const line = document.createElement('div');
+    line.className = 'pl-line';
     const what = document.createElement('button');
     what.type = 'button';
     what.className = 'pl-what';
     what.textContent = stepDescription(step);
     what.title = stepDescription(step);
+    // a one-line clamp opens on click: an ellipsis you cannot open is a bug
     what.addEventListener('click', () => {
       li.dataset.expand = li.dataset.expand === 'true' ? 'false' : 'true';
     });
-    li.append(what);
-    // WHY BEFORE WHAT IT COSTS. The agent's reason for this step is what the
-    // operator is weighing; the lever's price is what they weigh it against.
-    // Rendered the other way round, the card opened with a generic warning
-    // about the lever and buried the one sentence specific to this incident.
+    const obs = document.createElement('code');
+    obs.className = 'pl-obs';
+    line.append(what, obs);
+    li.append(line);
+    // the live reading under the newest observation — the discrete diff says
+    // the freeze is on, only this can say the queue is draining
+    const since = document.createElement('p');
+    since.className = 'pl-since';
+    since.hidden = true;
+    li.append(since);
+
+    // ---- the DETAIL: rendered always, revealed only while live -----------
+    const detail = document.createElement('div');
+    detail.className = 'pl-detail';
+    const inner = document.createElement('div');
+    inner.className = 'pl-detail-in';
     if (step.because) {
       const b = document.createElement('p');
       b.className = 'pl-because';
       renderCitedText(b, step.because);
-      li.append(b);
+      inner.append(b);
     }
     const cost = WRITE_ACTIONS[step.tool]?.cost;
     if (cost) {
@@ -1618,21 +1615,23 @@ function renderPlan(e: Event): void {
       ck.className = 'pl-cost-k';
       ck.textContent = 'Costs';
       c.append(ck, document.createTextNode(cost));
-      li.append(c);
+      inner.append(c);
     }
     const note = document.createElement('p');
     note.className = 'pl-note';
     note.textContent = i === 0 ? 'proposing…' : 'not proposed until the step above has run';
-    li.append(note);
-    // the real approval card for this step gets mounted here when it arrives
+    inner.append(note);
     const slot = document.createElement('div');
     slot.className = 'pl-slot';
-    li.append(slot);
+    inner.append(slot);
+    detail.append(inner);
+    li.append(detail);
+
     list.append(li);
     stepEls.push(li);
     // THE WHOLE SEQUENCE LIGHTS UP ON THE CONSOLE, IN ORDER, before a single
-    // step is approved. The operator sees where this plan is going to land on
-    // the surface they already operate, not only inside the agent's card.
+    // step is approved: the operator sees where this plan lands on the
+    // surface they already operate, not only inside the agent's column.
     const anchor = anchorFor(step.tool, step.input);
     anchors.push(anchor);
     if (anchor) {
@@ -1642,6 +1641,15 @@ function renderPlan(e: Event): void {
     }
   });
   el.append(list);
+
+  const receipt = document.createElement('footer');
+  receipt.className = 'pl-receipt';
+  receipt.hidden = true;
+  receipt.dataset.testid = 'plan-receipt';
+  receipt.innerHTML =
+    '<span class="plr-count"></span><span class="plr-bypass"></span>';
+  el.append(receipt);
+
   airlockCards.appendChild(el);
 
   const plan: LivePlan = {
@@ -1651,31 +1659,26 @@ function renderPlan(e: Event): void {
     index: 0,
     el,
     stepEls,
-    pips,
+    pips: [],
     anchors,
     state: 'running',
   };
   plans.set(plan.id, plan);
+  mergePreamble();
+  foldTimeline(); // the preamble compresses the moment the plan lands
   syncAirlock();
   advancePlan(plan);
 }
 
 /**
- * THE PART THAT WAS MISSING: what the decision achieved.
- *
- * A plan completing said "every step executed" and stopped there, which is a
- * report on the CLICKING rather than on the incident. The whole argument for
- * shedding load before shipping is that the outage ends; if the console never
- * says it ended, the operator is left to infer their own outcome from a
- * health dot. Reported once, when it is actually true.
+ * A plan that finished AND ended the incident says so on the receipt.
+ * Reported once, when it is actually true — not when the clicking stopped.
  */
 function reportPlanOutcome(): void {
   if (document.documentElement.dataset.health !== 'ok') return;
   for (const plan of plans.values()) {
     if (plan.state !== 'complete' || plan.el.dataset.outcome) continue;
     plan.el.dataset.outcome = 'resolved';
-    plan.el.querySelector<HTMLElement>('.pl-state')!.textContent =
-      'every step executed — the incident is over';
     // and the thread closes with it: the column that carried the whole
     // response should not go silent at the moment it worked
     threadResolved();
@@ -2298,10 +2301,16 @@ function foldTimeline(): void {
   const entries = [...host.children].filter(
     (c) => (c as HTMLElement).classList.contains('tl-ev') && (c as HTMLElement).dataset.kind !== 'live'
   ) as HTMLElement[];
+  // ONCE A PLAN IS ON SCREEN, THE PREAMBLE IS PREAMBLE. Connect, the reads and
+  // the findings are why the plan is worth reading; they are not what anyone
+  // is deciding, and left at full height they cost the seventh step its place
+  // on screen. Every one of them folds to a line the moment the plan arrives,
+  // and every one of them still opens on click.
+  const planning = plans.size > 0;
   const last = entries[entries.length - 1];
   for (const el of entries) {
     if (el.dataset.pin === 'open') continue;
-    el.dataset.fold = el === last ? 'false' : 'true';
+    el.dataset.fold = !planning && el === last ? 'false' : 'true';
   }
 }
 
@@ -2479,107 +2488,145 @@ let liveState: LiveState | null = null;
 const pctText = (n: number): string => `${(n * 100).toFixed(1)}%`;
 
 /**
- * Mount a state report under the step that caused it. It stays with the step
- * for the rest of the session — that is the operator's record of what their
- * approval bought — but only the newest one stays OPEN.
+ * BEAT 6 — WHAT THE STEP DID TO THE WORLD, on the step's own line.
+ *
+ * It used to be a tinted box mounted UNDER the step, inside a card, inside a
+ * scrolling column: the alternation existed and was two levels too deep to
+ * read, and every beat cost two rows so the seventh one was off the bottom of
+ * the dock. The observation now lands on the RIGHT of the same row as the
+ * action that caused it, in the machine face, so reading down the finished
+ * list is literally action, observation, action, observation.
+ *
+ * It is DERIVED, not narrated: the world is a pure fold of the event log, so
+ * this is a diff of two folds. Nothing is authored per action, which is why
+ * it cannot drift from what actually happened, and why a lever added later
+ * reports itself for free.
  */
-function renderStateReport(host: HTMLElement, changes: FactChange[]): void {
+function landObservation(step: HTMLElement, changes: FactChange[]): void {
   if (!world) return;
-  const el = document.createElement('div');
-  el.className = 'tl-state';
-  el.dataset.testid = 'state-report';
-
-  // NO HEAD. "One thing changed" above a single row said nothing the row did
-  // not, and folding the rows away left a report that reported nothing. Every
-  // report here is one or two lines; there is no detail to progressively
-  // disclose, so it discloses none.
-  const body = document.createElement('dl');
-  body.className = 'tl-state-rows';
-  for (const c of changes) {
-    const dt = document.createElement('dt');
-    dt.textContent = c.label;
-    const dd = document.createElement('dd');
+  const obs = step.querySelector<HTMLElement>('.pl-obs');
+  if (!obs) return;
+  obs.textContent = '';
+  if (!changes.length) {
+    obs.textContent = 'no change';
+    obs.dataset.empty = 'true';
+  } else {
+    // one row, so one change leads. A step that moved two things says so and
+    // the rest is on the title — an operator scanning the column wants the
+    // headline fact per beat, not a paragraph on a 32px line.
+    const c = changes[0]!;
+    const k = document.createElement('span');
+    k.className = 'plo-k';
+    k.textContent = c.label;
     const from = document.createElement('span');
-    from.className = 'ts-from';
+    from.className = 'plo-from';
     from.textContent = c.from;
     const arrow = document.createElement('span');
-    arrow.className = 'ts-arrow';
+    arrow.className = 'plo-arrow';
     arrow.textContent = '→';
     arrow.setAttribute('aria-hidden', 'true');
     const to = document.createElement('span');
-    to.className = 'ts-to';
+    to.className = 'plo-to';
     to.textContent = c.to;
-    dd.append(from, arrow, to);
-    body.append(dt, dd);
+    obs.append(k, from, arrow, to);
+    if (changes.length > 1) {
+      const more = document.createElement('span');
+      more.className = 'plo-more';
+      more.textContent = `+${changes.length - 1}`;
+      more.title = changes
+        .slice(1)
+        .map((x) => `${x.label}: ${x.from} → ${x.to}`)
+        .join('\n');
+      obs.append(more);
+    }
   }
-  el.append(body);
+  // it ARRIVES, once, so the eye is told a beat happened. The value is the
+  // only thing on this surface that is allowed to animate.
+  obs.dataset.landed = 'true';
 
   // ...and what the world is DOING since, which a discrete diff cannot say.
   // The freeze is instantaneous; the queue draining is not.
   //
   // IT IS A LIVE READING, NOT A MEASUREMENT OF THIS STEP. Left frozen on the
-  // report when the next step superseded it, it became a causal claim the
+  // row when the next step supersedes it, it becomes a causal claim the
   // console cannot support — seven steps each captioned with whatever the
   // error rate happened to do while they were on top. It belongs to the
-  // newest report only, and is retired with it.
-  const prior = liveState?.el.querySelector<HTMLElement>('.tl-since');
+  // newest observation only, and is retired with it.
+  const prior = liveState?.el.querySelector<HTMLElement>('.pl-since');
   if (prior) {
     prior.hidden = true;
     prior.textContent = '';
   }
-  const since = document.createElement('p');
-  since.className = 'tl-since';
-  since.hidden = true;
-  el.append(since);
   liveState = {
-    el,
+    el: step,
     at: {
       err: world.traffic.errRate,
       users: world.damage.usersErrored,
       lost: world.damage.revenueLost,
     },
   };
-  host.append(el);
   refreshLiveState();
 }
 
 /**
- * The "since this step" line, re-read every tick. It is the difference
- * between a console that says a lever was pulled and one that says the lever
- * worked, and it is the beat the film turns on: cap the route, and the panel
- * says the error rate is coming down while you are still looking at it.
+ * The live reading under the newest observation, re-read every tick. It is
+ * the difference between a console that says a lever was pulled and one that
+ * says the lever worked, and it is the beat the film turns on: cap the route,
+ * and the line starts counting down while you are still looking at it.
  */
 function refreshLiveState(): void {
   if (!liveState || !world) return;
-  const line = liveState.el.querySelector<HTMLElement>('.tl-since');
+  const line = liveState.el.querySelector<HTMLElement>('.pl-since');
   if (!line) return;
   const err = world.traffic.errRate;
   const d = err - liveState.at.err;
   const users = world.damage.usersErrored - liveState.at.users;
-  // Under half a point either way is noise, not a trend — and a line that
-  // says "holding" under every control-plane verb is four repetitions of
-  // nothing. It appears when the world actually moves, which is the beat:
-  // cap the route, and this line starts counting down while you watch.
+  // Under half a point either way is noise, not a trend — and a line saying
+  // "holding" under every control-plane verb is four repetitions of nothing.
   const moved = Math.abs(d) >= 0.005;
   line.hidden = !moved;
   if (!moved) return;
   line.dataset.dir = d < 0 ? 'down' : 'up';
-  // "after", not "since": once the next step supersedes this report the line
-  // stops updating, and a frozen number under a live word is a small lie.
-  line.textContent = `Error rate ${pctText(liveState.at.err)} → ${pctText(err)}${users > 0 ? ` · ${users} more users hit` : ''}`;
+  line.textContent = `error rate ${pctText(liveState.at.err)} → ${pctText(err)}${users > 0 ? ` · ${users} more users hit` : ''}`;
 }
 
 /**
- * The same beat for an approval that was never part of a plan. It gets its
- * own timeline entry instead of a slot inside a step, because there is no
- * step to file it under — the shape differs, the report does not.
+ * The same beat for an approval that was never part of a plan: no step to
+ * file it against, so it files itself as its own line on the timeline.
  */
 function standaloneStateReport(): void {
   const changes = diffFacts(prevFacts, snapshotFacts(world ?? undefined));
   if (!changes.length) return;
-  const el = tlAdd('state', changes.length === 1 ? 'One thing changed' : `${changes.length} things changed`);
+  const el = tlAdd(
+    'state',
+    changes.map((c) => `${c.label} ${c.from} → ${c.to}`).join(' · ')
+  );
   el.dataset.leaf = 'true';
-  renderStateReport(tlBody(el), changes);
+}
+
+/**
+ * TWO BEATS, ONE LINE, ONCE THERE IS A PLAN TO READ.
+ *
+ * "An agent connected to this console" and "Read 5 sources" are two rows that
+ * are, by the time a plan exists, one fact: it turned up and it looked before
+ * it asked. Keeping them apart cost 30px, and 30px is exactly what the
+ * seventh step needed to stay on screen. Neither beat is lost — the sentence
+ * carries both, and the row still opens onto the tool calls themselves.
+ */
+function mergePreamble(): void {
+  const host = tlHost();
+  if (!host) return;
+  const conn = host.querySelector<HTMLElement>('.tl-ev[data-kind="connect"]');
+  const reads = host.querySelector<HTMLElement>('.tl-ev[data-kind="reads"]');
+  if (!conn || !reads || conn.hidden) return;
+  const n = (reads.dataset.tools ?? '').split(',').filter(Boolean).length;
+  tlTitle(reads).textContent = `An agent connected, then read ${n} source${n === 1 ? '' : 's'}`;
+  // THE READ COUNT IS THE TRUST SENTENCE. "It looked at five things before it
+  // asked you for anything" is half the reason to take the ask seriously, and
+  // it costs six characters. The reads themselves are one click away, here and
+  // on every step's evidence strip.
+  tlMeta(reads).textContent = `${n} before the first ask`;
+  conn.hidden = true;
 }
 
 /** A new scenario is a new story: the timeline starts empty, not mid-thought. */

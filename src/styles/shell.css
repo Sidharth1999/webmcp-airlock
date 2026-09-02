@@ -1890,115 +1890,81 @@ body {
 .ap-prov-src { color: var(--ink-faint); }
 .approval-card:has(.ap-prov) { border-color: var(--warn-dim); border-left-color: var(--warn); }
 
-/* --- the plan: a sequence, priced, approved one step at a time ----------
-   Read top to bottom it is an argument: the reason for the order, then the
-   steps with their prices, then exactly one live decision. The step rail on
-   the left is the state at a glance — filled means done, ringed means this
-   is the one you are being asked about, hollow means not yet asked. */
+/* ======================================================================
+   THE RUN LIST — the pattern every engineer already knows.
+
+   This replaced a plan CARD holding steps holding state reports, which Sid
+   rejected four times: "I want an ACTION to be followed by an OBSERVATION /
+   reporting of state", "too much scrolling as you walk through actions",
+   "we need to hide old content better", "the UI looks mostly the same".
+   Nesting the alternation two levels down made the rhythm unreadable, and a
+   card that grew two rows per approval overflowed the dock by step five.
+
+   It is a CI run view now: one ordered list, all seven steps on screen from
+   the moment the plan arrives, and STATE DECIDES DENSITY.
+
+     queued  one dim line
+     live    the same line, expanded IN PLACE — reason, price, evidence, key,
+             and the only two buttons on the surface
+     done    back to one line, now carrying on its right what it did to the
+             world: "Deploys  open -> frozen"
+
+   Three things fall out of that which the card could not give:
+     · the alternation is top-level and SPATIAL — read the finished column and
+       it is action, observation, action, observation, seven times over
+     · the live step's POSITION down the list is the progress bar, which is
+       why the pips are gone: they were a second, worse copy of it
+     · nothing teleports. The step you approved a second ago is the line
+       directly above the one you are being asked about, in the same node.
+
+   Budget at 660x780 with step 4 live: 6 collapsed lines at 32 = 192, the live
+   step ~250, preamble ~104, the reason folded ~24. It fits at every step, and
+   at the end the live step is gone and all seven lines fit at once.
+   ====================================================================== */
 .plan-card {
   border: 0;
   background: none;
   padding: 0;
-  margin: var(--sp-2) 0 0;
+  margin: 0;
+  min-width: 0;
   display: flex;
   flex-direction: column;
   gap: var(--sp-2);
-  /* PROSE, NOT MONO. The whole card was set in the instrument face at 11-12px
-     — twenty-eight lines of monospace for a seven-step plan, which is the
-     "density and font ... looks so ugly" Sid is reading. Mono is for machine
-     truth: identifiers, values, log lines. A sentence explaining why an order
-     matters is prose, and it is the thing an operator has to actually read. */
-  font-family: var(--font-prose);
-  font-size: var(--text-sm);
 }
-.plan-card[data-state='abandoned'] { opacity: 0.85; }
-.plan-card[data-state='abandoned']::before { background: var(--ink-ghost); }
-.plan-card[data-state='complete']::before { background: var(--good); }
-/* wrap rather than overflow: at a 570px dock the title and the state line
-   together ran 3px past the card and bled over its edge */
-.pl-head { display: flex; align-items: baseline; gap: var(--sp-2); flex-wrap: wrap; }
-.pl-actor { flex: 1 1 auto; min-width: 0; }
-.pl-head::after { flex: none; }
-.pl-actor {
-  color: var(--actor-agent);
-  font-family: var(--font-prose);
-  font-weight: 600;
+
+/* --- the reason for the order: the only prose above the list ----------- */
+.pl-why { display: flex; flex-wrap: wrap; align-items: baseline; gap: var(--sp-2); }
+.pl-why-k {
+  order: 1;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  color: var(--ink-faint);
+  font-size: var(--text-2xs);
 }
 .pl-state {
-  margin-left: auto; min-width: 0; overflow-wrap: anywhere;
-  color: var(--ink-faint); font-size: var(--text-2xs); text-align: right;
+  order: 2;
+  margin-left: auto;
+  min-width: 0;
+  color: var(--ink-faint);
+  font-size: var(--text-2xs);
+  text-align: right;
 }
-.plan-card[data-state='complete'] .pl-state { color: var(--good); }
-
-/* ---- the step rail: the whole plan in one line, at the top ------------- */
-.pl-rail {
-  list-style: none;
-  margin: 2px 0 0;
-  padding: 0;
-  display: flex;
-  flex-wrap: wrap;
-  gap: 5px;
-  align-items: center;
+.pl-why-t {
+  order: 3;
+  flex: 1 0 100%;
+  margin: 0;
+  color: var(--ink);
+  font-family: var(--font-prose);
+  font-size: var(--text-xs);
+  line-height: 1.5;
 }
-.pl-pip {
-  width: 17px;
-  height: 17px;
-  border-radius: 50%;
-  display: grid;
-  place-items: center;
-  font-family: var(--font-instrument);
-  font-size: 10px;
-  line-height: 1;
-  border: 1px solid var(--actor-agent-dim);
-  color: var(--ink-ghost);
-  transition: background var(--dur-snap) var(--ease-snap),
-              color var(--dur-snap) var(--ease-snap),
-              border-color var(--dur-snap) var(--ease-snap);
-}
-/* the one you are being asked about: filled, and the only pip that moves */
-.pl-pip[data-state='live'] {
-  border-color: var(--actor-agent);
-  background: var(--actor-agent);
-  color: oklch(18% 0.03 310);
-  font-weight: 600;
-}
-.pl-pip[data-state='done'] {
-  border-color: var(--good);
-  background: color-mix(in oklch, var(--good) 22%, transparent);
-  color: var(--good);
-}
-.pl-pip[data-state='blocked'],
-.pl-pip[data-state='skipped'] { border-color: var(--bad); color: var(--bad); }
-.pl-pip[data-state='dropped'] { opacity: 0.4; }
-
-/* ---- THE LIVE STEP NEVER LEAVES THE SCREEN ----------------------------
-   S3, and the reason a seven-step plan is usable at all: with the sequence
-   this long the step being asked about is halfway down a scrolling column,
-   so the operator scrolls to find the decision and loses the reasoning, or
-   reads the reasoning and loses the decision. The live step sticks to the
-   bottom of the thread. Everything above it scrolls past normally. */
-.pl-step[data-state='live'] {
-  position: sticky;
-  bottom: 0;
-  z-index: 2;
-  background: linear-gradient(
-    180deg,
-    color-mix(in oklch, var(--panel) 88%, var(--actor-agent) 12%),
-    var(--panel)
-  );
-  box-shadow: 0 -10px 18px -8px oklch(0% 0 0 / 0.55);
-  margin-inline: calc(var(--sp-2) * -1);
-  padding-inline: var(--sp-2);
-  padding-block: var(--sp-2);
-  border-radius: var(--r-sm);
-}
-
-.pl-why { display: flex; flex-direction: column; gap: 2px; }
 /* Pre-decision reading. Once the first step has run it folds to its heading:
-   four lines of argument pinned above every subsequent approval is the cram,
-   and the operator has already weighed it by then. Click the heading to
-   re-read it — that is what a receipt is for. */
+   four lines of argument pinned above every later approval is the cram. */
 .plan-card[data-advanced='true'] .pl-why-t { display: none; }
+.plan-card[data-advanced='true'][data-why='open'] .pl-why-t { display: block; }
+.plan-card[data-advanced='true'] .pl-why-k { cursor: pointer; }
 .plan-card[data-advanced='true'] .pl-why-k::after {
   content: '';
   display: inline-block;
@@ -2009,63 +1975,48 @@ body {
   rotate: -45deg;
   vertical-align: middle;
 }
-.plan-card[data-advanced='true'] .pl-why-k { cursor: pointer; }
-.plan-card[data-advanced='true'][data-why='open'] .pl-why-t { display: block; }
 .plan-card[data-advanced='true'][data-why='open'] .pl-why-k::after { rotate: 45deg; }
-.pl-why-k {
-  align-self: flex-start;
-  padding: 0;
-  border: 0;
-  background: none;
-  text-align: left;
-  color: var(--ink-faint);
-  font-size: var(--text-2xs);
-}
-.pl-why-t {
-  line-height: 1.55;
-  margin: 0;
-  color: var(--ink);
-  font-family: var(--font-prose);
-  font-size: var(--text-xs);
-  line-height: 1.5;
-}
 
-/* ONE DECISION IN FOCUS, THE REST AS A LIST.
-   Every step used to render its title, its price, its rationale and a status
-   note whatever state it was in. For an ordered PAIR that was four lines of
-   detail; for the real seven-step response it is a twenty-eight-line wall,
-   and twenty-six of those lines are about steps the operator is not being
-   asked about. Sid: "if it's too packed and mostly text ... no one wants to
-   look at it seriously".
-   So state decides density. A step that is DONE or NOT YET ASKED is one line.
-   The step you are being asked about is a card, with its price and its reason
-   and its buttons. That is the whole ergonomic idea. */
+/* --- the list ---------------------------------------------------------- */
+/* The list draws its own connector. With the live step travelling ~190px
+   down the column over seven beats, the thing that stops that reading as
+   jitter is a line for it to travel ALONG. */
 .pl-steps {
+  position: relative;
   list-style: none;
   margin: 0;
   padding: 0;
   display: flex;
   flex-direction: column;
-  gap: 1px;
   counter-reset: pl;
+  min-width: 0;
+}
+.pl-steps::before {
+  content: '';
+  position: absolute;
+  left: 8px;
+  top: 16px;
+  bottom: 16px;
+  width: 1px;
+  background: var(--line-strong);
 }
 .pl-step {
   display: grid;
-  grid-template-columns: 20px minmax(0, 1fr);
-  column-gap: var(--sp-3);
+  grid-template-columns: 22px minmax(0, 1fr);
   align-items: start;
-  padding: 5px 0;
   counter-increment: pl;
+  min-width: 0;
   border-radius: var(--r-sm);
+  transition: opacity var(--dur-snap) var(--ease-snap);
 }
-.pl-step > * { grid-column: 2; }
-/* the marker: hollow → ringed → filled, so state is legible without text */
+.pl-step > * { grid-column: 2; min-width: 0; }
+/* the marker: hollow -> filled -> ticked, so state reads without text */
 .pl-step::before {
   content: counter(pl);
   grid-column: 1;
   grid-row: 1;
-  width: 18px;
-  height: 18px;
+  width: 17px;
+  height: 17px;
   border-radius: 50%;
   display: grid;
   place-items: center;
@@ -2076,65 +2027,156 @@ body {
   background: none;
   border: 1px solid var(--line-strong);
   color: var(--ink-ghost);
-  margin-top: 1px;
+  margin-top: 7px;
 }
 .pl-step[data-state='live']::before {
   border-color: var(--actor-agent);
   background: var(--actor-agent);
   color: oklch(18% 0.03 310);
   font-weight: 600;
+  margin-top: 13px;
 }
 .pl-step[data-state='done']::before {
   content: '✓';
   border-color: color-mix(in oklch, var(--good) 45%, transparent);
-  background: none;
   color: var(--good);
 }
 .pl-step[data-state='skipped']::before,
 .pl-step[data-state='blocked']::before { border-color: var(--bad); color: var(--bad); }
-.pl-step[data-state='dropped'] { opacity: 0.5; }
+.pl-step[data-state='pending'],
+.pl-step[data-state='dropped'] { opacity: 0.45; }
 
-/* --- the quiet states: one line, and nothing else ---------------------- */
-.pl-step[data-state='pending'] .pl-cost,
-.pl-step[data-state='pending'] .pl-because,
-.pl-step[data-state='pending'] .pl-note,
-.pl-step[data-state='done'] .pl-cost,
-.pl-step[data-state='done'] .pl-because,
-.pl-step[data-state='done'] .pl-note,
-.pl-step[data-state='dropped'] .pl-cost,
-.pl-step[data-state='dropped'] .pl-because,
-.pl-step[data-state='dropped'] .pl-note { display: none; }
-.pl-step[data-state='pending'] .pl-what,
-.pl-step[data-state='dropped'] .pl-what {
-  color: var(--ink-faint);
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
+/* --- THE LINE: what it does, and under it, what that did ---------------
+   THE OBSERVATION GETS ITS OWN ROW. Sharing a row with the action saved 16px
+   and cost the thing the row exists for: at 660px "tell customers, identified:
+   ..." plus "Status page silent -> identified" does not fit, so every
+   observation clipped at exactly the arrow — the console showed the BEFORE
+   value and ellipsised the after. Two rows, same left edge, and the finished
+   column now literally reads action / observed / action / observed. */
+.pl-line {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  row-gap: 1px;
+  min-height: 28px;
+  padding-block: 4px;
+  min-width: 0;
 }
-.pl-step[data-state='done'] .pl-what {
+.pl-what {
+  display: block;
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  font-family: var(--font-prose);
+  font-size: var(--text-sm);
+  font-weight: 400;
+  line-height: 1.45;
   color: var(--ink-dim);
+  cursor: pointer;
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
 }
+/* an ellipsis you cannot open is a defect, so the line opens on click */
+.pl-step[data-expand='true'] .pl-what {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
+.pl-step[data-state='done'] .pl-what { color: var(--ink-dim); }
 
-/* --- the live step: the only card on the list -------------------------- */
-/* A REAL SURFACE. Everything else on this list is a line of text; the step
-   being decided is an object you can point at. It gets the panel's raised
-   ground, a hairline, and the agent's violet down its edge — the same accent
-   the dock already uses for "this is the agent asking". */
+/* THE OBSERVATION. The only element on this surface that is not the agent
+   speaking: it is a diff of two folds of the event log, so it is green, it is
+   in the machine face, and it carries a struck-through BEFORE — the operator
+   is looking at a state change, not at a claim. */
+/* LOUD ENOUGH TO CARRY THE RHYTHM IN A STILL. The alternation lives in
+   typography, not in category labels: sentence-case prose action, then a
+   monospace coloured state change. A column that needs the words ACTION and
+   OBSERVED stencilled down it does not have a rhythm, it has captions. */
+.pl-obs {
+  display: none;
+  align-items: baseline;
+  gap: 5px;
+  min-width: 0;
+  font-family: var(--font-instrument);
+  font-size: var(--text-xs);
+  line-height: 1.45;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pl-obs[data-landed='true'] { display: flex; }
+.plo-k { color: var(--ink-faint); }
+.plo-from { color: var(--ink-ghost); text-decoration: line-through; }
+.plo-arrow { color: var(--ink-ghost); flex: none; }
+.plo-to { color: var(--good); font-weight: 600; }
+.pl-obs[data-empty='true'] { color: var(--ink-ghost); }
+.pl-obs[data-refused='true'] { color: var(--bad); font-family: var(--font-prose); }
+.pl-step[data-state='dropped'] .pl-obs[data-refused='true'] { color: var(--ink-ghost); }
+.plo-more {
+  color: var(--good);
+  opacity: 0.7;
+  cursor: help;
+}
+/* THE ONE THING ALLOWED TO ANIMATE. An observation ARRIVING is what tells the
+   eye a beat happened; everything else on this surface holds still, because
+   an ops console earns trust by not moving. */
+@media (prefers-reduced-motion: no-preference) {
+  .pl-obs[data-landed='true'] { animation: obs-land 420ms var(--ease-settle) both; }
+}
+@keyframes obs-land {
+  from { opacity: 0; transform: translateX(6px); }
+  to   { opacity: 1; transform: none; }
+}
+
+/* the live reading under the newest observation: the discrete diff can say
+   the freeze is on, only this can say the queue is draining */
+.pl-since {
+  margin: 0 0 5px;
+  font-family: var(--font-instrument);
+  font-size: var(--text-xs);
+  line-height: 1.45;
+  color: var(--ink-faint);
+}
+.pl-since[hidden] { display: none; }
+.pl-since[data-dir='down'] { color: var(--good); }
+.pl-since[data-dir='up'] { color: var(--warn); }
+
+/* --- THE DETAIL: in the DOM always, revealed only while live ----------- */
+/* grid-template-rows 0fr -> 1fr is the one height transition that needs no
+   JS measurement, so a step opening cannot jump. */
+.pl-detail {
+  display: grid;
+  grid-template-rows: 0fr;
+  transition: grid-template-rows 160ms var(--ease-settle);
+}
+.pl-detail-in { overflow: hidden; min-height: 0; }
+.pl-step[data-state='live'] .pl-detail { grid-template-rows: 1fr; }
+@media (prefers-reduced-motion: reduce) { .pl-detail { transition: none; } }
+
+/* --- the live step: the only object on the list ------------------------ */
 .pl-step[data-state='live'] {
-  padding: var(--sp-3) var(--sp-3) var(--sp-3) var(--sp-3);
-  margin: var(--sp-2) 0;
-  grid-template-columns: 20px minmax(0, 1fr);
-  /* THE PERCENTAGES MUST SUM TO 100. At 78%/6% color-mix scales the result and
-     returns a colour with ALPHA — so the live card was translucent, and the
-     step above it bled through the moment the card stuck to the bottom of a
-     scrolling thread. Opaque, because a sticky element has to occlude. */
+  padding: var(--sp-2) var(--sp-3) var(--sp-3);
+  margin: 6px 0;
+  grid-template-columns: 22px minmax(0, 1fr);
+  /* percentages must sum to 100: a short color-mix returns a colour WITH
+     ALPHA, and this surface has to occlude nothing but must read as solid */
   background: color-mix(in oklch, var(--panel-raised) 94%, var(--actor-agent) 6%);
   border: 1px solid color-mix(in oklch, var(--actor-agent) 28%, var(--line));
   border-left: 2px solid var(--actor-agent);
   border-radius: var(--r-md);
+}
+.pl-step[data-state='live'] .pl-what {
+  color: var(--ink);
+  font-weight: 600;
+  font-size: var(--text-md);
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+  white-space: normal;
+  overflow: visible;
+  cursor: default;
 }
 /* the reason leads, so it reads as a sentence and not a caption */
 .pl-step[data-state='live'] .pl-because {
@@ -2143,15 +2185,6 @@ body {
   font-size: var(--text-sm);
   line-height: 1.5;
 }
-.pl-step[data-state='live'] .pl-what {
-  color: var(--ink);
-  font-weight: 600;
-  font-size: var(--text-md);
-  line-height: 1.35;
-  letter-spacing: -0.01em;
-}
-
-.pl-what { margin: 0; color: var(--ink); line-height: 1.45; }
 .pl-cost {
   margin: var(--sp-2) 0 0;
   padding-top: var(--sp-2);
@@ -2168,8 +2201,6 @@ body {
   font-size: var(--text-2xs);
   margin-bottom: 3px;
 }
-/* the agent's reason for THIS step, in its own voice: it leads the card,
-   above the price, because it is what the operator is weighing */
 .pl-because {
   margin: 5px 0 0;
   color: var(--ink-dim);
@@ -2184,11 +2215,29 @@ body {
   font-size: var(--text-2xs);
 }
 /* "waiting on your decision" under a card with Approve and Reject on it is a
-   caption restating its own buttons. The live step is the only one that never
-   needs a status line, because its status is the two controls at the bottom. */
+   caption restating its own buttons. */
 .pl-step[data-state='live'] .pl-note { display: none; }
 .pl-step[data-state='blocked'] .pl-note,
 .pl-step[data-state='skipped'] .pl-note { color: var(--bad); }
+
+/* --- THE RECEIPT ------------------------------------------------------- */
+/* The seven lines above it ARE the record; this states the one thing the
+   airlock exists to be able to say, and it is the last frame of the film. */
+/* the last step is the tallest and it must never touch the bottom edge */
+.plan-card { padding-bottom: var(--sp-5); }
+.pl-receipt {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-3);
+  margin-top: var(--sp-2);
+  padding-top: var(--sp-2);
+  border-top: 1px solid color-mix(in oklch, var(--good) 30%, var(--line));
+  font-size: var(--text-xs);
+}
+.pl-receipt[hidden] { display: none; }
+.plr-count { color: var(--good); font-weight: 600; }
+.plr-bypass { color: var(--ink-faint); }
+
 /* the live step's own approval card sits inside the step, not beside it.
    The step has already said WHO is asking and WHAT it would do, so the card
    drops both and carries only what the step cannot: the tier, the evidence
@@ -2621,6 +2670,7 @@ body {
    20px above it — two markers for one entry. The plan's wins. */
 .tl-ev[data-kind='live']:has(.plan-card)::before { display: none; }
 /* the tail carries nothing until something is actually live */
+.tl-ev[hidden] { display: none; }
 .tl-ev[data-kind='live'] {
   padding: 0;
   animation: none;

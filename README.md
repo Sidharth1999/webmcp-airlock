@@ -212,7 +212,8 @@ Six things this console does that a chat transcript cannot:
   the engine must never trust that a tool was unregistered.
 
 Full map: [`docs/architecture.md`](docs/architecture.md). Event schema:
-[`docs/schema.md`](docs/schema.md). The whole tool surface — every
+[`docs/schema.md`](docs/schema.md). What writing 27 tools taught us:
+[`docs/lessons-for-tool-authors.md`](docs/lessons-for-tool-authors.md). The whole tool surface — every
 description, schema, annotation, and the stage that grants it — is generated
 from the source: [`docs/webmcp-surface.md`](docs/webmcp-surface.md).
 

@@ -1,5 +1,62 @@
 # STATUS — live audit log
 
+## DONE 2026-09-02 (Wed, 03:00–12:30): FABLE SESSION — LEGIBILITY AND SUBMISSION, PRODUCT FROZEN
+
+Sid handed the last stretch to Fable with a large budget. The read: the
+product is faithful to the strong thesis; the WORDING was not. Plan page for
+Sid: https://claude.ai/code/artifact/0171fe42-3b46-4fa4-a433-ad93bd9be825
+
+### External grading (both in `_handoff/2026-09-02-external-grading.md`)
+ChatGPT 9.7/9.2/8.4/9.6 and Claude.ai 9.5/9.0/7.0/9.0 on the four rubric
+axes, same frames, unseen by each other. Converged: "a server-side MCP cannot
+know this" is an OVERCLAIM; the airtight argument is co-presence (the page the
+human is looking at is the page the agent is gated by). README and the Devpost
+draft are rewritten on that axis (`e62dcdc`).
+
+### Shipped on main
+- Live URL redeployed: `release-airlock.vercel.app` was publicly reachable
+  but served the Aug 30 build. Now serves the current bundle.
+- README accuracy pass (`1d8fe28`): 206 tests, 106 gates, damage table from
+  the corpus ON DISK — nothing 154.10 · cap-then-ship 12.43 · the full
+  seven-step response 9.10 · ship-then-cap 170.61 · silence-then-ship 573.75
+  (api down 24/24). The old 146 / 9.10 / 537 numbers are STALE.
+- `docs/webmcp-surface.md` generated from the real registration path
+  (`npm run docs:tools`, `6ee2c20`), 13/17/27 per stage.
+- Devpost description DRAFT 3, README why-WebMCP on co-presence, post drafts
+  (`_handoff/2026-09-02-posts.md`), field sheet
+  (`_handoff/2026-09-02-devpost-fields.md`), `docs/lessons-for-tool-authors.md`.
+- Repo: `"private": true` dropped, CI workflow, vitest excludes `.claude/**`
+  (a nested worktree had doubled the suite to 412).
+- Public export rehearsed, NOT pushed: `tools/export-public.sh` → 246MB→16MB,
+  187→164 commits, scrubs the employer/level line, the Vercel scope slug, a
+  third party's name; drops log/** (curated keep list), _handoff/**, consensus
+  docs, sid-*.png; keeps study/**. Builds standalone 206/206.
+- Gallery re-shot (`4c126ac`): `log/devpost/` six 16:9 images + five 3:2
+  thumbnail candidates with 300px previews. Recommended: `thumb-e` (the
+  provenance card, whole thesis legible at card size).
+- `Costs ·Claims` → `Costs · Claims` (`51a997f`). Smoke GREEN alone after.
+
+### On a branch, NOT merged — Sid decides
+`worktree-agent-a11359104200e88cf` (`.claude/worktrees/…`, dev server on
+8921): the dock's empty state says how to attach an agent + three copyable
+prompts, and a production-safe "walkthrough" plays the film arc through the
+real tool path with a machine-words disclosure. Film scene + runner moved to
+`src/walkthrough.ts`; `review.ts` is harness-only. Smoke on the branch GREEN,
+112 gates (6 added, none edited; `PORT` line made env-overridable, default
+unchanged). No conflict with the bundle-hygiene gate.
+
+### Defects seen in the shoot, deliberately NOT fixed
+Rings appear on 2/7 plan steps (the incident-command chips are not rows);
+agent cursor rests on unrelated chrome in three beats; "Roll back" stretches
+to the caution card's height in the counsel state; a void under Traffic with
+the shop closed and the panel open. All layout calls for Sid.
+
+### Test-file diffs on main: NONE. Verification: smoke GREEN (alone) · 206 ·
+typecheck · lint:sim · build.
+
+---
+
+
 ## DONE 2026-09-02 (late, second half): THE SHOP JOINS THE STORY; ASSETS PASS
 
 Commit `fab4492`. Signed off by Sid ("looks a lot better"). All from his own

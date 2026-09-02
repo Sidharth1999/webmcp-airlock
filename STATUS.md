@@ -1,5 +1,98 @@
 # STATUS — live audit log
 
+## DONE 2026-09-02 (late, second half): THE SHOP JOINS THE STORY; ASSETS PASS
+
+Commit `fab4492`. Signed off by Sid ("looks a lot better"). All from his own
+review at the desk, in his order.
+
+### 1. THE STOREFRONT WAS DOING THE WORK WHERE NOBODY COULD WATCH
+
+Sid: *"does the site simulator actually become part of our narrative? are we
+able to see the site become fixed? otherwise the site simulator is fairly
+useless."*
+
+It WAS participating — `#storefront[data-state]` goes `broken` for steps 1-6
+and `ok` at step 7, the exact step that ships the fix. **The dock was sitting
+on top of it.** `[data-decision='pending']` elevates the dock over the page,
+and the whole seven-step arc is one continuous pending decision, so from the
+moment the plan landed until after the last approval the dock covered roughly
+half the shop — including the frame where checkout comes back.
+
+The dock no longer elevates while the shop is open
+(`.wb[data-decision='pending']:not([data-site='on'])`). The ledger is a run
+list now and does not need the ~120px the plan card needed. Console, shop and
+ledger are all legible in one frame at 1512x945.
+
+**Two latent bugs fell out of the narrower dock**, both the same root cause —
+an `auto` grid column floors at MAX-CONTENT, so the live step's expansion
+measured itself against its longest unbroken line and overhung the dock by
+37px at 410px wide. `minmax(0, 1fr)` on `.tl-body` and `.tl-in`; `.ap-actions`
+wraps rather than clipping the keyboard hint mid-word. Same fix on `.sf-grid`.
+
+### 2. STEP 4 NOW LANDS ON THE CUSTOMER
+
+"Tell customers" moved a panel in the operator's console and nothing at all on
+the shop — the one step of the seven whose entire justification is the
+customer ("every minute unsaid is a support ticket") had no customer-visible
+effect, which made the shop a decoration for six of the seven steps.
+
+`renderSite` now reads `w.incident.statusPosts` and renders the newest
+unresolved post on the shop, **quoted verbatim** — the same string that left
+the building, read off the world, never a second copy authored to look good.
+Two visible payoffs instead of one: the notice at step 4, checkout at step 7.
+
+When checkout is serving again the strip stands down from an amber "Known
+issue" to a neutral "Last update". A warning that outlives its incident is the
+commonest way a status page lies — and the certified seven-step plan never
+posts the all-clear, so this makes that gap visible instead of hiding it.
+
+### 3. THE SHOP LOOKS LIKE A SHOP
+
+Sid: *"less like a design mockup"*. Decided with him: hand-authored SVG that
+fills the frame, NOT generated photography (six generations rarely match on
+lighting or scale, and a mismatch reads worse than clean vector).
+
+The tell was the art — a pictogram at ~15% of a beige tile is an icon set, not
+a listing. Six products redrawn to fill their crop on a ground shadow, and the
+card carries what a real listing carries beside them: price to the cent, a
+rating, a review count, one sale price, one low-stock flag. Plus the things
+whose absence reads as a mock: a wordmark that does not wrap to two lines, a
+trust strip, a footer, and no 350px hole between the grid and the checkout.
+"NEW FOR FALL" loses its tracked-out caps — **S4 had never reached the shop.**
+
+### 4. THE AGENT MARK
+
+Decided with Sid: no generated icons. The activity bar is already a coherent
+1.5px stroke family; the one weak mark was a cartoon robot head, which is the
+reflexive AI pictogram and on his anti-list. It is now the diamond the ledger
+already gives the agent's own claims, and `#agent-cursor` wears it too.
+
+### 5. FROM HIS 02:15 SCREENSHOT
+
+The fold caret was `align-self: center` on a baseline-aligned head, so on a
+two-line title it drifted to the midpoint between the lines while the machine
+value stayed on line one. An empty flex item takes its bottom margin edge as
+its baseline, so `align-self: baseline; margin-bottom: 1px` centres it on the
+first line at any wrap depth.
+
+### VERIFICATION — no test file changed
+
+`npm run smoke` GREEN (alone) · `npm test` 206 · `npm run typecheck` ·
+`npm run lint:sim` · `node tools/capture-polish.mjs`.
+New capture tool `tools/walk-site.mjs`: the whole arc with the shop open,
+printing the storefront's state at every step. Frames in `log/site/`.
+
+### KNOWN, NOT DONE
+
+- The shop moves at steps 4 and 7 only. Making the **rate cap at step 5**
+  visible to customers means touching the sim's traffic model, and S6 is
+  signed off — deliberately not touched.
+- A STANDALONE proposal (no plan) still renders as an `.approval-card` with
+  its own left rule — the one surviving second grammar. Off the seven-beat
+  path, not in the film, and unifying it touches four smoke gates.
+
+---
+
 ## DONE 2026-09-02 (late): ONE LEDGER, AND TOOL CALL OUTPUTS
 
 Agenda was `_handoff/2026-09-02-agent-ledger-SPEC.md`. Both jobs shipped.

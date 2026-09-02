@@ -405,39 +405,52 @@ app.innerHTML = `
              happened. The live decision is pinned to the bottom of the thread
              so it can never fall below the fold, which is the whole of S3. -->
         <div class="agent-thread" id="agent-thread">
-        <!-- THE AIRLOCK, inside the agent region.
-             It used to be a pinned block in the CENTRE column, which meant
-             the console had to be laid out twice — once with a decision
-             pending and once without — and at 1512px it overflowed its track
-             and sat underneath the storefront. Everything the agent says or
-             asks now lives in one column, and when a decision is pending that
-             column ELEVATES over the page instead of reshaping it. One
-             reserved area, one axis. -->
-        <!-- READ FIRST, PROPOSE SECOND — so the thread runs in that order.
-             This region used to sit BELOW the airlock, which put the thing
-             telling you what the agent is thinking off-screen exactly when a
-             decision was on screen. Newest conclusion sits last, against the
-             plan it led to; earlier ones fold to a line as they are superseded
-             ("it should be more incremental and hide old insights/thoughts as
-             it learns things"). -->
-        <section class="findings-region" aria-label="What the agent has concluded">
-          <div class="ladder-head">
-            <span class="ladder-title">What the agent has worked out</span>
-            <span class="ts-count" id="finding-count"></span>
-          </div>
-          <div class="findings" id="agent-findings" aria-live="polite"></div>
-          <p class="findings-empty" id="findings-empty">
-            Nothing concluded yet. What the agent establishes — and what it
-            rules out — appears here as it works.
-          </p>
-        </section>
+        <!-- THE AGENT LOOP AS A TYPED EVENT TIMELINE (Sid, 2026-09-02:
+             "the linear flow should be I wake up the agent, I see it run
+             tools, I see it learn a hypothesis, it proposes a plan, we
+             execute steps of the plan, it reports intermediate state, we
+             continue executing steps, and final observation is incident
+             closure ... I want every single type of element ... to be
+             uniquely rendered/distinguishable").
 
-        <p class="agent-doing" id="agent-doing" aria-live="polite" hidden></p>
+             One ordered list, one spine, SIX KINDS, each with its own marker
+             silhouette so you can tell them apart without reading:
 
-        <div class="airlock" id="airlock" data-pending="0">
-          <div class="al-label" data-state="settled"><span class="al-dot" aria-hidden="true"></span><span class="al-text">Nothing waiting on you</span></div>
-          <div class="al-cards" id="airlock-cards"></div>
-        </div>
+               connect   a ring        the agent attached to this page
+               reads     a square      it called read tools
+               finding   a diamond     it concluded something
+               plan      three bars    it proposed an ordered response
+               state     a chevron     what a step DID TO THE WORLD
+               resolved  a filled tick the incident ended
+
+             Two of those did not exist before this pass. "connect" was a dot
+             in the header and never an event; "state" did not exist at all —
+             you approved a step and the plan silently advanced, so nothing
+             ever said what the approval changed. That is the "how that
+             changed state" in his message and it is the beat the whole
+             argument for an airlock rests on.
+
+             Colour carries the other half of the type: VIOLET is the agent
+             thinking, GREEN is the world actually moving. A state report and
+             a resolution are green because they are the only two entries on
+             this list that are not the agent's claim about anything.
+
+             The live tail — what it is doing now, and what is waiting on you
+             — is the LAST entry, so "the present" is a position on the
+             timeline rather than a separate region. -->
+        <ol class="tl" id="agent-timeline" aria-label="What the agent has done">
+          <li class="tl-ev" data-kind="live" data-live="0" id="tl-tail">
+            <p class="agent-doing" id="agent-doing" aria-live="polite" hidden></p>
+            <div class="airlock" id="airlock" data-pending="0">
+              <div class="al-label" data-state="settled"><span class="al-text">Waiting on you</span></div>
+              <div class="al-cards" id="airlock-cards"></div>
+            </div>
+          </li>
+        </ol>
+        <p class="tl-empty" id="findings-empty">
+          Nothing yet. When an agent connects, everything it reads, concludes
+          and proposes lands here in order.
+        </p>
         </div>
       </div>
       <!-- CAPABILITY IS REFERENCE, so it lives at the EDGE and opens on
@@ -605,6 +618,7 @@ function seed(templateId: string): void {
   applyLogFilter();
   resetEvidence(); // a new world, and the old world's reads are not evidence for it
   resetPlans();
+  resetTimeline(); // and the old world's story is not this world's story
   for (const { card } of pendingCards.values()) card.remove();
   pendingCards.clear();
   flagControls.innerHTML = '';
@@ -1472,6 +1486,15 @@ function planDecided(proposalSeq: number, executed: boolean): void {
   if (!plan || plan.state !== 'running') return;
   if (executed) {
     setStepState(plan, plan.index, 'done', 'executed');
+    // THE ARGUMENT FOR THE ORDER IS PRE-DECISION READING. Once you have
+    // approved the first step you have weighed it; leaving four lines of it
+    // pinned above every subsequent decision is the cram Sid named. It folds
+    // to its heading and opens again on click.
+    plan.el.dataset.advanced = 'true';
+    // BEAT 6, filed against the step that caused it: what this approval did
+    // to the world, before the next step is put to anyone.
+    const host = plan.stepEls[plan.index];
+    if (host) renderStateReport(host, diffFacts(prevFacts, snapshotFacts(world ?? undefined)));
     plan.index += 1;
     advancePlan(plan);
     return;
@@ -1542,9 +1565,13 @@ function renderPlan(e: Event): void {
   // discover it between steps.
   const why = document.createElement('div');
   why.className = 'pl-why';
-  const k = document.createElement('span');
+  const k = document.createElement('button');
+  k.type = 'button';
   k.className = 'pl-why-k';
   k.textContent = 'Why this order';
+  k.addEventListener('click', () => {
+    el.dataset.why = el.dataset.why === 'open' ? 'shut' : 'open';
+  });
   const body = document.createElement('p');
   body.className = 'pl-why-t';
   renderCitedText(body, String(d.reason ?? ''));
@@ -1560,9 +1587,18 @@ function renderPlan(e: Event): void {
     li.className = 'pl-step';
     li.dataset.state = 'pending';
     li.dataset.testid = `plan-step-${d.planId}-${i}`;
-    const what = document.createElement('p');
+    // A QUIET STEP IS ONE LINE, AND ONE LINE ELLIPSISES. Step 4's text is a
+    // customer-facing sentence, so the receipt ended in "…" with no way to
+    // read the rest — an ellipsis you cannot open is a defect, not a density
+    // choice. The full text is on the title, and the line opens on click.
+    const what = document.createElement('button');
+    what.type = 'button';
     what.className = 'pl-what';
     what.textContent = stepDescription(step);
+    what.title = stepDescription(step);
+    what.addEventListener('click', () => {
+      li.dataset.expand = li.dataset.expand === 'true' ? 'false' : 'true';
+    });
     li.append(what);
     // WHY BEFORE WHAT IT COSTS. The agent's reason for this step is what the
     // operator is weighing; the lever's price is what they weigh it against.
@@ -1742,9 +1778,15 @@ function addApprovalCard(e: Event): void {
   // a plan step's card belongs INSIDE its step, so the sequence stays one
   // object on screen instead of scattering into loose asks
   (planHostFor(e.seq) ?? airlockCards).appendChild(card);
-  // the agent dock scrolls as one column, so a long plan can put the very
-  // buttons being asked about below the fold. Bring the live decision up.
-  card.scrollIntoView({ block: 'nearest' });
+  // THE COLUMN ADVANCES, it does not jump. The live step is sticky to the
+  // bottom of the dock, so scrollIntoView saw it as already visible and did
+  // nothing — which meant the steps between the top of the timeline and the
+  // decision stayed hidden BEHIND the sticky card, chopped mid-line. Running
+  // the scroller to the end puts the newest beat at the bottom and the ones
+  // that led to it directly above, in order, which is the whole point.
+  const scroller = card.closest<HTMLElement>('.dock-body');
+  if (scroller) scroller.scrollTop = scroller.scrollHeight;
+  else card.scrollIntoView({ block: 'nearest' });
   pendingCards.set(e.seq, {
     card,
     anchor,
@@ -1933,13 +1975,18 @@ function moveAgentCursor(target: Element | null): void {
  */
 
 /** Each read tool, said as a person would say it, and where it reads FROM. */
-const READ_NARRATION: Record<string, { says: string; region: string }> = {
-  airlock_status: { says: 'checking service health and impact', region: '#situation' },
-  list_deploys: { says: 'reviewing what shipped recently', region: '#zone-changed' },
-  read_logs: { says: 'reading service logs', region: '#zone-activity' },
-  list_changes: { says: 'checking flags, env and routes', region: '#zone-controls' },
-  traffic_history: { says: 'looking at the error-rate history', region: '#err-chart' },
-  explain_surface: { says: 'asking why its tools changed', region: '#tool-surface' },
+/* `says` is the PRESENT tense, for the live narration line ("Agent is reading
+   service logs"). `reads` is the same read named as a thing, for the timeline
+   entry, which is written after the fact ("Read the service logs"). One
+   record, because a read that narrates one way and files another is two
+   different claims about the same call. */
+const READ_NARRATION: Record<string, { says: string; reads: string; region: string }> = {
+  airlock_status: { says: 'checking service health and impact', reads: 'service health and impact', region: '#situation' },
+  list_deploys: { says: 'reviewing what shipped recently', reads: 'what shipped recently', region: '#zone-changed' },
+  read_logs: { says: 'reading service logs', reads: 'the service logs', region: '#zone-activity' },
+  list_changes: { says: 'checking flags, env and routes', reads: 'flags, env and routes', region: '#zone-controls' },
+  traffic_history: { says: 'looking at the error-rate history', reads: 'the error-rate history', region: '#err-chart' },
+  explain_surface: { says: 'asking why its tools changed', reads: 'why its tools changed', region: '#tool-surface' },
 };
 
 const WRITE_NARRATION: Record<string, string> = {
@@ -2151,34 +2198,154 @@ document.querySelector('#console')!.addEventListener('focusin', (e) => {
 });
 document.querySelector('#console')!.addEventListener('focusout', clearHoverCounsel);
 
+/* ======================================================================
+   THE AGENT TIMELINE — one ordered list, six kinds, one spine.
+
+   Sid, 2026-09-02: "the linear flow should be I wake up the agent, I see it
+   run tools, I see it learn a hypothesis, it proposes a plan, we execute
+   steps of the plan, it reports intermediate state, we continue executing
+   steps, and final observation is incident closure. I don't see any of that
+   sequence at all in the current UX."
+
+   He was right, and the reason is structural rather than cosmetic: the dock
+   rendered CONCLUSIONS. Three of the seven beats had no representation at
+   all, and the three that did were all the same `.finding` element with a
+   different modifier class, so nothing on screen said these were different
+   KINDS of event. A reader could not tell a tool call from a hypothesis
+   from a receipt without reading every word.
+
+   Every entry now declares its kind, and kind decides the marker, the
+   colour and the density. `tlAdd` is the only way onto the list, so a new
+   beat cannot arrive without picking one.
+   ====================================================================== */
+
+type TlKind = 'connect' | 'reads' | 'finding' | 'plan' | 'state' | 'resolved';
+
+const tlHost = (): HTMLElement | null => document.querySelector<HTMLElement>('#agent-timeline');
+const tlTail = (): HTMLElement | null => document.querySelector<HTMLElement>('#tl-tail');
+
+/** The empty state goes the moment anything real lands on the list. */
+function tlStarted(): void {
+  const empty = document.querySelector<HTMLElement>('#findings-empty');
+  if (empty) empty.hidden = true;
+}
+
 /**
- * THE TRACE, NOT JUST THE CONCLUSIONS. Sid: "one nearly designed component
- * linearly reporting an issue detected as soon as the agent connects, see it
- * call tools to diagnose then propose a plan and then execute it".
+ * One entry. The head is always a button because every entry folds — that is
+ * the "collapsing/minimizability of older parts" half of the brief, and an
+ * entry that folds has to LOOK clickable at rest, not on hover.
+ */
+function tlAdd(kind: TlKind, title: string, meta = ''): HTMLElement {
+  const host = tlHost();
+  if (!host) throw new Error('timeline missing');
+  tlStarted();
+  const el = document.createElement('li');
+  el.className = 'tl-ev';
+  el.dataset.kind = kind;
+  el.dataset.fold = 'false';
+
+  const head = document.createElement('button');
+  head.type = 'button';
+  head.className = 'tl-head';
+  const t = document.createElement('span');
+  t.className = 'tl-title';
+  t.textContent = title;
+  head.append(t);
+  if (meta) {
+    const m = document.createElement('span');
+    m.className = 'tl-meta';
+    m.textContent = meta;
+    head.append(m);
+  }
+  head.addEventListener('click', () => {
+    el.dataset.fold = el.dataset.fold === 'true' ? 'false' : 'true';
+  });
+  el.append(head);
+
+  const body = document.createElement('div');
+  body.className = 'tl-body';
+  el.append(body);
+
+  // the tail is the PRESENT — everything that already happened goes above it
+  const tail = tlTail();
+  if (tail && tail.parentElement === host) host.insertBefore(el, tail);
+  else host.append(el);
+  foldTimeline();
+  return el;
+}
+
+const tlBody = (el: HTMLElement): HTMLElement => el.querySelector<HTMLElement>('.tl-body')!;
+const tlTitle = (el: HTMLElement): HTMLElement => el.querySelector<HTMLElement>('.tl-title')!;
+const tlMeta = (el: HTMLElement): HTMLElement => {
+  let m = el.querySelector<HTMLElement>('.tl-meta');
+  if (!m) {
+    m = document.createElement('span');
+    m.className = 'tl-meta';
+    el.querySelector('.tl-head')!.append(m);
+  }
+  return m;
+};
+
+/**
+ * NEWEST OPEN, EVERYTHING ABOVE IT FOLDED — except the two entries that are
+ * never detail. A running plan is the thing being decided, and a resolution
+ * is the answer to the only question anyone asked; folding either of those
+ * to a title would be the console hiding its own point.
+ */
+function foldTimeline(): void {
+  const host = tlHost();
+  if (!host) return;
+  const entries = [...host.children].filter(
+    (c) => (c as HTMLElement).classList.contains('tl-ev') && (c as HTMLElement).dataset.kind !== 'live'
+  ) as HTMLElement[];
+  const last = entries[entries.length - 1];
+  for (const el of entries) {
+    if (el.dataset.pin === 'open') continue;
+    el.dataset.fold = el === last ? 'false' : 'true';
+  }
+}
+
+// ---- beat 1: the agent wakes -------------------------------------------
+// It had no representation at all. Presence was a dot on the dock heading —
+// true, and never an EVENT, so the timeline began mid-sentence with the dock
+// simply starting to have content in it.
+let connected = false;
+function threadConnected(): void {
+  if (connected) return;
+  connected = true;
+  const n = airlockTools.list().filter((t) => t.status === 'active').length;
+  const el = tlAdd('connect', 'An agent connected to this console', n ? `${n} tools` : '');
+  const p = document.createElement('p');
+  p.className = 'tl-line';
+  p.textContent = `It can reach what the ${airlockTools.mode()} stage allows, and nothing else. Every write it wants still comes through you.`;
+  tlBody(el).append(p);
+}
+
+/**
+ * BEAT 2 — THE TRACE, NOT JUST THE CONCLUSIONS. Sid: "one nearly designed
+ * component linearly reporting an issue detected as soon as the agent
+ * connects, see it call tools to diagnose then propose a plan and then
+ * execute it".
  *
- * The reads were narrated in a transient line that wiped itself, so the thread
- * jumped from "incident open" to a finished conclusion with the work that
- * produced it missing. Consecutive reads MERGE into one entry rather than
- * filing six near-identical rows — the operator wants to know it looked, and
- * at what, not to scroll a tool log.
+ * Consecutive reads MERGE into one entry rather than filing six near-
+ * identical rows — the operator wants to know it looked, and at what, not to
+ * scroll a tool log. The summary collapses N reads into one line; the LIST is
+ * what that line opens into (Sid: "clicking 'read 5 sources' does nothing").
  */
 function threadRead(tool: string): void {
-  const host = document.querySelector<HTMLElement>('#agent-findings');
+  const host = tlHost();
   const said = READ_NARRATION[tool];
   if (!host || !said) return;
-  document.querySelector<HTMLElement>('#findings-empty')!.hidden = true;
+  threadConnected();
 
-  // The summary collapses N reads into one line; the LIST is what that line
-  // opens into. Without it the entry toggled and showed nothing, which is
-  // worse than not being clickable at all (Sid: "clicking 'read 5 sources'
-  // does nothing though").
   const paint = (el: HTMLElement): void => {
-    const tools = (el.dataset.tools ?? '').split(',').filter(Boolean);
-    el.querySelector('.tr-what')!.textContent =
-      tools.length === 1 ? (READ_NARRATION[tools[0]!]?.says ?? tools[0]!) : `read ${tools.length} sources`;
-    const list = el.querySelector<HTMLElement>('.tr-list')!;
-    list.innerHTML = '';
-    for (const t of tools) {
+    const list = (el.dataset.tools ?? '').split(',').filter(Boolean);
+    tlTitle(el).textContent =
+      list.length === 1 ? `Read ${READ_NARRATION[list[0]!]?.reads ?? list[0]!}` : `Read ${list.length} sources`;
+    tlMeta(el).textContent = list.length === 1 ? '' : `${list.length} tools`;
+    const ul = el.querySelector<HTMLElement>('.tr-list')!;
+    ul.innerHTML = '';
+    for (const t of list) {
       const li = document.createElement('li');
       const name = document.createElement('code');
       name.className = 'tr-tool';
@@ -2187,11 +2354,17 @@ function threadRead(tool: string): void {
       says.className = 'tr-says';
       says.textContent = READ_NARRATION[t]?.says ?? '';
       li.append(name, says);
-      list.append(li);
+      li.addEventListener('click', (ev) => {
+        ev.stopPropagation();
+        focusRead(t);
+      });
+      ul.append(li);
     }
   };
 
-  const last = host.lastElementChild as HTMLElement | null;
+  // the newest entry, ignoring the live tail
+  const kids = [...host.children] as HTMLElement[];
+  const last = kids.filter((k) => k.dataset.kind !== 'live').pop();
   if (last?.dataset.kind === 'reads') {
     const seen = new Set((last.dataset.tools ?? '').split(',').filter(Boolean));
     seen.add(tool);
@@ -2200,64 +2373,26 @@ function threadRead(tool: string): void {
     return;
   }
 
-  const el = document.createElement('article');
-  el.className = 'finding thread-read';
-  el.dataset.kind = 'reads';
+  const el = tlAdd('reads', '');
   el.dataset.tools = tool;
-  const p = document.createElement('p');
-  p.className = 'finding-summary tr-what';
-  el.append(p);
-  const list = document.createElement('ul');
-  list.className = 'tr-list';
-  el.append(list);
+  const ul = document.createElement('ul');
+  ul.className = 'tr-list';
+  tlBody(el).append(ul);
   paint(el);
-  host.append(el);
-  while (host.children.length > 6) host.firstElementChild!.remove();
-  foldOlderFindings(host);
 }
 
-/**
- * The end of the thread. An incident that ends has to LOOK like it ended —
- * the console already turns teal and the storefront starts checking out, and
- * the agent's own column said nothing at all.
- */
-function threadResolved(): void {
-  const host = document.querySelector<HTMLElement>('#agent-findings');
-  if (!host || host.querySelector('[data-kind="resolved"]')) return;
-  document.querySelector<HTMLElement>('#findings-empty')!.hidden = true;
-  const el = document.createElement('article');
-  el.className = 'finding thread-resolved';
-  el.dataset.kind = 'resolved';
-  el.dataset.testid = 'thread-resolved';
-  const p = document.createElement('p');
-  p.className = 'finding-summary';
-  p.textContent = 'Checkout is serving again and the error rate is back to baseline.';
-  el.append(p);
-  host.append(el);
-  foldOlderFindings(host);
-  // the resolution is the one entry that never folds
-  el.dataset.fold = 'false';
-}
-
+/** BEAT 3 — a hypothesis. The agent's own words, and what it ruled out. */
 function renderFinding(e: Event): void {
-  const host = document.querySelector<HTMLElement>('#agent-findings');
-  if (!host) return;
+  if (!tlHost()) return;
   const d = e.data as { summary?: string; ruledOut?: string; advisesAgainst?: string };
   if (!d.summary) return;
   if (d.advisesAgainst) {
     advisories.set(d.advisesAgainst, { summary: d.summary, ruledOut: d.ruledOut });
   }
+  threadConnected();
 
-  const card = document.createElement('article');
-  card.className = 'finding';
-  card.dataset.seq = String(e.seq);
-  document.querySelector<HTMLElement>('#findings-empty')!.hidden = true;
-
-  const head = document.createElement('p');
-  head.className = 'finding-summary';
-  head.textContent = d.summary;
-  card.append(head);
-
+  const el = tlAdd('finding', d.summary);
+  el.dataset.seq = String(e.seq);
   if (d.ruledOut) {
     const ruled = document.createElement('p');
     ruled.className = 'finding-ruled';
@@ -2265,38 +2400,238 @@ function renderFinding(e: Event): void {
     k.className = 'finding-k';
     k.textContent = 'Ruled out';
     ruled.append(k, document.createTextNode(d.ruledOut));
-    card.append(ruled);
+    tlBody(el).append(ruled);
+  } else {
+    // nothing to open into: the title IS the whole entry
+    el.dataset.leaf = 'true';
   }
-
-  // CHRONOLOGICAL, NEWEST LAST — the thread reads top to bottom and the
-  // freshest conclusion sits against the plan it led to. It used to prepend,
-  // which put the newest reading furthest from the decision it justified.
-  host.append(card);
-  // Older thinking FOLDS rather than vanishing: the current conclusion is in
-  // front, superseded ones keep one line each and open on click. Sid: "it
-  // should be more incremental and hide old insights/thoughts as it learns
-  // things". Six is where the spine stops being readable at 1512x945.
-  while (host.children.length > 6) host.firstElementChild!.remove();
-  foldOlderFindings(host);
 }
 
-/** Newest expanded; everything above it folded to its summary line. */
-function foldOlderFindings(host: HTMLElement): void {
-  const all = [...host.children] as HTMLElement[];
-  all.forEach((el, i) => {
-    const latest = i === all.length - 1;
-    el.dataset.fold = latest ? 'false' : 'true';
-    if (!el.dataset.wired) {
-      el.dataset.wired = '1';
-      el.addEventListener('click', () => {
-        el.dataset.fold = el.dataset.fold === 'true' ? 'false' : 'true';
-      });
+/* ----------------------------------------------------------------------
+   BEAT 6 — WHAT THE STEP DID TO THE WORLD.
+
+   This beat did not exist. You approved a step and the plan advanced to the
+   next one; nothing anywhere said what the approval had changed. Sid asked
+   for "what was observed, what happened, how that changed state" and the
+   third of those was simply missing, which also made the airlock's whole
+   argument unverifiable — a gate you cannot see the far side of is a gate on
+   faith.
+
+   It is derived, not narrated. The world is a pure fold of the event log, so
+   the report is a DIFF of two folds: snapshot the operator-legible facts
+   before the batch, snapshot them after, print what moved. Nothing here is
+   authored per action, which is why it cannot drift from what actually
+   happened and why a lever added later reports itself for free.
+   ---------------------------------------------------------------------- */
+
+type Facts = Map<string, string>;
+
+function snapshotFacts(w: World | undefined): Facts {
+  const f: Facts = new Map();
+  if (!w) return f;
+  f.set('Incident owner', w.incident.acknowledgedBy ?? 'nobody');
+  f.set('Severity', w.incident.severity ? w.incident.severity.toUpperCase() : 'not set');
+  f.set('Deploys', w.incident.deploysFrozen ? 'frozen' : 'open');
+  f.set('Alerts', w.incident.alertsSilenced ? 'silenced' : 'live');
+  const posts = w.incident.statusPosts;
+  f.set('Status page', posts.length ? posts[posts.length - 1]!.state : 'silent');
+  for (const r of w.routes) {
+    f.set(`${r.path} rate limit`, r.rateLimitRps ? `${r.rateLimitRps} req/s` : 'uncapped');
+    if (r.drained) f.set(`${r.path} traffic`, 'drained');
+    if (typeof r.splitPercent === 'number') f.set(`${r.path} split`, `${r.splitPercent}% to ${r.target}`);
+  }
+  // build and health are two facts, not one: joined, a service coming back
+  // healthy reported as a BUILD change with the same version on both sides.
+  for (const s of w.services) {
+    f.set(`${s.name} build`, s.version);
+    f.set(`${s.name} health`, s.health);
+  }
+  for (const fl of w.flags) f.set(`flag ${fl.name}`, String(fl.state));
+  if (w.dbPrimary) f.set('Writes go to', w.dbPrimary);
+  for (const d of w.dns) f.set(d.hostname, d.target);
+  return f;
+}
+
+/** The facts as of the end of the previous render batch — the "before". */
+let prevFacts: Facts = new Map();
+
+interface FactChange {
+  label: string;
+  from: string;
+  to: string;
+}
+function diffFacts(before: Facts, after: Facts): FactChange[] {
+  const out: FactChange[] = [];
+  for (const [k, v] of after) {
+    const b = before.get(k);
+    if (b !== undefined && b !== v) out.push({ label: k, from: b, to: v });
+  }
+  return out;
+}
+
+/** live metric rows, so the newest report keeps reading the world it changed */
+interface LiveState {
+  el: HTMLElement;
+  at: { err: number; users: number; lost: number };
+}
+let liveState: LiveState | null = null;
+
+const pctText = (n: number): string => `${(n * 100).toFixed(1)}%`;
+
+/**
+ * Mount a state report under the step that caused it. It stays with the step
+ * for the rest of the session — that is the operator's record of what their
+ * approval bought — but only the newest one stays OPEN.
+ */
+function renderStateReport(host: HTMLElement, changes: FactChange[]): void {
+  if (!world) return;
+  const el = document.createElement('div');
+  el.className = 'tl-state';
+  el.dataset.testid = 'state-report';
+
+  // NO HEAD. "One thing changed" above a single row said nothing the row did
+  // not, and folding the rows away left a report that reported nothing. Every
+  // report here is one or two lines; there is no detail to progressively
+  // disclose, so it discloses none.
+  const body = document.createElement('dl');
+  body.className = 'tl-state-rows';
+  for (const c of changes) {
+    const dt = document.createElement('dt');
+    dt.textContent = c.label;
+    const dd = document.createElement('dd');
+    const from = document.createElement('span');
+    from.className = 'ts-from';
+    from.textContent = c.from;
+    const arrow = document.createElement('span');
+    arrow.className = 'ts-arrow';
+    arrow.textContent = '→';
+    arrow.setAttribute('aria-hidden', 'true');
+    const to = document.createElement('span');
+    to.className = 'ts-to';
+    to.textContent = c.to;
+    dd.append(from, arrow, to);
+    body.append(dt, dd);
+  }
+  el.append(body);
+
+  // ...and what the world is DOING since, which a discrete diff cannot say.
+  // The freeze is instantaneous; the queue draining is not.
+  //
+  // IT IS A LIVE READING, NOT A MEASUREMENT OF THIS STEP. Left frozen on the
+  // report when the next step superseded it, it became a causal claim the
+  // console cannot support — seven steps each captioned with whatever the
+  // error rate happened to do while they were on top. It belongs to the
+  // newest report only, and is retired with it.
+  const prior = liveState?.el.querySelector<HTMLElement>('.tl-since');
+  if (prior) {
+    prior.hidden = true;
+    prior.textContent = '';
+  }
+  const since = document.createElement('p');
+  since.className = 'tl-since';
+  since.hidden = true;
+  el.append(since);
+  liveState = {
+    el,
+    at: {
+      err: world.traffic.errRate,
+      users: world.damage.usersErrored,
+      lost: world.damage.revenueLost,
+    },
+  };
+  host.append(el);
+  refreshLiveState();
+}
+
+/**
+ * The "since this step" line, re-read every tick. It is the difference
+ * between a console that says a lever was pulled and one that says the lever
+ * worked, and it is the beat the film turns on: cap the route, and the panel
+ * says the error rate is coming down while you are still looking at it.
+ */
+function refreshLiveState(): void {
+  if (!liveState || !world) return;
+  const line = liveState.el.querySelector<HTMLElement>('.tl-since');
+  if (!line) return;
+  const err = world.traffic.errRate;
+  const d = err - liveState.at.err;
+  const users = world.damage.usersErrored - liveState.at.users;
+  // Under half a point either way is noise, not a trend — and a line that
+  // says "holding" under every control-plane verb is four repetitions of
+  // nothing. It appears when the world actually moves, which is the beat:
+  // cap the route, and this line starts counting down while you watch.
+  const moved = Math.abs(d) >= 0.005;
+  line.hidden = !moved;
+  if (!moved) return;
+  line.dataset.dir = d < 0 ? 'down' : 'up';
+  // "after", not "since": once the next step supersedes this report the line
+  // stops updating, and a frozen number under a live word is a small lie.
+  line.textContent = `Error rate ${pctText(liveState.at.err)} → ${pctText(err)}${users > 0 ? ` · ${users} more users hit` : ''}`;
+}
+
+/**
+ * The same beat for an approval that was never part of a plan. It gets its
+ * own timeline entry instead of a slot inside a step, because there is no
+ * step to file it under — the shape differs, the report does not.
+ */
+function standaloneStateReport(): void {
+  const changes = diffFacts(prevFacts, snapshotFacts(world ?? undefined));
+  if (!changes.length) return;
+  const el = tlAdd('state', changes.length === 1 ? 'One thing changed' : `${changes.length} things changed`);
+  el.dataset.leaf = 'true';
+  renderStateReport(tlBody(el), changes);
+}
+
+/** A new scenario is a new story: the timeline starts empty, not mid-thought. */
+function resetTimeline(): void {
+  const host = tlHost();
+  if (host) {
+    for (const c of [...host.children]) {
+      if ((c as HTMLElement).dataset.kind !== 'live') c.remove();
     }
-  });
+  }
+  const empty = document.querySelector<HTMLElement>('#findings-empty');
+  if (empty) empty.hidden = false;
+  connected = false;
+  liveState = null;
+  prevFacts = new Map();
+}
+
+/**
+ * BEAT 7 — the end of the timeline. An incident that ends has to LOOK like it
+ * ended: the console already turns teal and the storefront starts checking
+ * out, and the agent's own column said nothing at all.
+ */
+function threadResolved(): void {
+  const host = tlHost();
+  if (!host || host.querySelector('[data-kind="resolved"]')) return;
+  tlStarted();
+  const el = document.createElement('li');
+  el.className = 'tl-ev';
+  el.dataset.kind = 'resolved';
+  el.dataset.fold = 'false';
+  el.dataset.pin = 'open';
+  el.dataset.testid = 'thread-resolved';
+  el.dataset.leaf = 'true';
+  const head = document.createElement('div');
+  head.className = 'tl-head';
+  const t = document.createElement('span');
+  t.className = 'tl-title';
+  t.textContent = 'Checkout is serving again and the error rate is back to baseline.';
+  head.append(t);
+  el.append(head);
+  // the resolution is the last word, so it sits AFTER the live tail
+  host.append(el);
+  foldTimeline();
+  // ...and the last word has to be ON SCREEN. A finished seven-step receipt
+  // is taller than the dock, so the one line saying the incident is over
+  // landed below the fold — in the exact frame the film ends on.
+  el.scrollIntoView({ block: 'end' });
 }
 
 function showAgentAttention(e: Event): void {
   const d = e.data as Record<string, unknown>;
+  threadConnected(); // beat 1 — whatever it did first, it is here now
   if (e.kind === 'tool.called') {
     const tool = String(d.tool);
     const read = READ_NARRATION[tool];
@@ -2310,7 +2645,12 @@ function showAgentAttention(e: Event): void {
     return;
   }
   if (e.kind === 'action.proposed') {
-    narrate(waitingNarration());
+    // THE ASK HAS ITS OWN VOICE AND IT IS LOUDER THAN THIS ONE. The airlock
+    // label says "Waiting on you" and the card carries the ask, the price and
+    // the two buttons; a narration line above them repeating "waiting on your
+    // decision" was a third voice saying what two louder ones already said,
+    // and with a plan running it was a fourth. The narration is for what the
+    // agent is doing while nobody is being asked anything.
     return;
   }
   if (e.kind === 'action.blocked') {
@@ -3295,7 +3635,10 @@ function renderEvents(events: Event[], w: World): void {
       else planDecided(ps, false);
     } else if (e.kind === 'action.executed' && typeof e.causedBy === 'number') {
       const ps = approvalToProposal.get(e.causedBy);
-      if (ps !== undefined) planDecided(ps, true);
+      if (ps !== undefined) {
+        if (planForProposal.has(ps)) planDecided(ps, true);
+        else standaloneStateReport();
+      }
     } else if (e.kind === 'annotation.added' && e.actor === 'agent') {
       telestrate((e.data as { target: EntityRef }).target);
     }
@@ -3344,6 +3687,10 @@ function renderEvents(events: Event[], w: World): void {
   applyHealth(w);
   applySelectionVisual(); // topology re-renders wipe data-selected; restore
   document.querySelector('#damage-val')!.textContent = `$${w.damage.revenueLost.toFixed(2)}`;
+  // the newest state report keeps reading the world it changed...
+  refreshLiveState();
+  // ...and THIS batch's world is the next report's "before".
+  prevFacts = snapshotFacts(w);
 }
 
 worker.onmessage = (e: MessageEvent<SimResponse>) => {
@@ -3898,9 +4245,6 @@ function renderCapability(tools: AirlockTools): void {
   // the count is only true for the stage you are on, so the sheet says which
   const stageEl = document.querySelector<HTMLElement>('#surface-stage');
   if (stageEl) stageEl.textContent = `${tools.mode()} stage · ${active.length} available now`;
-  const fc = document.querySelector<HTMLElement>('#finding-count');
-  const n = document.querySelectorAll('#agent-findings .finding').length;
-  if (fc) fc.textContent = n ? String(n) : '';
 }
 
 /**

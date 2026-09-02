@@ -1,0 +1,14 @@
+import { chromium } from 'playwright';
+import { mkdirSync, readFileSync } from 'node:fs';
+const [,, OUT='log/type', NAME='shot', CSSFILE='', SEL='#tool-rail', WAIT='12000'] = process.argv;
+mkdirSync(OUT, { recursive: true });
+const b = await chromium.launch();
+const page = await b.newPage({ viewport: { width: 1512, height: 945 }, deviceScaleFactor: 2 });
+await page.goto('http://localhost:8917/?review=plan', { waitUntil: 'networkidle' });
+if (CSSFILE) await page.addStyleTag({ content: readFileSync(CSSFILE, 'utf8') });
+await page.waitForTimeout(Number(WAIT));
+if (CSSFILE) await page.addStyleTag({ content: readFileSync(CSSFILE, 'utf8') });
+await page.waitForTimeout(300);
+await page.locator(SEL).screenshot({ path: `${OUT}/${NAME}.png` });
+console.log('ok ->', `${OUT}/${NAME}.png`);
+await b.close();

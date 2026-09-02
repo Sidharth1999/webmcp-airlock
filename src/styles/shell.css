@@ -33,6 +33,66 @@ body {
   :root { transition: none; }
 }
 
+/* ============================================================
+   SMALL LABELS — ONE TREATMENT, AND IT IS NOT MICRO-CAPS.
+   (S4, closed 2026-09-02 after Sid rejected the type three times
+   and named the offender: "Response stage".)
+
+   The complaint was never the FACE. Every small label in this
+   console was set the same way — 11px monospace, UPPERCASE,
+   tracked out 0.07em — and that treatment is what reads as a
+   particular kind of "technical product" styling. Swapping
+   JetBrains Mono for the system stack did not touch it, because
+   the face was never the variable.
+
+   So the micro-cap system is retired. Small labels are sentence
+   case in the PROSE face at a normal weight; hierarchy comes from
+   weight, colour and space instead of from tracking and caps.
+
+   The monospace face is not gone — it is RESERVED, and now means
+   something: machine values only. Build ids, versions, service
+   names, tool names, seq numbers, metrics, timestamps. If a person
+   wrote it, it is prose; if the system emitted it, it is mono.
+   ============================================================ */
+.tele-label,
+.rf-more,
+.pl-why-k,
+.pl-cost-k,
+.ap-ev-head,
+.ap-ev-k,
+.finding-k,
+.caution-who,
+.ladder-title,
+.rail-modes-label,
+.scenario .sc-k,
+.ctl-group-label,
+.pa-head,
+.pi-group,
+.pi-flag,
+.cmdbar-label,
+.sit-state,
+.sit-f dt,
+.tl-meta,
+.tl-fold-hint {
+  font-family: var(--font-prose);
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+}
+/* the three that are section HEADINGS rather than inline field keys:
+   they lead a region, so they get the weight and the ink a heading needs */
+.ladder-title,
+.rail-modes-label,
+.ctl-group-label {
+  font-size: var(--text-xs);
+  font-weight: 600;
+  color: var(--ink-dim);
+}
+/* the readout's field keys are the one place a lowercase key still reads
+   better than a sentence-case one: they are a dense two-column instrument
+   grid, and lowercase keeps the eye on the VALUES. */
+.sit-f dt { text-transform: lowercase; font-size: var(--text-xs); }
+
 /* surface ladder (Radix 12-step semantics mapped onto our oklch ramp):
    which surface a thing sits on now follows a rule instead of taste. */
 :root {
@@ -468,10 +528,7 @@ body {
   min-width: 0;
 }
 .tele-label {
-  font-family: var(--font-instrument);
   font-size: var(--text-2xs);
-  letter-spacing: var(--tracking-label);
-  text-transform: uppercase;
   color: var(--ink-ghost);
 }
 .tele-spark { width: 62px; height: 18px; overflow: visible; flex: none; }
@@ -646,10 +703,10 @@ body {
   grid-column: 1;
   margin-top: 1px;
   padding-right: var(--sp-4);
-  font-family: var(--font-instrument);
+  font-family: var(--font-prose);
   font-size: var(--text-lg);
   font-weight: 700;
-  letter-spacing: 0.01em;
+  letter-spacing: -0.005em;
   line-height: 1.15;
   color: var(--ink);
   text-wrap: balance;
@@ -674,7 +731,6 @@ body {
 .sit-f { display: flex; gap: var(--sp-2); align-items: baseline; min-width: 0; }
 .sit-f dt {
   color: var(--ink-ghost);
-  letter-spacing: var(--tracking-label);
   font-size: var(--text-2xs);
   min-width: 6ch;
   flex: none;
@@ -811,47 +867,41 @@ body {
 }
 .airlock[data-pending='0'] { display: none; }
 
-/* ---- THE AGENT THREAD: one spine, entries hanging off it -------------- */
+/* ---- THE AGENT THREAD: one spine, entries hanging off it --------------
+   `--tl-x` is the spine's centre line expressed relative to an entry's own
+   left edge, so every marker can be centred on it with one declaration
+   regardless of how big that marker is. Change the padding here and every
+   silhouette follows. */
 .agent-thread {
   position: relative;
   display: flex;
   flex-direction: column;
   min-width: 0;
-  padding-left: var(--sp-4);
+  padding-left: 22px;
+  --tl-x: -13.5px;
 }
-/* the spine. One line for the whole column, so nothing inside it needs a
-   border of its own to say where it belongs. */
+/* The spine. One line for the whole column, so nothing inside it needs a
+   border of its own to say where it belongs — and NO line at all until there
+   is something on it. A spine beside an empty state is a thread with no
+   entries: decoration claiming a structure that is not there yet. */
 .agent-thread::before {
   content: '';
   position: absolute;
-  left: 3px;
-  top: 4px;
-  bottom: 4px;
+  left: 8px;
+  top: 6px;
+  bottom: 6px;
   width: 1px;
   background: linear-gradient(
     180deg,
     transparent,
-    var(--actor-agent-dim) 6%,
-    var(--actor-agent-dim) 94%,
+    var(--actor-agent-dim) 5%,
+    var(--actor-agent-dim) 95%,
     transparent
   );
+  opacity: 0;
+  transition: opacity var(--dur-settle) var(--ease-settle);
 }
-/* every entry marks its own point on the spine */
-.agent-thread .finding,
-.agent-thread .plan-card,
-.agent-thread > .findings-region .ladder-head { position: relative; }
-.agent-thread .finding::before,
-.agent-thread .plan-card::before {
-  content: '';
-  position: absolute;
-  left: calc(var(--sp-4) * -1 + 1px);
-  top: 0.72em;
-  width: 5px;
-  height: 5px;
-  border-radius: 50%;
-  background: var(--actor-agent);
-}
-.agent-thread .finding[data-fold='true']::before { background: var(--ink-ghost); }
+.agent-thread:has(.tl-ev:not([data-kind='live']))::before { opacity: 1; }
 
 /* THE Z AXIS INSTEAD OF A SECOND LAYOUT.
    A pending decision needs more room than the dock's resting width, and the
@@ -895,6 +945,11 @@ body {
 .ap-ev-said,
 .pl-why-t,
 .pl-because { overflow-wrap: anywhere; }
+/* THREE VOICES SAYING ONE THING. The narration line, this label and the live
+   step card all announced the same pending decision, stacked. The plan's own
+   live step is the loudest and the most specific, so when a plan is on screen
+   the other two stand down. */
+.airlock:has(.plan-card) .al-label { display: none; }
 .al-label {
   display: flex;
   align-items: center;
@@ -1356,8 +1411,7 @@ body {
 .rf-label { font-family: var(--font-prose); font-size: var(--text-xs); }
 .rf-more {
   margin-left: auto;
-  font-family: var(--font-instrument); font-size: var(--text-2xs);
-  letter-spacing: var(--tracking-label); text-transform: uppercase;
+  font-size: var(--text-2xs);
   color: var(--ink-ghost);
 }
 .rail-foot:hover .rf-more { color: var(--actor-agent); }
@@ -1927,11 +1981,32 @@ body {
 }
 
 .pl-why { display: flex; flex-direction: column; gap: 2px; }
+/* Pre-decision reading. Once the first step has run it folds to its heading:
+   four lines of argument pinned above every subsequent approval is the cram,
+   and the operator has already weighed it by then. Click the heading to
+   re-read it — that is what a receipt is for. */
+.plan-card[data-advanced='true'] .pl-why-t { display: none; }
+.plan-card[data-advanced='true'] .pl-why-k::after {
+  content: '';
+  display: inline-block;
+  width: 5px; height: 5px;
+  margin-left: 6px;
+  border-right: 1.5px solid currentColor;
+  border-bottom: 1.5px solid currentColor;
+  rotate: -45deg;
+  vertical-align: middle;
+}
+.plan-card[data-advanced='true'] .pl-why-k { cursor: pointer; }
+.plan-card[data-advanced='true'][data-why='open'] .pl-why-t { display: block; }
+.plan-card[data-advanced='true'][data-why='open'] .pl-why-k::after { rotate: 45deg; }
 .pl-why-k {
+  align-self: flex-start;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
   color: var(--ink-faint);
   font-size: var(--text-2xs);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-label);
 }
 .pl-why-t {
   line-height: 1.55;
@@ -2077,10 +2152,7 @@ body {
 .pl-cost-k {
   display: block;
   color: var(--warn);
-  font-family: var(--font-instrument);
   font-size: var(--text-2xs);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-label);
   margin-bottom: 3px;
 }
 /* the agent's reason for THIS step, in its own voice: it leads the card,
@@ -2188,8 +2260,6 @@ body {
 }
 .ap-ev-head {
   color: var(--ink-faint);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-label);
 }
 .ap-ev-reads { display: flex; flex-wrap: wrap; gap: var(--sp-1); }
 .ap-ev-chip {
@@ -2229,10 +2299,7 @@ body {
 }
 .ap-ev-k {
   color: var(--ink-faint);
-  font-family: var(--font-instrument);
   font-size: var(--text-2xs);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-label);
   margin-right: var(--sp-2);
 }
 /* a citation is a PLACE — it looks like the seq column it lands on */
@@ -2256,15 +2323,18 @@ body {
    ====================================================================== */
 
 /* --- what it is doing, in words, in the rail ------------------------- */
+/* A CAPTION, NOT A CARD. On the timeline this sat as a bordered, tinted box
+   directly above the live step it was describing — a second frame around a
+   sentence, which is the "3 distinct cards" tell arriving by another door.
+   It is the present tense of the entry below it, so it is set like one. */
 .agent-doing {
-  margin: 0 0 var(--sp-3);
-  padding: var(--sp-2) var(--sp-3);
-  border-left: 2px solid var(--actor-agent);
-  background: color-mix(in oklch, var(--actor-agent) 8%, transparent);
-  color: var(--ink);
-  font-size: var(--text-sm);
-  line-height: 1.45;
-  border-radius: 0 var(--r-sm) var(--r-sm) 0;
+  margin: 0 0 var(--sp-2);
+  padding: 0;
+  border: 0;
+  background: none;
+  color: var(--actor-agent);
+  font-size: var(--text-xs);
+  line-height: 1.5;
   animation: doing-in 220ms cubic-bezier(.2,.7,.3,1) both;
 }
 @keyframes doing-in {
@@ -2408,63 +2478,191 @@ body {
 .sf-feed { text-align: center; color: oklch(50% 0.02 160); font-weight: 400; }
 #storefront[data-state='broken'] .sf-feed { color: oklch(48% 0.02 160); }
 
-/* --- the agent's findings: the rail's actual job ------------------------- */
-.findings { display: flex; flex-direction: column; gap: var(--sp-3); margin-bottom: var(--sp-3); }
-/* An entry on the thread, not a card. No frame, no tint, no radius — the
-   spine already says these belong together, and three levels of border was
-   the "nested divs" tell. */
-.finding {
-  border: 0;
+/* ======================================================================
+   THE AGENT TIMELINE — six kinds, six silhouettes.
+
+   The dock used to render three variants of ONE element: `.finding`,
+   `.thread-read` and `.thread-resolved` differed by colour and weight and
+   nothing else, and the plan was a card that was not on the thread at all.
+   You had to read every entry to find out what kind of thing it was.
+
+   Kind now decides the marker, and the markers are chosen to be different
+   SHAPES rather than different colours of the same dot — shape survives
+   peripheral vision, a hue does not:
+
+     connect   ○  a ring        the agent attached
+     reads     ▫  a small square it looked at something
+     finding   ◆  a diamond     it concluded something
+     plan      ≡  three bars     it proposed an ordered response
+     state     ›  a chevron      the world moved
+     resolved  ●  a filled disc  it is over
+
+   Violet is the agent's claim; green is the world's answer. Only two
+   entries on this list are green, and neither of them is the agent talking.
+   ====================================================================== */
+.tl {
+  list-style: none;
+  margin: 0;
   padding: 0;
-  background: none;
-  cursor: pointer;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+.tl-ev {
+  position: relative;
+  min-width: 0;
+  padding: var(--sp-2) 0;
   animation: doing-in 240ms cubic-bezier(.2,.7,.3,1) both;
 }
-/* SUPERSEDED THINKING FOLDS. The current conclusion stays in full; earlier
-   ones keep one dimmed line and open again on click, so the operator reads
-   what the agent knows NOW without losing how it got there. */
-/* FOLDING IS A MOVEMENT, not a swap. A conclusion that is superseded should be
-   seen to collapse — that is what tells the operator the thread reorganised
-   itself rather than that something vanished. max-height is the animatable
-   half; the clamp gives the fold its ellipsis. */
-.finding-summary {
-  max-height: 24em;
-  overflow: hidden;
+@media (prefers-reduced-motion: reduce) { .tl-ev { animation: none; } }
+
+/* every entry marks its own point on the spine; --tl-x is the spine's centre */
+.tl-ev::before,
+.plan-card::before {
+  content: '';
+  position: absolute;
+  left: var(--tl-x);
+  translate: -50% 0;
+  top: 1.05em;
+  box-sizing: border-box;
+  background: var(--panel);
+}
+.tl-ev[data-kind='connect']::before {
+  width: 11px; height: 11px; border-radius: 50%;
+  border: 1.5px solid var(--actor-agent);
+}
+.tl-ev[data-kind='reads']::before {
+  width: 8px; height: 8px; border-radius: 2px;
+  border: 1px solid var(--ink-faint);
+}
+.tl-ev[data-kind='finding']::before {
+  width: 9px; height: 9px; border-radius: 1px;
+  rotate: 45deg;
+  background: var(--actor-agent);
+}
+.tl-ev[data-kind='state']::before {
+  width: 7px; height: 7px; rotate: 45deg; background: none;
+  border-top: 1.5px solid var(--good);
+  border-right: 1.5px solid var(--good);
+}
+/* the plan hangs off the same spine as everything else: three bars, because
+   the one thing it is that no other entry is, is ORDERED */
+.plan-card { position: relative; }
+.plan-card::before {
+  width: 11px; height: 2px; border-radius: 1px;
+  background: var(--actor-agent);
+  box-shadow:
+    0 4px 0 var(--actor-agent),
+    0 8px 0 color-mix(in oklch, var(--actor-agent) 45%, var(--panel));
+  top: 1.15em;
+}
+.tl-ev[data-kind='resolved']::before {
+  width: 13px; height: 13px; border-radius: 50%;
+  background: var(--good);
+}
+/* the PRESENT: the only marker that is allowed to move */
+.tl-ev[data-kind='live']::before {
+  width: 7px; height: 7px; border-radius: 50%;
+  background: var(--actor-agent);
+  top: 0.55em;
 }
 @media (prefers-reduced-motion: no-preference) {
-  .finding-summary {
-    transition:
-      max-height var(--dur-settle) var(--ease-settle),
-      color var(--dur-snap) var(--ease-snap),
-      font-size var(--dur-snap) var(--ease-snap);
-  }
+  .tl-ev[data-kind='live']::before { animation: tl-now 2.4s var(--ease-settle) infinite; }
 }
-.finding[data-fold='true'] .finding-summary {
+@keyframes tl-now {
+  0%, 100% { box-shadow: 0 0 0 0 color-mix(in oklch, var(--actor-agent) 40%, transparent); }
+  60%      { box-shadow: 0 0 0 6px color-mix(in oklch, var(--actor-agent) 0%, transparent); }
+}
+/* the tail carries nothing until something is actually live */
+.tl-ev[data-kind='live'] {
+  padding: 0;
+  animation: none;
+}
+.tl-ev[data-kind='live']:has(.airlock:not([data-pending='0'])),
+.tl-ev[data-kind='live']:has(.agent-doing:not([hidden])) { padding: var(--sp-2) 0; }
+.tl-ev[data-kind='live']:not(:has(.airlock:not([data-pending='0']))):not(:has(.agent-doing:not([hidden])))::before {
+  display: none;
+}
+
+/* --- the head: title, meta, and the fold affordance -------------------- */
+.tl-head {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-2);
+  width: 100%;
+  min-width: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  cursor: pointer;
+}
+.tl-ev[data-leaf='true'] > .tl-head { cursor: default; }
+.tl-title {
+  min-width: 0;
+  color: var(--ink);
+  font-family: var(--font-prose);
+  font-size: var(--text-sm);
+  font-weight: 400;
+  line-height: 1.5;
+}
+.tl-meta { margin-left: auto; flex: none; font-size: var(--text-2xs); color: var(--ink-ghost); }
+/* an entry that opens says so, at rest — not on hover */
+.tl-ev:not([data-leaf='true']) > .tl-head::after {
+  content: '';
+  flex: none;
+  align-self: center;
+  width: 5px; height: 5px;
+  border-right: 1.5px solid var(--ink-ghost);
+  border-bottom: 1.5px solid var(--ink-ghost);
+  rotate: 45deg;
+  margin-left: 2px;
+  transition: rotate var(--dur-snap) var(--ease-snap), border-color var(--dur-snap) var(--ease-snap);
+}
+.tl-ev[data-fold='true']:not([data-leaf='true']) > .tl-head::after { rotate: -45deg; }
+.tl-head:hover::after { border-color: var(--actor-agent); }
+.tl-body { padding-top: 5px; }
+.tl-ev[data-fold='true'] > .tl-body { display: none; }
+.tl-ev[data-fold='true'] .tl-title {
   color: var(--ink-faint);
   font-size: var(--text-xs);
   display: -webkit-box;
   -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
-  max-height: 1.7em;
 }
-.finding[data-fold='true'] .finding-ruled { display: none; }
-.finding[data-fold='true']:hover .finding-summary { color: var(--ink-dim); }
+.tl-ev[data-fold='true'] > .tl-head:hover .tl-title { color: var(--ink-dim); }
+.tl-line { margin: 0; font-size: var(--text-xs); line-height: 1.55; color: var(--ink-ghost); }
 
-/* A READ is the agent looking, not the agent concluding — it reports at the
-   weight of a caption, and its pip is hollow. Consecutive reads merge into
-   one entry so five lookups do not out-shout the finding they produced. */
-.thread-read { cursor: pointer; }
-/* what the one-line summary opens into: the calls themselves, named. */
-.tr-list {
-  list-style: none;
-  margin: var(--sp-2) 0 0;
-  padding: 0;
-  display: grid;
-  gap: 3px;
+/* --- per-kind voice ---------------------------------------------------- */
+/* the agent arriving is a fact, not news */
+.tl-ev[data-kind='connect'] .tl-title { color: var(--ink-dim); font-size: var(--text-xs); }
+/* A READ is the agent looking, not the agent concluding, so it reports at
+   the weight of a caption. Consecutive reads merge into one entry: five
+   lookups must not out-shout the one conclusion they produced. */
+.tl-ev[data-kind='reads'] .tl-title { color: var(--ink-faint); font-size: var(--text-xs); }
+/* the loudest thing on the list, because it is the agent's actual claim */
+.tl-ev[data-kind='finding'] .tl-title { color: var(--ink); }
+.tl-ev[data-kind='resolved'] .tl-title { color: var(--good); font-weight: 600; }
+.tl-ev[data-kind='resolved'] { padding-top: var(--sp-3); }
+@media (prefers-reduced-motion: no-preference) {
+  .tl-ev[data-kind='resolved']::before { animation: resolved-pip var(--dur-agent) var(--ease-settle) both; }
 }
-.finding[data-fold='true'] .tr-list { display: none; }
-.tr-list li { display: flex; gap: var(--sp-2); align-items: baseline; min-width: 0; }
+@keyframes resolved-pip {
+  from { box-shadow: 0 0 0 0 color-mix(in oklch, var(--good) 55%, transparent); }
+  to   { box-shadow: 0 0 0 7px color-mix(in oklch, var(--good) 0%, transparent); }
+}
+
+/* what a reads entry opens into: the calls themselves, named and clickable */
+.tr-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 3px; }
+.tr-list li {
+  display: flex; gap: var(--sp-2); align-items: baseline; min-width: 0;
+  cursor: pointer;
+}
+.tr-list li:hover .tr-says { color: var(--ink-dim); }
 .tr-tool {
   flex: none;
   font-family: var(--font-instrument);
@@ -2473,66 +2671,66 @@ body {
 }
 .tr-says {
   min-width: 0;
-  font-family: var(--font-prose);
   font-size: var(--text-2xs);
   color: var(--ink-ghost);
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
 }
-.thread-read .finding-summary {
-  color: var(--ink-faint);
-  font-family: var(--font-instrument);
-  font-size: var(--text-2xs);
-}
-.agent-thread .thread-read::before {
-  background: none;
-  box-shadow: inset 0 0 0 1px var(--actor-agent-dim);
-}
-/* THE END OF THE THREAD. The one entry that never folds.
-   It arrives with the settle easing rather than a flourish: an incident
-   ending is a relief, not a confetti moment, and this console does not
-   congratulate itself. */
-.thread-resolved .finding-summary { color: var(--good); font-weight: 600; }
-.agent-thread .thread-resolved::before { background: var(--good); }
-@media (prefers-reduced-motion: no-preference) {
-  .thread-resolved { animation: resolved-in var(--dur-agent) var(--ease-settle) both; }
-  .agent-thread .thread-resolved::before {
-    animation: resolved-pip var(--dur-agent) var(--ease-settle) both;
-  }
-}
-@keyframes resolved-in {
-  from { opacity: 0; transform: translateY(4px); }
-  to   { opacity: 1; transform: none; }
-}
-@keyframes resolved-pip {
-  from { box-shadow: 0 0 0 0 color-mix(in oklch, var(--good) 55%, transparent); }
-  to   { box-shadow: 0 0 0 7px color-mix(in oklch, var(--good) 0%, transparent); }
-}
-.finding-summary {
-  margin: 0;
-  color: var(--ink);
-  font-size: var(--text-sm);
-  line-height: 1.5;
-}
+
+/* what the agent ruled out, under what it concluded */
 .finding-ruled {
-  margin: var(--sp-2) 0 0;
+  margin: 0;
   padding-top: var(--sp-2);
   border-top: 1px solid var(--line);
   color: var(--ink-dim);
-  font-size: var(--text-2xs);
+  font-size: var(--text-xs);
   line-height: 1.55;
 }
-.finding-k {
-  display: block;
-  color: var(--ink-ghost);
-  font-family: var(--font-instrument);
-  font-size: var(--text-2xs);
-  letter-spacing: var(--tracking-label);
-  text-transform: uppercase;
-  margin-bottom: 2px;
+.finding-k { display: block; color: var(--ink-ghost); font-size: var(--text-2xs); margin-bottom: 2px; }
+
+/* ======================================================================
+   BEAT 6 — WHAT THE STEP DID TO THE WORLD.
+
+   The only element on this surface that is not the agent speaking. It is a
+   diff of two folds of the event log, so it is green, it is set in the
+   machine face, and it is the one place a struck-through value appears:
+   the operator is looking at a BEFORE and an AFTER, not at a claim.
+   ====================================================================== */
+.tl-state {
+  margin: var(--sp-2) 0 0;
+  padding: var(--sp-2) var(--sp-3);
+  border-left: 2px solid color-mix(in oklch, var(--good) 55%, transparent);
+  background: color-mix(in oklch, var(--good) 7%, transparent);
+  border-radius: 0 var(--r-sm) var(--r-sm) 0;
 }
-@media (prefers-reduced-motion: reduce) { .finding { animation: none; } }
+.tl-state-rows {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: 3px var(--sp-3);
+  margin: 0;
+  min-width: 0;
+}
+.tl-state-rows dt { font-size: var(--text-xs); color: var(--ink-faint); }
+.tl-state-rows dd {
+  margin: 0;
+  display: flex;
+  gap: 6px;
+  align-items: baseline;
+  min-width: 0;
+  font-family: var(--font-instrument);
+  font-size: var(--text-xs);
+  overflow-wrap: anywhere;
+}
+.ts-from { color: var(--ink-ghost); text-decoration: line-through; }
+.ts-arrow { color: var(--ink-ghost); flex: none; }
+.ts-to { color: var(--good); }
+/* the discrete diff cannot say the queue is draining; this line can */
+.tl-since { margin: var(--sp-2) 0 0; font-size: var(--text-2xs); color: var(--ink-faint); }
+.tl-since[data-dir='down'] { color: var(--good); }
+.tl-since[data-dir='up'] { color: var(--warn); }
+.tl-since[hidden] { display: none; }
+.tl-state[data-fold='true'] .tl-state-head { color: color-mix(in oklch, var(--good) 60%, var(--ink-ghost)); font-weight: 500; }
 
 /* --- the agent counselling the human ------------------------------------
    Anchored to the control the human reached for, never a modal. It carries
@@ -2554,10 +2752,7 @@ body {
 }
 .caution-who {
   display: block;
-  font-family: var(--font-instrument);
   font-size: var(--text-2xs);
-  letter-spacing: var(--tracking-label);
-  text-transform: uppercase;
   color: var(--actor-agent);
   margin-bottom: 4px;
 }
@@ -2576,9 +2771,6 @@ body {
   border-bottom: 1px solid var(--line);
 }
 .ladder-title {
-  font-size: var(--text-2xs);
-  font-family: var(--font-instrument);
-  letter-spacing: var(--tracking-label); text-transform: uppercase;
   color: var(--ink-ghost);
 }
 .ladder .ts-count { margin-left: auto; font-variant-numeric: tabular-nums;
@@ -2628,9 +2820,6 @@ body {
 /* the stage control says what it is, instead of three unexplained words */
 .rail-modes { display: flex; align-items: center; gap: var(--sp-3); flex-wrap: wrap; }
 .rail-modes-label {
-  font-family: var(--font-instrument);
-  font-size: var(--text-2xs);
-  letter-spacing: var(--tracking-label); text-transform: uppercase;
   color: var(--ink-ghost);
 }
 /* the read/write badge is secondary to the sentence it annotates */
@@ -2665,8 +2854,8 @@ body {
   color: var(--ink-ghost); align-self: center;
 }
 .scenario .sc-k {
-  font-family: var(--font-instrument); font-size: var(--text-2xs);
-  letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--ink-ghost);
+  font-size: var(--text-2xs);
+  color: var(--ink-ghost);
 }
 .scenario .sc-v { font-size: var(--text-xs); color: var(--ink); font-weight: 500; }
 .sc-menu {
@@ -2698,9 +2887,7 @@ body {
    radius. A console of consequence-free buttons gives nobody — human or
    agent — an ordering problem worth solving. */
 .ctl-group-label {
-  font-family: var(--font-instrument);
   font-size: var(--text-2xs);
-  letter-spacing: var(--tracking-label); text-transform: uppercase;
   color: var(--ink-ghost);
   margin: var(--sp-4) 0 var(--sp-2);
   padding-bottom: 4px;
@@ -2981,9 +3168,7 @@ h4.ctl-group-label { margin: 0 0 var(--sp-2); }
 .palette-asks[hidden] { display: none; }
 .pa-head {
   margin: 0 0 var(--sp-2) var(--sp-3);
-  font-family: var(--font-instrument);
   font-size: var(--text-2xs);
-  letter-spacing: var(--tracking-label); text-transform: uppercase;
   color: var(--actor-agent);
 }
 .pa-list { display: flex; flex-direction: column; gap: 2px; max-height: 22vh; overflow-y: auto; }
@@ -3031,8 +3216,8 @@ h4.ctl-group-label { margin: 0 0 var(--sp-2); }
 .palette-item:hover { background: oklch(100% 0 0 / 0.06); }
 .pi-group {
   grid-area: group;
-  font-family: var(--font-instrument); font-size: var(--text-2xs);
-  letter-spacing: var(--tracking-label); text-transform: uppercase; color: var(--ink-ghost);
+  font-size: var(--text-2xs);
+  color: var(--ink-ghost);
   padding-top: 2px;
 }
 .pi-label { grid-area: label; font-size: var(--text-sm); }
@@ -3041,8 +3226,7 @@ h4.ctl-group-label { margin: 0 0 var(--sp-2); }
 /* the same lever, marked in the main list: the two surfaces are one vocabulary */
 .pi-flag {
   grid-area: flag;
-  font-family: var(--font-instrument); font-size: var(--text-2xs);
-  letter-spacing: var(--tracking-label); text-transform: uppercase;
+  font-size: var(--text-2xs);
   color: var(--actor-agent); white-space: nowrap;
 }
 .pi-flag::before { content: '● '; }
@@ -3196,12 +3380,6 @@ h4.ctl-group-label { margin: 0 0 var(--sp-2); }
   border-bottom: 1px solid var(--line);
   background: oklch(0% 0 0 / 0.15);
 }
-/* inside the thread the same heading is a label on a line, not a titlebar */
-.agent-thread .ladder-head {
-  padding: 0 0 var(--sp-2);
-  border-bottom: 0;
-  background: none;
-}
 #tool-list {
   min-height: 0;
   overflow-y: auto;
@@ -3219,47 +3397,21 @@ h4.ctl-group-label { margin: 0 0 var(--sp-2); }
   border-top: 1px solid var(--line);
   background: oklch(0% 0 0 / 0.15);
 }
-/* the agent's own conclusions are the region's headline, not its footnote */
-.findings:empty { display: none; }
-
 /* --- 6. the agent cursor label sat on the readout ---------------------- */
 #agent-cursor { z-index: 8; }
 
-/* --- 7. the agent dock had one thing with content: the inventory --------
-   So the inventory read as the region. What the agent CONCLUDES is the
-   headline — it is the half of the thesis a judge can actually watch — and
-   it now has a designed empty state and its own share of the height. The
-   raw surface stays on screen, bounded and scrolling, underneath. */
-/* The four-row grid that used to live here is GONE — it is what crushed
-   findings and the ladder to zero height (#18), and the region has been flex
-   since. The row declarations outlived it as dead code; a `grid-row` on a
-   flex child does nothing, which is a trap for whoever reads it next. */
-/* NO FRAME, NO WELL, NO INNER SCROLLER. This was a bordered panel with its
-   own background and its own overflow, sitting next to two other bordered
-   panels — which is the "3 distinct cards" complaint precisely, and the inner
-   scroller is what put the agent's conclusions below a fold of their own. It
-   is a segment of the thread now: the thread scrolls, once, as one column. */
-.findings-region {
-  min-height: 0;
-  display: grid;
-  grid-template-rows: auto auto;
-  background: none;
-  border: 0;
-  border-radius: 0;
-}
-.findings-region .findings { min-height: 0; padding: 0; }
-.findings-region .findings:empty { display: block; }
-.findings-empty {
-  grid-row: 2;
+/* --- 7. the dock's empty state -----------------------------------------
+   It is a TIMELINE with nothing on it yet, so it says what will appear and
+   in what order — not what is missing. */
+.tl-empty {
   align-self: start;
-  padding: 0 0 var(--sp-2);
+  padding: var(--sp-2) 0 0;
   margin: 0;
   font-size: var(--text-xs);
   line-height: 1.6;
   color: var(--ink-ghost);
 }
-.findings-empty[hidden] { display: none; }
-.findings-region:has(.finding) .findings-empty { display: none; }
+.tl-empty[hidden] { display: none; }
 
 /* --- 8. incident command is a toolbar, not a panel --------------------- */
 .cmdbar {
@@ -3273,10 +3425,7 @@ h4.ctl-group-label { margin: 0 0 var(--sp-2); }
   min-width: 0;
 }
 .cmdbar-label {
-  font-family: var(--font-instrument);
   font-size: var(--text-2xs);
-  letter-spacing: var(--tracking-label);
-  text-transform: uppercase;
   color: var(--ink-ghost);
   white-space: nowrap;
 }
@@ -3651,7 +3800,26 @@ details.ap-evidence > *:not(summary) { margin-top: var(--sp-2); }
 
 /* hierarchy inside a step: WHAT is the thing being decided, the price and the
    agent's aside are support and are set as support */
-.pl-what { font-size: var(--text-sm); color: var(--ink); }
+.pl-what {
+  display: block;
+  width: 100%;
+  padding: 0;
+  border: 0;
+  background: none;
+  text-align: left;
+  font-family: var(--font-prose);
+  font-size: var(--text-sm);
+  font-weight: 400;
+  line-height: 1.5;
+  color: var(--ink);
+  cursor: pointer;
+}
+/* the one-line clamp opens on click: an ellipsis you cannot open is a bug */
+.pl-step[data-expand='true'] .pl-what {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+}
 .pl-cost,
 .pl-because { color: var(--ink-faint); }
 
@@ -3681,8 +3849,14 @@ details.ap-evidence > *:not(summary) { margin-top: var(--sp-2); }
   color: inherit;
 }
 .pl-head:focus-visible { outline: 2px solid var(--actor-agent); outline-offset: 2px; }
-.plan-card[data-collapsed='true'] .pl-why,
-.plan-card[data-collapsed='true'] .pl-steps { display: none; }
+/* A FINISHED PLAN KEEPS ITS STEPS. Collapsing them to a title was right when
+   a step was four lines of live detail; a DONE step is one line plus the one
+   line saying what it did to the world, and that pair is the receipt — the
+   only place the console records what the seven approvals actually bought.
+   Hiding it left a 380px void under the timeline and threw away the answer to
+   "what did I agree to". The argument for the order goes; the record stays. */
+.plan-card[data-collapsed='true'] .pl-why { display: none; }
+.plan-card[data-collapsed='true'] .pl-rail { display: none; }
 .plan-card[data-collapsed='true'] {
   border-left-color: var(--good);
   border-color: color-mix(in oklch, var(--good) 30%, var(--line));

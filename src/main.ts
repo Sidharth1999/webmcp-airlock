@@ -115,7 +115,7 @@ app.innerHTML = `
       <span class="health-word" id="health-word">Nominal</span>
       <span class="title-div" aria-hidden="true"></span>
       <details class="scenario" id="scenario-pick">
-        <summary aria-label="Choose scenario"><span class="sc-k">Scenario</span><span class="sc-v" id="scenario-current"></span></summary>
+        <summary><span class="sc-k">Scenario</span><span class="sc-v" id="scenario-current"></span></summary>
         <div class="sc-menu" id="template-pick" data-testid="template-pick" role="radiogroup" aria-label="Scenario">
           ${templateIds()
             .map(
@@ -194,7 +194,11 @@ app.innerHTML = `
 
     <!-- CENTRE. Readout and airlock are pinned; only the control grid scrolls,
          and at desk widths it does not need to. -->
-    <section class="wb-centre" id="console" aria-label="Console">
+    <!-- The console is the document's MAIN landmark. It was a plain
+         <section>, which left the page with no <main> at all — an agent or
+         a screen reader had no way to skip the chrome to the thing itself.
+         <main> and <section> both lay out as blocks; nothing moves. -->
+    <main class="wb-centre" id="console" aria-label="Console">
       <div class="readout" id="situation" data-testid="situation" data-phase="calm">
         <div class="ro-state">
           <span class="sit-state" id="sit-state">STANDBY</span>
@@ -340,7 +344,7 @@ app.innerHTML = `
           </section>
         </div>
       </section>
-    </section>
+    </main>
 
     <div class="wb-sash" data-sash="site" role="separator" tabindex="0"
          aria-orientation="vertical" aria-label="Resize the storefront"
@@ -1001,7 +1005,7 @@ function renderCommand(w: World): void {
     ${
       inc.escalatedTo
         ? ''
-        : lever('incident.escalate', { team: 'database on-call' }, 'Page on-call', 'escalate', 'Page database on-call')
+        : lever('incident.escalate', { team: 'database on-call' }, 'Page on-call', 'escalate', 'Page on-call: database')
     }
     ${
       inc.alertsSilenced
@@ -1010,7 +1014,7 @@ function renderCommand(w: World): void {
     }
     ${
       inc.deploysFrozen
-        ? lever('deploy.freeze', { frozen: false }, 'Lift freeze', 'freeze', 'Lift the deploy freeze')
+        ? lever('deploy.freeze', { frozen: false }, 'Lift freeze', 'freeze', 'Lift freeze on deploys')
         : lever('deploy.freeze', { frozen: true }, 'Freeze', 'freeze', 'Freeze deploys')
     }
     ${lever(

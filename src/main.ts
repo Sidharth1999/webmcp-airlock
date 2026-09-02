@@ -17,8 +17,14 @@ const DEFAULT_TEMPLATE = 'migration-trap';
 
 // ?template= picks the scenario, ?tick= paces the sim (ms/tick, tests run
 // fast), ?dev=1 shows the manual health buttons (token demo, M1 leftover).
+// ?run=1 presses Run sim on load and ?site=1 opens the storefront on load:
+// together they are the landing URL for someone arriving cold, who should
+// find themselves inside the incident rather than in front of a nominal
+// console and a button. Absent, nothing changes.
 const params = new URLSearchParams(location.search);
 const requestedTemplate = params.get('template') ?? DEFAULT_TEMPLATE;
+const AUTO_RUN = params.get('run') === '1';
+const OPEN_SITE = params.get('site') === '1';
 /**
  * Scenario names as an operator would see them. Deliberately symptom-level:
  * "migration-trap" is internal jargon AND naming the cause would hand over
@@ -4453,10 +4459,12 @@ paletteRefresh = () => {
   renderPalette();
 };
 
-runBtn.addEventListener('click', () => {
+/** The Run/Pause button's one job, named so a URL can press it (?run=1). */
+function toggleRun(): void {
   running = !running;
   syncPacer();
-});
+}
+runBtn.addEventListener('click', toggleRun);
 
 // ---- WebMCP tool surface (M3-01: reads) ----------------------------------
 
@@ -4641,6 +4649,11 @@ document.querySelector('#mode-switch')!.addEventListener('click', (e) => {
 // boot: seed() touches deck + storefront elements, so it runs after every
 // element ref above is initialized
 seed(TEMPLATE_ID);
+// ?site=1 / ?run=1: the two gestures a visitor would make — the storefront's
+// activity-bar toggle, then Run sim — made for them. After seed(), which
+// resets the pacer and the storefront; through the same code the buttons use.
+if (OPEN_SITE) setRegion('site', true);
+if (AUTO_RUN) toggleRun();
 
 // Test hooks (smoke): in-page determinism probe + live stream counters.
 declare global {

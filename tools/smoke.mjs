@@ -1068,6 +1068,59 @@ try {
     console.error(driver.stdout?.toString() ?? '', driver.stderr?.toString() ?? '');
   }
 
+  // ---- landing URL: a judge who opens the link cold lands IN the story ---
+  // ?run=1 presses Run sim on load, ?site=1 opens the storefront on load.
+  // Both compose with ?template=; neither adds copy. Retry-storm breaks
+  // /checkout at tick 12, so at the default 500ms tick the shop is failing
+  // within ~6s of arrival and, because the storm sustains itself, stays so
+  // until someone acts. Same viewport Sid reviews in.
+  const land = await browser.newPage({ viewport: { width: 1512, height: 945 } });
+  land.on('pageerror', (e) => pageErrors.push(e.message));
+  await land.goto(URL + '?template=retry-storm&run=1&site=1', { waitUntil: 'networkidle' });
+  const landRunning = await land
+    .waitForFunction(
+      () => /tick \d+ · \d+ events/.test(document.querySelector('[data-testid=sim-status]').textContent),
+      null,
+      { timeout: 10_000 }
+    )
+    .then(() => true, () => false);
+  const landSiteOpen =
+    (await land.locator('.shell').getAttribute('data-site')) === 'on' &&
+    (await land.getByTestId('storefront').isVisible());
+  const landBroke = await land
+    .waitForFunction(
+      () =>
+        document.querySelector('#storefront')?.dataset.state === 'broken' &&
+        document.documentElement.dataset.health === 'degraded',
+      null,
+      { timeout: 20_000 }
+    )
+    .then(() => true, () => false);
+  check(
+    '?template=retry-storm&run=1&site=1 opens running with the shop open, and the shop is failing within 20s',
+    landRunning &&
+      (await land.getByTestId('sim-run').textContent()) === 'Pause sim' &&
+      !/paused/.test(await land.getByTestId('sim-status').textContent()) &&
+      landSiteOpen &&
+      landBroke &&
+      (await land.getByTestId('sf-banner').isVisible())
+  );
+  await land.close();
+  // and without the params the default is untouched: seeded, paused, shop closed
+  const cold = await browser.newPage({ viewport: { width: 1512, height: 945 } });
+  cold.on('pageerror', (e) => pageErrors.push(e.message));
+  await cold.goto(URL, { waitUntil: 'networkidle' });
+  await cold.getByTestId('flag-toggle-new-checkout').waitFor({ timeout: 15_000 }); // seeded
+  await cold.waitForTimeout(1500); // long enough that an unwanted pacer would have ticked
+  check(
+    'the bare URL still opens seeded · paused with the storefront closed (default untouched)',
+    (await cold.getByTestId('sim-status').textContent()) === 'seeded · paused' &&
+      (await cold.getByTestId('sim-run').textContent()) === 'Run sim' &&
+      (await cold.locator('.shell').getAttribute('data-site')) === 'off' &&
+      !(await cold.getByTestId('storefront').isVisible())
+  );
+  await cold.close();
+
   check('no page errors', pageErrors.length === 0);
   if (pageErrors.length) console.error('[smoke] page errors:', pageErrors);
 } finally {

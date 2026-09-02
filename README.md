@@ -74,12 +74,21 @@ Not a chat box bolted to a dashboard. The page is the authority:
 - **The page knows where an idea came from.** Reads are audited into the same
   event log, so when an agent proposes rolling back a deploy id that only ever
   appeared inside a customer-supplied log line the page served it, the approval
-  card says so and promotes the write to the two-key rung. A server-side MCP
-  cannot do this: it never served the evidence.
+  card says so and promotes the write to the two-key rung. A server that also
+  serves the logs could tag provenance too; what it cannot be is the surface
+  the human is deciding on.
 - **A plan is a first-class object.** `propose_plan` takes an ordered sequence
   and the reason the order is load-bearing. It is deliberately *not* a batch
   approval — step N+1 is not even proposed until step N has executed, so you
   always decide against the world as it is.
+
+Put together, that is the reason the agent has to be *in the page* rather than
+behind a server MCP or a CLI: the capability boundary, the evidence, and the
+decision are one object here. The gate re-checks against the rendered state the
+human is looking at, the surface changes in lockstep with the stage the operator
+set, and the agent's objection to a click appears beside the control because
+the agent is in the DOM at decision time. Replicating that elsewhere means
+rebuilding the console, at which point it is a WebMCP page.
 
 ---
 

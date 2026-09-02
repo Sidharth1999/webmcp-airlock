@@ -270,7 +270,7 @@ app.innerHTML = `
           <div class="tabpane" id="zone-activity" data-testid="zone-activity" role="tabpanel"
                aria-labelledby="tab-activity" tabindex="0" hidden>
             <ol id="event-stream" data-testid="event-stream" aria-live="polite"></ol>
-            <p class="empty" id="stream-empty">Nothing has happened yet. Start the scenario to bring the store online.</p>
+            <p class="empty" id="stream-empty">Nothing has happened yet.</p>
           </div>
 
           <div class="tabpane" id="zone-logs" data-testid="zone-logs" role="tabpanel"
@@ -286,7 +286,7 @@ app.innerHTML = `
               <span class="log-shown" id="log-shown" data-testid="log-shown"></span>
             </div>
             <ol id="log-stream" data-testid="log-stream" aria-label="Application logs"></ol>
-            <p class="empty" id="logs-empty">No application logs yet. These are the same lines <code>read_logs</code> serves the agent.</p>
+            <p class="empty" id="logs-empty">No application logs yet.</p>
           </div>
 
           <section class="tabpane chart" id="err-chart" data-testid="err-chart" role="tabpanel"
@@ -301,7 +301,7 @@ app.innerHTML = `
                 <path class="chart-line" d="" vector-effect="non-scaling-stroke" />
               </svg>
               <span class="chart-slo" id="chart-slo" title="1% error budget"></span>
-              <p class="chart-empty">Nothing plotted yet — start the scenario and the error rate builds here, so you can see when it began and whether it is recovering.</p>
+              <p class="chart-empty">Nothing plotted yet — the error rate builds here once the scenario runs.</p>
             </div>
             <div class="chart-axis"><span>60 ticks ago</span><span>now</span></div>
           </section>
@@ -427,9 +427,8 @@ app.innerHTML = `
           </div>
           <div class="findings" id="agent-findings" aria-live="polite"></div>
           <p class="findings-empty" id="findings-empty">
-            Nothing concluded yet. When an agent works this incident, what it
-            establishes — and what it rules out — is written here, in the
-            console, where you can check it.
+            Nothing concluded yet. What the agent establishes — and what it
+            rules out — appears here as it works.
           </p>
         </section>
 
@@ -1637,6 +1636,9 @@ function reportPlanOutcome(): void {
     plan.el.dataset.outcome = 'resolved';
     plan.el.querySelector<HTMLElement>('.pl-state')!.textContent =
       'every step executed — the incident is over';
+    // and the thread closes with it: the column that carried the whole
+    // response should not go silent at the moment it worked
+    threadResolved();
   }
 }
 
@@ -2145,6 +2147,71 @@ document.querySelector('#console')!.addEventListener('focusin', (e) => {
 });
 document.querySelector('#console')!.addEventListener('focusout', clearHoverCounsel);
 
+/**
+ * THE TRACE, NOT JUST THE CONCLUSIONS. Sid: "one nearly designed component
+ * linearly reporting an issue detected as soon as the agent connects, see it
+ * call tools to diagnose then propose a plan and then execute it".
+ *
+ * The reads were narrated in a transient line that wiped itself, so the thread
+ * jumped from "incident open" to a finished conclusion with the work that
+ * produced it missing. Consecutive reads MERGE into one entry rather than
+ * filing six near-identical rows — the operator wants to know it looked, and
+ * at what, not to scroll a tool log.
+ */
+function threadRead(tool: string): void {
+  const host = document.querySelector<HTMLElement>('#agent-findings');
+  const said = READ_NARRATION[tool];
+  if (!host || !said) return;
+  document.querySelector<HTMLElement>('#findings-empty')!.hidden = true;
+
+  const last = host.lastElementChild as HTMLElement | null;
+  if (last?.dataset.kind === 'reads') {
+    const seen = new Set((last.dataset.tools ?? '').split(',').filter(Boolean));
+    seen.add(tool);
+    last.dataset.tools = [...seen].join(',');
+    last.querySelector('.tr-what')!.textContent =
+      seen.size === 1 ? said.says : `read ${seen.size} sources`;
+    last.title = [...seen].join(' · ');
+    return;
+  }
+
+  const el = document.createElement('article');
+  el.className = 'finding thread-read';
+  el.dataset.kind = 'reads';
+  el.dataset.tools = tool;
+  el.title = tool;
+  const p = document.createElement('p');
+  p.className = 'finding-summary tr-what';
+  p.textContent = said.says;
+  el.append(p);
+  host.append(el);
+  while (host.children.length > 6) host.firstElementChild!.remove();
+  foldOlderFindings(host);
+}
+
+/**
+ * The end of the thread. An incident that ends has to LOOK like it ended —
+ * the console already turns teal and the storefront starts checking out, and
+ * the agent's own column said nothing at all.
+ */
+function threadResolved(): void {
+  const host = document.querySelector<HTMLElement>('#agent-findings');
+  if (!host || host.querySelector('[data-kind="resolved"]')) return;
+  document.querySelector<HTMLElement>('#findings-empty')!.hidden = true;
+  const el = document.createElement('article');
+  el.className = 'finding thread-resolved';
+  el.dataset.kind = 'resolved';
+  el.dataset.testid = 'thread-resolved';
+  const p = document.createElement('p');
+  p.className = 'finding-summary';
+  p.textContent = 'Checkout is serving again and the error rate is back to baseline.';
+  el.append(p);
+  host.append(el);
+  foldOlderFindings(host);
+  // the resolution is the one entry that never folds
+  el.dataset.fold = 'false';
+}
+
 function renderFinding(e: Event): void {
   const host = document.querySelector<HTMLElement>('#agent-findings');
   if (!host) return;
@@ -2208,6 +2275,7 @@ function showAgentAttention(e: Event): void {
     const read = READ_NARRATION[tool];
     if (read) {
       narrate(`Agent is ${read.says}`);
+      threadRead(tool);
       touchRegion(read.region);
     } else if (WRITE_NARRATION[tool]) {
       narrate(`Agent is ${WRITE_NARRATION[tool]}`);

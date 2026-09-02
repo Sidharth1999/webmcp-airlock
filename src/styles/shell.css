@@ -2316,6 +2316,23 @@ body {
 }
 .finding[data-fold='true'] .finding-ruled { display: none; }
 .finding[data-fold='true']:hover .finding-summary { color: var(--ink-dim); }
+
+/* A READ is the agent looking, not the agent concluding — it reports at the
+   weight of a caption, and its pip is hollow. Consecutive reads merge into
+   one entry so five lookups do not out-shout the finding they produced. */
+.thread-read { cursor: default; }
+.thread-read .finding-summary {
+  color: var(--ink-faint);
+  font-family: var(--font-instrument);
+  font-size: var(--text-2xs);
+}
+.agent-thread .thread-read::before {
+  background: none;
+  box-shadow: inset 0 0 0 1px var(--actor-agent-dim);
+}
+/* THE END OF THE THREAD. The one entry that never folds. */
+.thread-resolved .finding-summary { color: var(--good); font-weight: 600; }
+.agent-thread .thread-resolved::before { background: var(--good); }
 .finding-summary {
   margin: 0;
   color: var(--ink);

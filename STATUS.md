@@ -49,6 +49,80 @@ bundle has no trace of it.
 **The eighteen feedback items are all closed.** Nothing from Sid's review round
 is outstanding.
 
+## ROUND 3 — 2026-09-01 (Tue, evening). #13 CLOSED, and incident command is a strip
+
+**#13 is done, and the handoff's structural diagnosis of it was half wrong** —
+worth correcting because the wrong half would have sent the next session at the
+grid rows, which are fine.
+
+- `.wb-centre`'s rows are `auto auto auto minmax(0,1fr) auto var(--h-panel)`.
+  Closing the evidence panel DOES hand the height over: the console pane goes
+  410px → 656px, correctly. That was never the bug.
+- The bug is that **`#control-deck` never took it.** `min-height: 100%` was a
+  no-op: the pane was `display:grid; align-content:start`, so the deck's
+  containing block had no definite height and the percentage resolved to
+  `auto`. Measured at 1512×945, panel closed: pane 779px, deck 514px — **265px
+  of bare ground**. It only looked right with the panel OPEN because 533px
+  happens to be near the deck's natural height. Coincidence, not layout.
+- The pane is now a flex column and the deck is `flex: 1 0 auto`, which says
+  "fill a short console, and be allowed to exceed a tall one" in one
+  declaration that cannot silently no-op.
+- **Sharing the gained height equally was wrong** and had to be measured too:
+  the Status page card went 135px → 252px and held a 40px dashed empty-state
+  in a 180px well, which is the same void with a border drawn round it. The
+  controls row takes all the slack now (`minmax(min-content, 1fr) auto`) and
+  the second row keeps its content height.
+- **The bottom gutter is a shrinkable `::after` spacer, not padding.** As real
+  padding it cost a scrollbar for nothing: with the storefront closed and the
+  panel open the deck is 514px in a 517px pane — it FITS with 3px to spare, and
+  a fixed 16px bottom padding turned that into a 13px overflow.
+
+### Incident command is a state strip now (Sid's idea, this session)
+His question: should incident command be a keyboard-summoned sliver hovering at
+the bottom instead of six buttons in the top left. **Agreed with the problem,
+not the shape** — three reasons, all recorded because they will come back:
+`alerts.silence` is the trap in the retry-storm demo and the counsel scene only
+works if a human can reach for it in one visible click; elevation already means
+exactly one thing here (a decision is waiting, so the agent dock rises) and a
+second hovering surface dilutes it; and ⌘K already holds all twenty verbs, so a
+sliver holding six is the second door we turned down on #16.
+
+What shipped instead: **a taken move stops being a button and becomes posture.**
+Acknowledge, Declare SEV1 and Page on-call are one-shot; after they are taken
+they read as `SEV1 · owned by you · database on-call paged` and the three
+STANDING levers — silence, freeze, post — keep the strip. It also films better:
+the strip visibly changes as the incident progresses instead of sitting inert.
+
+### The numbers, at 1512×945 (`sid`), every state driven not loaded
+| state | before | after |
+| --- | --- | --- |
+| incident, storefront open, panel OFF | scrolled, void below | **scroll 0, void 0** |
+| incident, storefront closed, panel OFF | 265px bare ground | **scroll 0, deck fills** |
+| incident, storefront closed, panel ON | 13px scrollbar | **scroll 0** |
+| incident command row | 115px | 93px fresh → **84px** once command is taken |
+
+**The one honest trade left, flagged for Sid, not fixed:** with BOTH the
+storefront and the evidence panel open, the centre falls to its 560px floor and
+the console has 432px for 654px of controls — it scrolls 238px. That is two
+docks and a 246px panel open at once on a 945px-tall window; closing either one
+returns it to zero. The storefront **auto-opens** when checkout starts failing,
+so this is the default incident state until the operator closes something.
+
+### One defect found while verifying, in the frame the film ends on
+`sid-12-plan-done` showed the settled dock saying **"Nothing waiting on you"**
+with **"Agent is waiting on your decision"** directly beneath it. The narration
+line is present tense on a 4s timer and a decision routinely lands sooner — the
+timer has no idea a decision happened. `syncAirlock` now clears that ONE line
+when nothing is pending; a read narration ("Agent is reading the logs") is
+still true after you decide and is left alone.
+**Test-file diff, per the hard rule: ONE gate added** — *a settled plan leaves
+nobody narrating a decision*. Verified fail→pass: RED with the fix stashed,
+GREEN with it in. No existing gate touched.
+
+**Card air is unchanged doctrine.** With the storefront closed the controls card
+has ~230px of room under its last row. That is a void inside a card edge, which
+this repo's ux-debt doctrine already calls honest — not bare ground.
+
 ## ROUND 2 — 2026-09-01 (Tue, midday), reviewed live at 1512×945
 
 Eleven more items, **all eleven closed**. Detail + the method lessons:

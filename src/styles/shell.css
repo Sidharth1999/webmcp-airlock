@@ -229,21 +229,36 @@ body {
   min-height: 0;
   overflow-y: auto;
   overflow-x: hidden;
-  padding: var(--sp-4);
-  /* `#control-deck` carries `min-height: 100%` so a short console does not
-     leave bare ground (ux-debt rule 1). That pinned its ROW to the pane
-     height, so when the deck's own rows needed MORE — 651px of content in a
-     624px track — the Status page card rendered 27px BELOW the deck, over
-     the status bar. `.zone` cannot clip it (cost popovers escape the card by
-     design), so the track has to be allowed to grow. */
-  align-content: start;
+  /* the bottom gutter is a SHRINKABLE spacer, not padding — see ::after */
+  padding: var(--sp-4) var(--sp-4) 0;
+  /* FLEX COLUMN, not a grid — #13, measured 2026-09-01. The deck has to be
+     `max(its content, this pane)`: fill a short console so there is no bare
+     ground (ux-debt rule 1), and be allowed to exceed a tall one so the
+     Status page card cannot render below the deck over the status bar (cost
+     popovers escape `.zone` by design, so clipping is not an option).
+     `min-height: 100%` expressed the first half and silently did NOTHING:
+     this pane was `display: grid; align-content: start`, so the deck's
+     containing block had no definite height and the percentage resolved to
+     `auto`. Measured at 1512x945 with the evidence panel closed: pane 779px,
+     deck 514px, 265px of black. It only looked right with the panel OPEN
+     because 533px happened to be near the deck's natural height.
+     `flex: 1 0 auto` says both halves at once and cannot no-op. */
+  display: flex;
+  flex-direction: column;
 }
-/* ...and the deck must size to its CONTENT, not be stretched to that track.
-   Stretched, its computed height was the pane's 624px while its own rows
-   needed 651, so the Status page card rendered below the deck, over the
-   status bar. `align-self: start` lets it grow; `min-height: 100%` still
-   makes it fill a short console, so ux-debt rule 1 is not traded away. */
-#control-deck { align-self: start; }
+#control-deck { flex: 1 0 auto; }
+/* The bottom gutter has to be able to give way. As real padding it cost a
+   scrollbar for nothing: at 1512x945 with the storefront closed and the
+   evidence panel open the deck's content is 514px in a 517px pane — it fits
+   with 3px to spare, and a fixed 16px bottom padding turned that into a 13px
+   overflow and a scrollbar down the console. A shrinkable spacer keeps the
+   gutter whenever there is room for it and yields it when there is not. */
+.wb-centre-body::after {
+  content: '';
+  display: block;
+  flex: 0 1 var(--sp-4);
+  min-height: 0;
+}
 
 /* --- bottom panel group: three views of one thing ---------------------- */
 .wb-panel {
@@ -2315,14 +2330,6 @@ body {
    The first five minutes of on-call are ownership, severity, paging and
    what customers are told — not infrastructure. */
 .cmd-row { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
-.cmd-state {
-  font-size: var(--text-2xs);
-  color: var(--health-bright);
-  border: 1px solid color-mix(in oklch, var(--health-bright) 35%, var(--line));
-  border-radius: var(--r-sm);
-  padding: 5px var(--sp-3);
-  white-space: nowrap;
-}
 
 /* the status page is the one surface customers can read; it looks like it */
 .statuspage {
@@ -2659,8 +2666,19 @@ h4.ctl-group-label { margin: 0 0 var(--sp-2); }
    two cards breathing beats two cards above a strip of bare ground */
 /* the deck fills the region it is given; two cards with room to breathe read
    as designed, a black gap under the last card reads as broken */
-.wb-centre-body { display: grid; }
-#control-deck { align-content: stretch; min-height: 100%; }
+/* The pane is a flex column and the deck is `flex: 1 0 auto` (see the note at
+   .wb-centre-body), so the deck has height to share. Sharing it EQUALLY was
+   wrong: at 1512x945 with the panel closed the Status page card went 135px ->
+   252px and held a 40px dashed empty-state in a 180px well, which is the same
+   void with a border drawn round it. The controls are the one zone that can
+   spend height, so the controls row takes all of it and the second row keeps
+   its content height. `minmax(min-content, 1fr)` — never a bare `1fr`, whose
+   automatic minimum would let a tall deck squeeze instead of overflow. */
+#control-deck { grid-template-rows: minmax(min-content, 1fr) auto; }
+/* ...and inside the controls zone the groups take the height, so the air
+   lands between labelled groups rather than pooling under the last row. */
+#zone-controls { display: flex; flex-direction: column; }
+#zone-controls .ctl-groups { flex: 1 0 auto; align-content: start; }
 
 /* --- 2. control rows went two-line inside the narrower groups ----------
    The one-line grid needs ~340px; the threshold was set at 520 and the

@@ -977,6 +977,17 @@ try {
     'a settled plan stops numbering the controls (a stale number is a lie)',
     (await pl.locator('.plan-anchor').count()) === 0
   );
+  // The narration under the label is present tense on a 4s timer, and a
+  // decision lands sooner than that, so the settled dock read "Nothing waiting
+  // on you" with "Agent is waiting on your decision" directly beneath it — in
+  // the exact frame the film ends on.
+  check(
+    'a settled plan leaves nobody narrating a decision',
+    await pl.evaluate(() => {
+      const el = document.querySelector('#agent-doing');
+      return !el || el.hidden || el.textContent !== 'Agent is waiting on your decision';
+    })
+  );
   // every step went through the airlock as its own gated proposal
   const gated = await pl.evaluate(() =>
     [...document.querySelectorAll('#event-stream li[data-kind="action.proposed"]')].length

@@ -182,7 +182,6 @@ app.innerHTML = `
       <div class="cmdbar" id="zone-command-bar">
         <span class="cmdbar-label">Incident command</span>
         <div class="cmd-row" id="cmd-row"></div>
-        <span class="cmdbar-meta" id="command-meta"></span>
       </div>
 
       <div class="wb-centre-body">
@@ -782,23 +781,41 @@ function lever(
  */
 function renderCommand(w: World): void {
   const row = document.querySelector<HTMLElement>('#cmd-row');
-  const meta = document.querySelector<HTMLElement>('#command-meta');
-  if (!row || !meta) return;
+  if (!row) return;
   const inc = w.incident;
 
-  meta.textContent = [
-    inc.severity ? inc.severity.toUpperCase() : 'severity unset',
-    inc.acknowledgedBy ? `owned by ${inc.acknowledgedBy}` : 'unowned',
-  ].join(' · ');
+  // A STATE STRIP, NOT A BUTTON WALL (#13's other half, Sid 2026-09-01).
+  // Six equal-weight buttons cost a fixed 115px row — at his 1512px window
+  // the storefront opens during an incident and the centre falls to its
+  // 560px floor, where the six wrap onto two lines and the posture caption
+  // takes a third. That is 115px of the console's 881px, spent on moves that
+  // are mostly ONE-SHOT: you acknowledge, set a severity and page a team
+  // once, and after that those buttons are inert furniture.
+  //
+  // So a taken move stops being a button and becomes posture. What stays are
+  // the three STANDING levers — silence, freeze, post — which are toggles or
+  // repeatable and which the agent actually argues with you about.
+  // `alerts.silence` in particular never leaves the strip: it is free on its
+  // own and catastrophic in front of a rollout, and the counsel scene only
+  // works if a human can reach for it in one visible click.
+  const posture = [
+    inc.severity ? inc.severity.toUpperCase() : null,
+    inc.acknowledgedBy ? `owned by ${inc.acknowledgedBy}` : null,
+    inc.escalatedTo ? `${inc.escalatedTo} paged` : null,
+  ].filter(Boolean);
 
   row.innerHTML = `
     ${
       inc.acknowledgedBy
-        ? `<span class="cmd-state">Acknowledged by ${inc.acknowledgedBy}</span>`
+        ? ''
         : lever('incident.acknowledge', { by: 'you' }, 'Acknowledge', 'ack-incident')
     }
-    ${lever('incident.severity', { level: 'sev1' }, 'Declare SEV1', 'sev1')}
-    ${lever('incident.escalate', { team: 'database on-call' }, 'Page database on-call', 'escalate')}
+    ${inc.severity ? '' : lever('incident.severity', { level: 'sev1' }, 'Declare SEV1', 'sev1')}
+    ${
+      inc.escalatedTo
+        ? ''
+        : lever('incident.escalate', { team: 'database on-call' }, 'Page database on-call', 'escalate')
+    }
     ${
       inc.alertsSilenced
         ? lever('alerts.silence', { silenced: false }, 'Unsilence alerts', 'silence')
@@ -815,6 +832,9 @@ function renderCommand(w: World): void {
       'Post update',
       'statuspage-post'
     )}
+    <span class="cmdbar-meta" id="command-meta">${
+      posture.length ? posture.join(' · ') : 'not acknowledged'
+    }</span>
   `;
 
   const posts = document.querySelector<HTMLElement>('#sp-posts');
@@ -1668,6 +1688,10 @@ let paletteRefresh: (() => void) | null = null;
  * the finished sequence with its ticks is the operator's receipt, and it used
  * to vanish the instant the final card resolved.
  */
+/** The one narration a DECISION ends, so it is named in both places. */
+function waitingNarration(): string {
+  return 'Agent is waiting on your decision';
+}
 function syncAirlock(): void {
   // the region STAYS while a finished plan's receipt is on screen...
   airlockEl.dataset.pending = String(pendingCards.size + plans.size);
@@ -1680,6 +1704,17 @@ function syncAirlock(): void {
       ? `Waiting on you · ${pendingCards.size} decisions`
       : 'Waiting on you'
     : 'Nothing waiting on you';
+  // ...and the NARRATION under it has to stop saying it too. That line is
+  // present tense on a 4s timer, and a decision routinely lands sooner: the
+  // settled dock read "Nothing waiting on you" with "Agent is waiting on your
+  // decision" directly beneath it, in the exact frame the film ends on. A
+  // decision ends that sentence; the timer does not know a decision happened.
+  // Only that one line is cleared — a read narration ("Agent is reading the
+  // logs") is still true after you decide.
+  if (!pendingCards.size) {
+    const doing = document.querySelector<HTMLElement>('#agent-doing');
+    if (doing && !doing.hidden && doing.textContent === waitingNarration()) narrate(null);
+  }
   // ...but the region only ELEVATES while something is actually undecided.
   // Keying elevation off the same count left the dock covering the page for
   // the rest of the session once a plan completed, because its receipt is
@@ -2055,7 +2090,7 @@ function showAgentAttention(e: Event): void {
     return;
   }
   if (e.kind === 'action.proposed') {
-    narrate('Agent is waiting on your decision');
+    narrate(waitingNarration());
     return;
   }
   if (e.kind === 'action.blocked') {

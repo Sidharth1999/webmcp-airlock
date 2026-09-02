@@ -97,6 +97,28 @@ export class Engine {
     const invalid = spec?.validate(input);
     if (invalid) throw new Error(`invalid input for ${tool}: ${invalid}`);
     const ctx = this.ctx();
+    // THE FREEZE IS A GATE, NOT A LABEL. `deploy.freeze`'s own cost copy
+    // promises it stops anyone shipping into an active incident "including
+    // the fix you are about to ship" — that sentence was decoration while
+    // `deploysFrozen` was read by nothing but two UI labels. Enforced HERE,
+    // in act(), so the console click, the agent's approved write and the
+    // compiler's scripted probe hit one wall rather than three policies.
+    // The lever that LIFTS the freeze is never frozen by itself.
+    if (spec && spec.tierName === 'deploy' && tool !== 'deploy.freeze' && this.worldState.incident.deploysFrozen) {
+      return ctx.emit(
+        'action.blocked',
+        actor,
+        {
+          tool,
+          input,
+          tier: spec.tier,
+          tierName: spec.tierName,
+          reason: 'deploys-frozen',
+          detail: 'deploys are frozen for this incident — lift the freeze before shipping',
+        },
+        causedBy
+      );
+    }
     const event = ctx.emit('action.executed', actor, { tool, input, result: { ok: true } }, causedBy);
     this.template.onAction?.(this.ctx(), event);
     return event;

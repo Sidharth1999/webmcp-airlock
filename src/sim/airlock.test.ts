@@ -341,3 +341,58 @@ describe('input validation at the gate (residual review): malformed writes never
     expect(engine.world.flags.every((f) => typeof f.id === 'string' && f.id.length > 0)).toBe(true);
   });
 });
+
+// S6 — THE FREEZE IS A GATE, NOT A LABEL.
+//
+// `deploy.freeze`'s own cost copy promises "Stops anyone shipping into an
+// active incident — INCLUDING THE FIX YOU ARE ABOUT TO SHIP". That sentence
+// was decoration: `deploysFrozen` was written by the reducer and read only by
+// two UI labels, so the lever blocked nothing. A verb with no consequence can
+// never be a REQUIRED step, which is why no answer key in the corpus was ever
+// longer than two. The gate lives in act() so the console click, the agent's
+// approved write and the compiler's scripted probe all hit the same wall.
+describe('the deploy freeze is a gate, not a label (S6)', () => {
+  const opened = (): Engine => {
+    const e = new Engine({ templateId: 'retry-storm', seed: 11 });
+    e.step(20);
+    return e;
+  };
+
+  it('blocks a deploy while the freeze is on — including the fix you are about to ship', () => {
+    const engine = opened();
+    engine.act('deploy.freeze', { frozen: true });
+    const before = JSON.stringify(engine.world.deploys);
+
+    const ev = engine.act('deploy.rollforward', { service: 'api' }, 'agent');
+
+    expect(ev.kind).toBe('action.blocked');
+    expect(ev.data).toMatchObject({ tool: 'deploy.rollforward', reason: 'deploys-frozen' });
+    expect(JSON.stringify(engine.world.deploys)).toBe(before);
+  });
+
+  it('lets the same deploy through once the freeze is lifted', () => {
+    const engine = opened();
+    engine.act('deploy.freeze', { frozen: true });
+    expect(engine.act('deploy.rollforward', { service: 'api' }, 'agent').kind).toBe('action.blocked');
+
+    engine.act('deploy.freeze', { frozen: false });
+    expect(engine.act('deploy.rollforward', { service: 'api' }, 'agent').kind).toBe('action.executed');
+  });
+
+  it('gates the human hand exactly as it gates the agent — one wall, not a UI courtesy', () => {
+    const engine = opened();
+    engine.act('deploy.freeze', { frozen: true });
+    expect(engine.act('deploy.rollforward', { service: 'api' }, 'human').kind).toBe('action.blocked');
+  });
+
+  it('freezes deploys and nothing else — the cap and the freeze itself still work', () => {
+    const engine = opened();
+    engine.act('deploy.freeze', { frozen: true });
+
+    expect(engine.act('ratelimit.set', { route: 'r-checkout', rps: 100 }, 'agent').kind).toBe(
+      'action.executed'
+    );
+    // the lever that lifts the freeze must never be frozen by itself
+    expect(engine.act('deploy.freeze', { frozen: false }, 'agent').kind).toBe('action.executed');
+  });
+});

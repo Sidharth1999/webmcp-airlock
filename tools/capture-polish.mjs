@@ -107,6 +107,25 @@ await scene('plan', async (p) => {
   await shot(p, '09-plan-done-receipt');
 });
 
+// THE TAKE. Review scenes are DEV ONLY and stripped from the production
+// bundle, so smoke cannot reach them — this sweep is the only standing check
+// that the filmed arc still plays.
+await scene('film', async (p) => {
+  await shot(p, '15-film-refused-then-planned');
+  const blocked = await p.locator('#event-stream li[data-kind="action.blocked"]').count();
+  if (blocked < 1) throw new Error('film scene: the Triage refusal never reached the event stream');
+  // the trap: the human reaches for the lever the agent ruled out
+  await p.getByTestId('restore-panel').click();
+  await p.waitForTimeout(300);
+  await p.getByTestId('silence').scrollIntoViewIfNeeded();
+  await p.getByTestId('silence').hover();
+  await p.waitForTimeout(900);
+  if (!(await p.locator('.agent-counsel').count())) {
+    throw new Error('film scene: no counsel at Silence alerts — the trap beat is not armed');
+  }
+  await shot(p, '16-film-trap-at-the-lever');
+});
+
 await scene('abandon', async (p) => {
   const abId = (await p.locator('[data-testid^="plan-"]').first().getAttribute('data-testid')).replace('plan-', '');
   await p.locator('.pl-step[data-state="live"] .ap-reject').first().click();

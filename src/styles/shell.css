@@ -2358,6 +2358,10 @@ body {
 }
 .ctl-btn.lever:hover .lever-cost,
 .ctl-btn.lever:focus-visible .lever-cost { display: block; }
+/* ...but the incident-command strip sits directly under the situation
+   readout, so a cost opening UPWARD there covers the state of the world with
+   the price of a button. In that strip it opens down. */
+.cmd-row .lever-cost { bottom: auto; top: calc(100% + 7px); }
 
 .ctl-row[data-drained='true'] .ctl-state { color: var(--warn); }
 

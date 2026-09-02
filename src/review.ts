@@ -149,6 +149,83 @@ const SCENES: Scene[] = [
     },
   },
   {
+    id: 'film',
+    title: 'The take: refused in Triage, then the order, then the trap',
+    tryThis: [
+      'The agent reached for the cap in Triage and the page refused it — read the stream.',
+      'Recovery published the writes; only then could the plan exist.',
+      'Reach for Silence alerts before approving step 2.',
+    ],
+    template: 'retry-storm',
+    /**
+     * THE FILMED ARC, rehearsable in one link.
+     *
+     * Two outside reviewers, independently, said the same thing about the
+     * eight stills: the capability change is DECLARED and never DEMONSTRATED.
+     * A sheet that goes from 13 to 27 is a settings modal that got longer
+     * unless something is first seen to be impossible.
+     *
+     * It was already impossible. In Triage `propose_rate_limit` is not
+     * published at all — `window.__airlock.list()` does not contain it — and
+     * reaching for it narrates "Agent tried something it cannot reach in this
+     * mode" and writes a `BLOCKED — not-available-in-mode` row into the
+     * stream. The whole beat existed and had never been in a scene, so it had
+     * never been shot and could not have been filmed.
+     *
+     * This scene is the take: the refusal, the unlock, the ordered plan, and
+     * the trap armed so the human can walk into it on camera.
+     */
+    async run(ctx) {
+      await ctx.runUntil(() => ctx.logSeqs().length > 6, 'log lines');
+
+      // 1. THE REFUSAL. Still in Triage: the agent reads, concludes, and
+      //    reaches for the cap it has just argued for. The page says no.
+      for (const t of ['airlock_status', 'list_deploys', 'read_logs', 'traffic_history']) {
+        await ctx.call(t);
+      }
+      const seqs = ctx.logSeqs();
+      await ctx.call('record_finding', {
+        summary: `Offered rate on /checkout is ~4x its organic share while /browse is flat, and contention already cleared (#${seqs.at(2)}) — the load is retries sustaining themselves.`,
+      });
+      await ctx.call('propose_rate_limit', { route: 'r-checkout', rps: 150 });
+      await sleep(1400); // let the refusal land on screen before anything else
+
+      // 2. THE UNLOCK. Recovery publishes the writes, and only now can the
+      //    plan be assembled at all.
+      ctx.click('mode-recovery');
+      await sleep(600);
+      await ctx.call('list_changes');
+
+      // 3. THE TRAP, ARMED. `alerts.silence` is free on its own and
+      //    catastrophic in front of a rollout, so the agent rules it out
+      //    BEFORE the human reaches for it. Counsel, never a block: the
+      //    button still works on the second click.
+      await ctx.call('record_finding', {
+        summary: 'Alert noise is the symptom, not the fault. The rollout in step 2 is guarded by those same alerts.',
+        ruledOut:
+          'Silencing alerts. On its own it costs nothing, but the rollout you are about to approve aborts on the alerts it would suppress — silence them and the guardrail is disarmed exactly when it is load-bearing.',
+        advisesAgainst: 'alerts.silence:true',
+      });
+
+      ctx.click('close-panel');
+      await ctx.call('propose_plan', {
+        reason: `The fleet is at its autoscaler ceiling with no spare instances (#${seqs.at(1)}), so a rolling replacement withdraws capacity this incident cannot spare. Headroom has to exist before the fix ships; the other way round takes api down.`,
+        steps: [
+          {
+            tool: 'propose_rate_limit',
+            input: { route: 'r-checkout', rps: 150 },
+            because: 'buys headroom now — it rejects real customers and fixes nothing',
+          },
+          {
+            tool: 'propose_rollforward',
+            input: { service: 'api' },
+            because: '2.4.2 is staged and green: retry attempts 2, full jitter, budget 10%',
+          },
+        ],
+      });
+    },
+  },
+  {
     id: 'abandon',
     title: 'A plan you refuse half way',
     tryThis: [

@@ -49,6 +49,79 @@ bundle has no trace of it.
 **The eighteen feedback items are all closed.** Nothing from Sid's review round
 is outstanding.
 
+## THE OUTSIDE PASS + THE TAKE — 2026-09-01 (Tue, night)
+
+Eight shots at 1512x945 went to **Claude.ai (Fable 5, high)** and **ChatGPT
+(high effort)** independently, with the thesis, the rubric and the closed
+ground stated so neither spent its answer re-arguing settled items. Then a
+second, narrower pass asking only for cosmetics. Sid-sanctioned exception to
+the stealth rule.
+
+### What they converged on without seeing each other
+- **Film retry-storm.** Both, unprompted, for the same reason: it is the only
+  candidate whose answer is a SEQUENCE.
+- **The capability change is declared, never demonstrated.** Both made this
+  their #1. "A settings modal that got longer" / "'we hid 14 buttons' is not a
+  project". Nothing in the stills shows a verb being IMPOSSIBLE.
+- **The counsel must be filmed as a gesture, not a state.** It only exists on
+  hover — which is also why its clipping survived three review rounds.
+- **The wrong order's cost is asserted, never priced**, and Impact is scored on
+  what is demonstrated.
+- **Cosmetics: the same three tells.** Token entropy (greys and label
+  tracking), the nested-rectangle agent dock, the dashed empty state. All three
+  fixed in `af19024`.
+
+### Where they disagreed
+The provenance rung. Claude.ai calls it the creativity peak and wants a 25s
+coda; ChatGPT says the threat model costs a judge several seconds to load and
+caps it at 5-10s. Taken: the short version, one sentence, at the end.
+
+### THE REFUSAL WAS ALREADY BUILT AND HAD NEVER BEEN SHOT
+Both reviewers assumed the denial beat needed building. It did not. In Triage
+`propose_rate_limit` **is not published at all** — `window.__airlock.list()`
+does not contain it — and reaching for it narrates *"Agent tried something it
+cannot reach in this mode"* and writes `ratelimit.set BLOCKED —
+not-available-in-mode (mode: triage)` into the event stream. Smoke has gated
+that row since M3.
+
+It had never been in a `?review=` scene, so it had never been shot, so it could
+not have been filmed. **The gap was in the shot set, not the product** — which
+is the same lesson as the counsel clipping, one level up.
+
+### `?review=film` — the take, rehearsable in one link
+The filmed arc end to end: the agent reads and concludes in Triage, reaches for
+the cap it has just argued for, and **the page refuses it on screen**; Recovery
+publishes the writes (13 -> 27); the trap is armed as an `advisesAgainst` on
+`alerts.silence:true`, so the human can walk into it on camera and get counsel
+at the lever; then the ordered plan, with only step 1 decidable.
+
+Verified end to end: refusal row present, mode recovery, 27 published, plan on
+screen, and hovering `Silence alerts` produces the objection. **Review scenes
+are DEV ONLY and stripped from the production bundle, so smoke cannot reach
+them** — `capture-polish.mjs` now shoots the film scene and THROWS if the
+refusal row or the counsel is missing. That sweep is the only standing check on
+the filmed arc.
+
+**One reviewer claim that is wrong, checked:** "the trap lever is the one that
+isn't priced". `Silence alerts` carries a cost popover like every other lever —
+*"Stops the noise so you can think — and hides a genuinely new alert if one
+fires while it is on."* It is invisible in a still because it is on hover. The
+real bug there was that in the incident-command strip it opened UPWARD, over
+the situation readout; it now opens down.
+
+### Still open from the outside pass
+- **The counterfactual number** — the cost of the wrong order, on screen. The
+  compiler already runs scripted AND null probes to the same horizon, so this
+  is reportable truthfully rather than invented. Not built.
+- **The money is too small.** $13.75 / $19.33 / $22.13 — "an exquisitely
+  engineered system protecting lunch money" (ChatGPT). Sim constants.
+- **Punch-ins for the film.** 11-13px text at 1512x945 will not survive
+  Devpost's compression; do not record three minutes of the full three-column
+  frame. A filming decision, not a code one.
+- Amber overloaded (incident vs review vs selection); the REVIEW banner
+  outweighs the decision it introduces (dev-only chrome, hidden while filming);
+  mono doing work that belongs to the sans face on prose headings.
+
 ## ROUND 3 — 2026-09-01 (Tue, evening). #13 CLOSED, and incident command is a strip
 
 **#13 is done, and the handoff's structural diagnosis of it was half wrong** —

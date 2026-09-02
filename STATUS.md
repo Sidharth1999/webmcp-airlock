@@ -1,5 +1,29 @@
 # STATUS — live audit log
 
+## OPEN: THE AGENT PANEL NEEDS A TYPED TIMELINE, AND THE FONT THEME IS STILL WRONG
+
+**Agenda: `_handoff/2026-09-02-agent-panel-redesign.md`. Read it first.**
+
+Sid, after the density rebuild: the panel "looks better" but the state that
+pops up with the plan is still "overwhelming and crammed", and he wants the
+whole agent loop rendered as a SEQUENCE — wake, run tools, learn a hypothesis,
+propose, execute, **report intermediate state**, close — with every element
+TYPE distinguishable and older parts collapsible.
+
+Two genuine gaps, not polish:
+- **there is no "state changed" beat after a step executes.** Approve a step
+  and the plan silently advances. Nothing says what it did to the world.
+- **there is no "agent connected" beat.** Presence is a header dot, never an
+  event on the timeline.
+
+**S4 is NOT closed.** The system stack shipped and he still objects — and he
+named the offender: "Response stage". It is not the body face, it is the
+UPPERCASE MONO MICRO-CAP treatment used for every small label in the console
+(RESPONSE STAGE, WHY THIS ORDER, COSTS, INCIDENT COMMAND, ERR/SVC/LIVE BUILD,
+tools available). Changing the face never touched it. Put options in front of
+him before committing — his answer has reframed this job twice.
+
+
 ## SID'S OPEN UX ROUND, S1-S9 — CLOSED 2026-09-02 (Wed, small hours)
 
 The agenda was `_handoff/2026-09-02-sid-feedback-and-ui-rework.md`. All nine

@@ -607,6 +607,8 @@ const SEED = 20260828;
 
 const worker = new Worker(new URL('./sim/worker.ts', import.meta.url), { type: 'module' });
 const send = (msg: SimRequest) => worker.postMessage(msg);
+// a worker that never boots must not leave a blank page: show the shell anyway
+worker.addEventListener('error', () => revealShell());
 
 // read-tool RPC: tools ask the worker, the worker's log/world answer —
 // no mirrored state on the main thread (schema v1: one source of truth)
@@ -3982,8 +3984,20 @@ function renderEvents(events: Event[], w: World): void {
   prevFacts = snapshotFacts(w);
 }
 
+/**
+ * The console is a fold of a world that arrives from the Worker, so the
+ * markup that boots is a skeleton with empty readouts. `.wb` stays
+ * `visibility: hidden` until the first render has filled it — an unpainted
+ * box cannot shift, and that skeleton paint was the whole of our CLS.
+ * Hoisted, so it may be called from the message handler declared above it.
+ */
+function revealShell(): void {
+  if (!shellEl.dataset.ready) shellEl.dataset.ready = 'true';
+}
+
 worker.onmessage = (e: MessageEvent<SimResponse>) => {
   const msg = e.data;
+  revealShell();
   if (msg.type === 'events') {
     if (msg.origin === 'step') tickCount++;
     renderEvents(msg.events, msg.world);

@@ -112,6 +112,20 @@ body {
   --act-w: 46px;
 }
 
+/* NO FIRST PAINT OF AN UNPOPULATED CONSOLE (CLS, 2026-09-02).
+   Every readout in this shell is a fold of the world, and the world arrives
+   from the sim Worker one message after boot. The markup that ships is the
+   skeleton: `#sit-fields` and `#cmd-row` are empty elements. Chrome painted
+   that skeleton at ~97ms and repainted ~30ms later with both filled, which
+   pushed `.wb-centre-body` and the evidence panel down 62px — one layout
+   shift worth 0.269, the whole of our CLS, and it is not a shift a user has
+   any use for.
+   Holding the shell at `visibility: hidden` until the first snapshot renders
+   costs nothing at rest (layout is computed as normal, the ground is already
+   `--bg`, and the attribute is set from the Worker's first message), and an
+   unpainted box cannot shift. */
+.wb:not([data-ready]) { visibility: hidden; }
+
 .wb {
   position: relative; /* the agent dock elevates out of the grid over it */
   height: 100dvh;

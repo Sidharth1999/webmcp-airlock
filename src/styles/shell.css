@@ -2306,6 +2306,22 @@ body {
 /* SUPERSEDED THINKING FOLDS. The current conclusion stays in full; earlier
    ones keep one dimmed line and open again on click, so the operator reads
    what the agent knows NOW without losing how it got there. */
+/* FOLDING IS A MOVEMENT, not a swap. A conclusion that is superseded should be
+   seen to collapse — that is what tells the operator the thread reorganised
+   itself rather than that something vanished. max-height is the animatable
+   half; the clamp gives the fold its ellipsis. */
+.finding-summary {
+  max-height: 24em;
+  overflow: hidden;
+}
+@media (prefers-reduced-motion: no-preference) {
+  .finding-summary {
+    transition:
+      max-height var(--dur-settle) var(--ease-settle),
+      color var(--dur-snap) var(--ease-snap),
+      font-size var(--dur-snap) var(--ease-snap);
+  }
+}
 .finding[data-fold='true'] .finding-summary {
   color: var(--ink-faint);
   font-size: var(--text-xs);
@@ -2313,6 +2329,7 @@ body {
   -webkit-line-clamp: 1;
   -webkit-box-orient: vertical;
   overflow: hidden;
+  max-height: 1.7em;
 }
 .finding[data-fold='true'] .finding-ruled { display: none; }
 .finding[data-fold='true']:hover .finding-summary { color: var(--ink-dim); }
@@ -2330,9 +2347,26 @@ body {
   background: none;
   box-shadow: inset 0 0 0 1px var(--actor-agent-dim);
 }
-/* THE END OF THE THREAD. The one entry that never folds. */
+/* THE END OF THE THREAD. The one entry that never folds.
+   It arrives with the settle easing rather than a flourish: an incident
+   ending is a relief, not a confetti moment, and this console does not
+   congratulate itself. */
 .thread-resolved .finding-summary { color: var(--good); font-weight: 600; }
 .agent-thread .thread-resolved::before { background: var(--good); }
+@media (prefers-reduced-motion: no-preference) {
+  .thread-resolved { animation: resolved-in var(--dur-agent) var(--ease-settle) both; }
+  .agent-thread .thread-resolved::before {
+    animation: resolved-pip var(--dur-agent) var(--ease-settle) both;
+  }
+}
+@keyframes resolved-in {
+  from { opacity: 0; transform: translateY(4px); }
+  to   { opacity: 1; transform: none; }
+}
+@keyframes resolved-pip {
+  from { box-shadow: 0 0 0 0 color-mix(in oklch, var(--good) 55%, transparent); }
+  to   { box-shadow: 0 0 0 7px color-mix(in oklch, var(--good) 0%, transparent); }
+}
 .finding-summary {
   margin: 0;
   color: var(--ink);

@@ -174,7 +174,7 @@ async function watchForYourDecision(opts: PlayOpts): Promise<void> {
   // NOT the airlock's pending count: a finished plan keeps its receipt on
   // screen, so that number never returns to zero. What matters is whether
   // anything is still WAITING on them — an undecided approval card.
-  const awaiting = () => document.querySelector('.approval-card') !== null;
+  const awaiting = () => document.querySelector('.approval-card, .ap-ask') !== null;
   if (!awaiting()) return; // nothing was put to them; leave the world alone
   try {
     await waitFor(() => !awaiting(), 'your decision', { timeoutMs: 15 * 60_000, signal: opts.signal });

@@ -219,8 +219,25 @@ body {
      slack. The other way round left a band of bare ground under the last
      control card on any tall display — and the evidence panel (the activity
      trail especially) is the region that actually benefits from height. */
-  grid-template-rows: auto auto auto minmax(0, 1fr) auto var(--h-panel);
+  /* AND THE CODE NOW DOES WHAT THE NOTE ABOVE SAYS. It gave the slack to the
+     CONTROLS row and pinned the panel to a fixed height — the opposite of the
+     stated intent, and the cause of S9: at 2190px the Response controls card
+     ran the full height of the console with ~350px of dead space under its
+     last row while Status page and Holding were squeezed into a short band
+     beneath it (docs/reference/sid-controls-card-void-wide.png). Sid, and he
+     is right: "a void is a void", and the ux-debt line calling a void inside a
+     bordered card "honest" is overturned, not cited.
+     The deck is content-sized; the evidence panel — a scrolling log/activity
+     list, the one region whose usefulness genuinely scales with height —
+     takes what is left. */
+  grid-template-rows: auto auto auto minmax(0, auto) auto minmax(var(--h-panel), 1fr);
   overflow: hidden;
+}
+/* With the panel closed there is nothing below to absorb the surplus, so the
+   deck takes it back rather than leaving bare ground under the last card.
+   That is #13's guarantee and it still holds. */
+.wb[data-panel='off'] .wb-centre {
+  grid-template-rows: auto auto auto minmax(0, 1fr) auto 0px;
 }
 /* EXPLICIT rows. The airlock is `display:none` when nothing is pending, and
    auto-placement then shifted every region up one track — the panel landed in
@@ -739,6 +756,22 @@ body {
 @container centre (max-width: 1180px) {
   .readout { grid-template-columns: minmax(220px, 34%) minmax(0, 1fr); }
   .stats { display: none; }   /* the same figures are in the fields */
+}
+/* TWO DAMAGE RENDERERS, ONE BAND. Above the threshold BOTH the compressed
+   field list and the stat cards are on screen, and they were reporting the
+   same two numbers twice — "ERR 35.5%" beside a "Checkout error rate 35.5%"
+   card, "IMPACT 5372 users · $392/min" beside "Customers affected" and
+   "Revenue burn". That duplication is also what made them collide: the middle
+   track had to carry four rows it did not need, so the longest of them ran
+   into the cards with no gutter (Sid: "complete text overlap issue detected",
+   docs/reference/sid-readout-overlap.png).
+   Where the cards are up, they are the better renderer — bigger, labelled,
+   each with its own subline — so the fields keep only what the cards do NOT
+   say: which services are degraded, and which build is live on them. */
+@container centre (min-width: 1181px) {
+  .sit-f[data-k='ERR'],
+  .sit-f[data-k='IMPACT'] { display: none; }
+  .sit-fields { padding-right: var(--sp-5); }
 }
 @container centre (max-width: 720px) {
   .readout { grid-template-columns: minmax(0, 1fr); }

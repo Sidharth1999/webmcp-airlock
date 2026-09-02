@@ -2889,14 +2889,26 @@ function renderSituation(w: World, worst: Health): void {
 
   const pct = (x: number): string => `${(x * 100).toFixed(1)}%`;
   const checkoutErr = w.traffic.byRoute['/checkout']?.errRate ?? w.traffic.errRate;
-  const live = [...w.deploys].reverse().find((d) => d.status === 'live');
   const bad = w.services.filter((s) => s.health !== 'ok');
+  // THE BUILD ON THE SERVICE THAT IS BROKEN, not whichever deploy landed last.
+  // This took the newest live deploy across the whole estate, which was fine
+  // while every deploy in a scenario belonged to the service in trouble. The
+  // moment another team's rollout was added to retry-storm, an api incident
+  // started reporting "LIVE BUILD d-513 payments: settlement retry window" —
+  // the storefront's build, named as the thing at fault, on the line an
+  // operator reads first. Fall back to the estate-wide newest only when
+  // nothing is degraded, which is what the calm state wants anyway.
+  const liveOn = (svc: string): Deploy | undefined =>
+    [...w.deploys].reverse().find((d) => d.status === 'live' && d.service === svc);
+  const live =
+    bad.map((sv) => liveOn(sv.id)).find(Boolean) ??
+    [...w.deploys].reverse().find((d) => d.status === 'live');
 
   const put = (rows: Array<[string, string, string?]>): void => {
     fields.innerHTML = rows
       .map(
         ([k, v, tone]) =>
-          `<div class="sit-f"><dt>${k}</dt><dd${tone ? ` data-tone="${tone}"` : ''}>${v}</dd></div>`
+          `<div class="sit-f" data-k="${k}"><dt>${k}</dt><dd${tone ? ` data-tone="${tone}"` : ''}>${v}</dd></div>`
       )
       .join('');
   };

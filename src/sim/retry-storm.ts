@@ -58,6 +58,15 @@ const CAUSE_DEPLOY_ID = 'd-511';
 /** The build d-511 supersedes — a rollback needs somewhere to land. */
 const PRIOR_DEPLOY_ID = 'd-510';
 const FIX_DEPLOY_ID = 'd-512';
+/**
+ * ANOTHER TEAM'S DEPLOY. A real incident does not happen on a quiet estate:
+ * other teams keep shipping unless somebody stops them, which is the entire
+ * reason `deploy.freeze` exists as a lever. It is announced in the log the
+ * moment the storm opens — a queued deploy is a fact an on-call engineer can
+ * read, not a gotcha — and it lands into the saturated pool, wedging the
+ * fleet exactly as the operator's own unshed rollout would.
+ */
+const INTERFERING_DEPLOY_ID = 'd-513';
 const STORM_ROUTE = 'r-checkout';
 
 /**
@@ -118,6 +127,16 @@ export const retryStorm: TemplateFactory = {
     amplification: 4,
     causeDeployAtTick: 3,
     breakAtTick: 12,
+    /** when another team's queued deploy lands, unless deploys are frozen */
+    /**
+     * Ticks AFTER the storm opens, never an absolute tick. Written absolute
+     * first, which silently disabled the whole mechanism on every variant
+     * whose storm starts later than it (breakAtTick=16 never saw the deploy,
+     * so freezing became decoration and the compiler said so).
+     */
+    interferingDeployAfterTicks: 1,
+    /** how long another team's rollout holds capacity before it completes */
+    foreignRolloutTicks: 10,
   },
 
   meta: {
@@ -138,6 +157,34 @@ export const retryStorm: TemplateFactory = {
       'cache.flush:api',
       'service.restart:api',
       'db.failover:db',
+    ],
+    /**
+     * THE FULL ORDERED RESPONSE (S6). `solutions` above is the minimum set of
+     * levers that ends the incident; this is what an on-call engineer actually
+     * does, and every step is load-bearing — the compiler proves it by running
+     * this sequence seven more times with one step removed each time and
+     * requiring every omission to cost something:
+     *
+     *   1. acknowledge  — somebody owns it. An org-wide freeze is a commander
+     *                     action, so without this step 2 is refused.
+     *   2. SEV1         — the status page is keyed to a severity, so without
+     *                     this step 4 is refused.
+     *   3. freeze       — payments 2.4.1 is queued for api and will roll into
+     *                     a fleet with no spare capacity. This is what stops it.
+     *   4. tell customers — paid for in support tickets, not revenue.
+     *   5. cap /checkout — buy headroom. Rejects real customers; fixes nothing.
+     *   6. LIFT the freeze — it stops your own fix too. Skip it and the ship
+     *                     in step 7 is blocked and the incident never ends.
+     *   7. ship 2.4.2   — the retry policy that removes the amplifier.
+     */
+    orchestration: [
+      'incident.acknowledge:operator',
+      'incident.severity:sev1',
+      'deploy.freeze:true',
+      'statuspage.post:identified',
+      `ratelimit.set:${STORM_ROUTE}<=${SHED_CEILING}`,
+      'deploy.freeze:false',
+      'deploy.rollforward:api',
     ],
     // Sequences. The actions are right; the order is not.
     orderTraps: [
@@ -160,6 +207,8 @@ export const retryStorm: TemplateFactory = {
       amplification: number;
       causeDeployAtTick: number;
       breakAtTick: number;
+      interferingDeployAfterTicks: number;
+      foreignRolloutTicks: number;
     };
 
     let storm = false;
@@ -172,6 +221,11 @@ export const retryStorm: TemplateFactory = {
     let collapsed = false;
     let drained = false;
     let herd = false;
+    /** another team's rollout landed into the saturated pool */
+    let interfered = false;
+    /** the foreign rollout is cycling instances: capacity dips, then returns */
+    let crowded = false;
+    let crowdedTick: number | undefined;
     let restartTick: number | undefined;
     let failoverTick: number | undefined;
     let fixTick: number | undefined;
@@ -192,6 +246,10 @@ export const retryStorm: TemplateFactory = {
       if (restartTick !== undefined && ctx.tick - restartTick < 4) return jitter(ctx.rng, 0.88, 0.05);
       if (herd) return jitter(ctx.rng, 0.84, 0.06);
       if (wedged) return shed ? jitter(ctx.rng, 0.72, 0.08) : jitter(ctx.rng, 0.86, 0.05);
+      // another team's rollout is cycling instances through a pool that has
+      // none to spare. Worse than the storm alone, better than a fleet left
+      // wedged by a halted rollout, and it CLEARS when their deploy lands.
+      if (crowded) return shed ? jitter(ctx.rng, 0.58, 0.09) : jitter(ctx.rng, 0.79, 0.06);
       return shed ? jitter(ctx.rng, 0.34, 0.12) : jitter(ctx.rng, 0.62, 0.1);
     };
 
@@ -277,12 +335,17 @@ export const retryStorm: TemplateFactory = {
         // one shopper who retries six times is one lost order, not six.
         if (storm && stormSeq !== undefined) {
           const organicErr = p.checkoutShare * cErr + (1 - p.checkoutShare) * bErr;
+          // Drawn UNCONDITIONALLY so the status page changes the world and
+          // never the seed: a short-circuited pickInt would leave the two
+          // branches on different rng streams and break byte-identical replay.
+          const wouldFile = pickInt(ctx.rng, 0, 2);
           ctx.emit(
             'user.impact',
             'sim',
             {
               usersErrored: Math.round(organic * organicErr),
-              ticketsOpened: pickInt(ctx.rng, 0, 2),
+              // CUSTOMERS WHO CAN READ WHAT IS HAPPENING DO NOT FILE.
+              ticketsOpened: ctx.world.incident.statusPosts.length > 0 ? 0 : wouldFile,
               revenueLostFormula: {
                 rps: Math.round(organic),
                 errRate: Number(organicErr.toFixed(4)),
@@ -324,6 +387,15 @@ export const retryStorm: TemplateFactory = {
             status: 'degraded',
             reason: 'connection pool saturated; offered load far above organic sessions',
           }).seq;
+          // THE OTHER TEAM IS STILL SHIPPING. Stated as a fact the moment the
+          // incident opens, never as advice: what a queued rollout into a
+          // saturated fleet implies is the reader's job to work out, and the
+          // lever that answers it is deploy.freeze.
+          ctx.emit('log.line', 'sim', {
+            service: 'api',
+            level: 'warn',
+            msg: `deploy queue: payments has storefront-web 4.1.0 (${INTERFERING_DEPLOY_ID}) scheduled on the shared node pool and it will roll shortly \u2014 deploys are not frozen for this incident`,
+          }, stormSeq);
         }
 
         if (storm && !fixed && clueCursor < STORM_LOGS.length && ctx.rng() < 0.7) {
@@ -332,6 +404,58 @@ export const retryStorm: TemplateFactory = {
         }
         if (!storm && ctx.rng() < 0.3) {
           ctx.emit('log.line', 'sim', { ...CALM_LOGS[pickInt(ctx.rng, 0, CALM_LOGS.length - 1)]! });
+        }
+
+        // --- another team's rollout arrives; the freeze is what stops it ---
+        if (ctx.tick === p.breakAtTick + p.interferingDeployAfterTicks && storm && !fixed && !interfered && !collapsed) {
+          if (ctx.world.incident.deploysFrozen) {
+            interfered = true; // held, and it does not come back around
+            ctx.emit('log.line', 'sim', {
+              service: 'api',
+              level: 'info',
+              msg: `deploy freeze in force: storefront-web 4.1.0 (${INTERFERING_DEPLOY_ID}) was refused at the gate. The shared pool keeps the capacity api is running on`,
+            });
+          } else {
+            interfered = true;
+            crowded = true;
+            crowdedTick = ctx.tick;
+            // ON THE STOREFRONT TIER, WHICH SHARES THE NODE POOL. Deliberately
+            // not on api: a foreign deploy to api would supersede d-511 and
+            // quietly invalidate the rollback answer key — the world would have
+            // moved out from under a declared solution. Sharing a pool is the
+            // ordinary reason a neighbouring team's rollout hurts you, and it
+            // leaves api's build history exactly as the operator found it.
+            const other: Omit<Deploy, 'status' | 'at'> = {
+              id: INTERFERING_DEPLOY_ID,
+              service: 'web',
+              version: '4.1.0',
+              author: 'payments@sim',
+              changedAreas: ['payments', 'checkout-ui'],
+              containsMigration: false,
+              flagsTouched: [],
+              diffstat: { files: 6, plus: 84, minus: 12 },
+              note: 'payments: settlement retry window',
+            };
+            const startSeq = ctx.emit('deploy.started', 'sim', {
+              id: other.id, service: other.service, version: other.version, author: other.author,
+            }, stormSeq).seq;
+            ctx.emit('deploy.finished', 'sim', { ...other }, startSeq);
+            ctx.emit('log.line', 'sim', {
+              service: 'api',
+              level: 'error',
+              msg: `storefront-web 4.1.0 (payments) is rolling on the shared node pool: replacement instances are taking capacity api has none of`,
+            }, startSeq);
+          }
+        }
+
+        // their rollout completes and the borrowed capacity comes back
+        if (crowded && crowdedTick !== undefined && ctx.tick >= crowdedTick + p.foreignRolloutTicks) {
+          crowded = false;
+          ctx.emit('log.line', 'sim', {
+            service: 'api',
+            level: 'info',
+            msg: `storefront-web 4.1.0 finished rolling; the shared pool is back to full capacity (the retry amplification is unaffected)`,
+          });
         }
 
         // --- the fix settles two ticks after the amplifier stops serving ---

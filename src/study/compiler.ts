@@ -47,6 +47,10 @@ export interface VerifyReport {
     solutions: RunMetrics[]; // one per declared solution
     traps: RunMetrics[]; // one per declared trap
     orderTraps: RunMetrics[]; // one per declared ordering violation
+    /** the full ordered response, when the template declares one */
+    orchestration?: RunMetrics;
+    /** the same sequence with step i left out — one per step */
+    omissions?: Array<{ omitted: string; run: RunMetrics }>;
   };
 }
 
@@ -63,6 +67,14 @@ export interface CorpusResult {
  * (env.set drops its value) or that name no known tool — the verifier
  * rejects such answer keys instead of guessing.
  */
+/** Neutral wording for a probed status post — the state is the decision. */
+const STATUS_TEXT: Record<string, string> = {
+  investigating: 'We are investigating elevated errors on checkout.',
+  identified: 'We have identified the cause of the checkout errors and are working on a fix.',
+  monitoring: 'A fix is deployed and we are monitoring checkout.',
+  resolved: 'Checkout is fully restored.',
+};
+
 export function parseActionKey(
   key: string
 ): { tool: string; input: Record<string, unknown> } | undefined {
@@ -109,10 +121,40 @@ export function parseActionKey(
       // booleans only: `alerts.silence:maybe` names no world state
       if (rest !== 'true' && rest !== 'false') return undefined;
       return { tool, input: { silenced: rest === 'true' } };
+    case 'incident.acknowledge':
+      return rest ? { tool, input: { by: rest } } : undefined;
+    case 'incident.severity':
+      return ['sev1', 'sev2', 'sev3'].includes(rest) ? { tool, input: { level: rest } } : undefined;
+    case 'statuspage.post':
+      // the key names the STATE the page moves to; the sentence is flavour,
+      // so the probe supplies a plausible one rather than inventing policy
+      return ['investigating', 'identified', 'monitoring', 'resolved'].includes(rest)
+        ? { tool, input: { state: rest, text: STATUS_TEXT[rest] ?? 'We are investigating.' } }
+        : undefined;
+    case 'deploy.freeze':
+      // same rule as alerts.silence: the key names a world state or nothing.
+      // Both polarities are answer-key material here — the freeze has to go
+      // ON before another team ships and OFF before your own fix can.
+      if (rest !== 'true' && rest !== 'false') return undefined;
+      return { tool, input: { frozen: rest === 'true' } };
     default:
       return undefined; // anything off-vocabulary
   }
 }
+
+/**
+ * Actions the world does not have to absorb: they change POLICY, and policy
+ * takes effect when it is written. Everything else (a rollout, a restart, a
+ * failover, a cap that has to drain a queue) gets the settle budget.
+ */
+export const INSTANT_ACTIONS: ReadonlySet<string> = new Set([
+  'deploy.freeze',
+  'alerts.silence',
+  'incident.acknowledge',
+  'incident.severity',
+  'incident.escalate',
+  'statuspage.post',
+]);
 
 const incidentOpen = (engine: Engine): boolean =>
   engine.world.services.some((s) => s.health !== 'ok');
@@ -163,6 +205,12 @@ export function verifyCandidate(candidate: Candidate, opts: VerifyOptions = {}):
   }
 
   // --- scripted probe: wait for the incident, run the actions, let it settle ---
+  // CONTROL-PLANE VERBS ARE INSTANTANEOUS. Charging every action the same
+  // settle budget quietly penalises LENGTH: a five-step sequence paid twelve
+  // ticks of storm for three policy flips that take effect the moment they
+  // are written, which made the correct longer answer score worse than a
+  // shorter one. Settling is for actions the WORLD has to absorb — a rollout,
+  // a restart, a failover — not for declaring a severity or freezing deploys.
   const runScripted = (keys: string[]): RunMetrics | string => {
     const actions = keys.map((k) => ({ key: k, parsed: parseActionKey(k) }));
     const bad = actions.find((a) => !a.parsed);
@@ -181,7 +229,9 @@ export function verifyCandidate(candidate: Candidate, opts: VerifyOptions = {}):
     }
     for (const a of actions) {
       engine.act(a.parsed!.tool, a.parsed!.input, 'agent');
-      const budget = Math.min(settle, Math.max(0, horizon - used));
+      const budget = INSTANT_ACTIONS.has(a.parsed!.tool)
+        ? 0
+        : Math.min(settle, Math.max(0, horizon - used));
       engine.step(budget);
       used += budget;
     }
@@ -241,11 +291,54 @@ export function verifyCandidate(candidate: Candidate, opts: VerifyOptions = {}):
     }
   }
 
+  // --- ORCHESTRATION: the full ordered response, and a NECESSITY proof ---
+  // A longer answer key proves nothing on its own. This runs the declared
+  // sequence, then runs it again once per step with that step LEFT OUT, and
+  // requires every omission to be measurably worse — otherwise the step is
+  // decoration and the candidate is rejected. It is the check that would have
+  // caught nine inert verbs sitting in the vocabulary looking consequential.
+  let orchestration: RunMetrics | undefined;
+  let omissions: Array<{ omitted: string; run: RunMetrics }> | undefined;
+  const full = meta.orchestration;
+  if (full && full.length) {
+    const outcome = runScripted(full);
+    if (typeof outcome === 'string') {
+      rejects.push(outcome);
+    } else {
+      orchestration = outcome;
+      if (!outcome.resolvedAtEnd) rejects.push('orchestration-fails');
+      // it must beat the minimal answer key it is an expansion of, or the
+      // extra steps are ceremony
+      if (bestSolutionDamage !== undefined && outcome.damageRevenueLost >= bestSolutionDamage) {
+        rejects.push('orchestration-not-better-than-solution');
+      }
+      omissions = [];
+      for (let i = 0; i < full.length; i++) {
+        const without = full.filter((_, j) => j !== i);
+        const run = runScripted(without);
+        if (typeof run === 'string') {
+          rejects.push(run);
+          continue;
+        }
+        omissions.push({ omitted: full[i]!, run });
+        // WORSE ON AT LEAST ONE MEASURED AXIS. Revenue is not the only cost an
+        // incident has: telling customers nothing is paid for in support load,
+        // which is why supportTickets counts here.
+        const worse =
+          !run.resolvedAtEnd ||
+          run.catastrophic ||
+          run.damageRevenueLost > outcome.damageRevenueLost ||
+          run.supportTickets > outcome.supportTickets;
+        if (!worse) rejects.push(`orchestration-step-decorative:${full[i]}`);
+      }
+    }
+  }
+
   return {
     candidate,
     accepted: rejects.length === 0,
     rejects,
-    probes: { null: nullMetrics, solutions, traps, orderTraps },
+    probes: { null: nullMetrics, solutions, traps, orderTraps, orchestration, omissions },
   };
 }
 

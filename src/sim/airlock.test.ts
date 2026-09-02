@@ -352,9 +352,12 @@ describe('input validation at the gate (residual review): malformed writes never
 // longer than two. The gate lives in act() so the console click, the agent's
 // approved write and the compiler's scripted probe all hit the same wall.
 describe('the deploy freeze is a gate, not a label (S6)', () => {
+  // An org-wide freeze is a commander action, so every freeze here is
+  // preceded by taking ownership — that gate has its own tests below.
   const opened = (): Engine => {
     const e = new Engine({ templateId: 'retry-storm', seed: 11 });
     e.step(20);
+    e.act('incident.acknowledge', { by: 'operator' });
     return e;
   };
 
@@ -394,5 +397,55 @@ describe('the deploy freeze is a gate, not a label (S6)', () => {
     );
     // the lever that lifts the freeze must never be frozen by itself
     expect(engine.act('deploy.freeze', { frozen: false }, 'agent').kind).toBe('action.executed');
+  });
+});
+
+// The other half of the same idea: a lever whose precondition is a PROCEDURE
+// rather than a physical state. These are what turn the incident-command row
+// from a wall of buttons into an ordered response.
+describe('procedural gates: some levers need the incident run properly first (S6)', () => {
+  const stormy = (): Engine => {
+    const e = new Engine({ templateId: 'retry-storm', seed: 11 });
+    e.step(20);
+    return e;
+  };
+
+  it('refuses an org-wide freeze while nobody owns the incident', () => {
+    const engine = stormy();
+    const ev = engine.act('deploy.freeze', { frozen: true }, 'agent');
+    expect(ev.kind).toBe('action.blocked');
+    expect(ev.data).toMatchObject({ reason: 'incident-unowned' });
+    expect(engine.world.incident.deploysFrozen).toBeFalsy();
+  });
+
+  it('allows it the moment somebody takes ownership', () => {
+    const engine = stormy();
+    engine.act('incident.acknowledge', { by: 'operator' });
+    expect(engine.act('deploy.freeze', { frozen: true }, 'agent').kind).toBe('action.executed');
+    expect(engine.world.incident.deploysFrozen).toBe(true);
+  });
+
+  it('never blocks LIFTING a freeze — an unowned incident must not trap the estate', () => {
+    const engine = stormy();
+    engine.act('incident.acknowledge', { by: 'operator' });
+    engine.act('deploy.freeze', { frozen: true });
+    expect(engine.act('deploy.freeze', { frozen: false }, 'agent').kind).toBe('action.executed');
+  });
+
+  it('refuses to tell customers anything until a severity is declared', () => {
+    const engine = stormy();
+    const ev = engine.act('statuspage.post', { state: 'identified', text: 'We found it.' }, 'agent');
+    expect(ev.kind).toBe('action.blocked');
+    expect(ev.data).toMatchObject({ reason: 'no-severity' });
+    expect(engine.world.incident.statusPosts).toHaveLength(0);
+  });
+
+  it('publishes once the incident has a severity', () => {
+    const engine = stormy();
+    engine.act('incident.severity', { level: 'sev1' });
+    expect(
+      engine.act('statuspage.post', { state: 'identified', text: 'We found it.' }, 'agent').kind
+    ).toBe('action.executed');
+    expect(engine.world.incident.statusPosts).toHaveLength(1);
   });
 });

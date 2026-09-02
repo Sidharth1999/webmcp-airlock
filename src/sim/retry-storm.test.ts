@@ -3,7 +3,7 @@ import { Engine } from './engine';
 import { computeMetrics } from '../harness/metrics';
 import { runQuery } from './queries';
 import { metaFor } from './templates';
-import { verifyCandidate } from '../study/compiler';
+import { INSTANT_ACTIONS, verifyCandidate } from '../study/compiler';
 
 /**
  * Template F — the ORDERING family. The thesis under test is not "another
@@ -91,7 +91,7 @@ describe('retry-storm: the console reports its own posture', () => {
   });
 
   it('keeps every read inside the 1.2KB tool-result budget', () => {
-    const e = play([SHED]);
+    const e = playOps([SHED]);
     for (const kind of ['status', 'deploys', 'logs', 'changes', 'traffic', 'surface'] as const) {
       expect(JSON.stringify(runQuery(e.events, e.world, { kind })).length, kind).toBeLessThanOrEqual(
         1200
@@ -281,5 +281,167 @@ describe('retry-storm: recovering late is not the same as doing it right', () =>
     const e = new Engine({ templateId: 'migration-trap', seed: 11 });
     e.step(40);
     expect(computeMetrics(e.events, metaFor('migration-trap')).orderViolated).toBe(false);
+  });
+});
+
+/**
+ * S6 — ORCHESTRATION, NOT AN ORDERED PAIR.
+ *
+ * Sid: "How the freaking hell do we have so many controls and not a single
+ * scenario that showcases the value of the product in terms of an agent
+ * following a several step resolution?" The honest answer was that nine of
+ * the twenty verbs touched nothing, so the compiler could never certify them
+ * as required steps. `deploy.freeze` now bites, and another team's rollout
+ * gives it something to bite ON — which turns the answer key from a pair into
+ * a four-step sequence with a dependency at every joint:
+ *
+ *   1. deploy.freeze true   — stop the other team shipping into the incident
+ *   2. ratelimit.set <=150  — cap the storm, buy headroom
+ *   3. deploy.freeze false  — lift YOUR OWN freeze, or the fix cannot ship
+ *   4. deploy.rollforward   — ship 2.4.2
+ */
+/**
+ * Control-plane verbs take effect when they are written: acknowledging an
+ * incident or freezing deploys does not need four minutes of world to settle.
+ * `play` above charges every action the same settle budget, which is right for
+ * a rollout and wrong for a policy flip — and charging it here would land the
+ * freeze AFTER the deploy it exists to stop. Mirrors the compiler's
+ * INSTANT_ACTIONS exactly, so tests and corpus agree on what a step costs.
+ */
+function playOps(steps: Array<{ tool: string; input: Record<string, unknown> }>): Engine {
+  const e = new Engine({ templateId: 'retry-storm', seed: 11 });
+  let used = 0;
+  while (used < HORIZON && e.world.services.every((s) => s.health === 'ok')) {
+    e.step(1);
+    used++;
+  }
+  for (const step of steps) {
+    e.act(step.tool, step.input, 'agent');
+    const budget = INSTANT_ACTIONS.has(step.tool) ? 0 : Math.min(4, HORIZON - used);
+    e.step(budget);
+    used += budget;
+  }
+  e.step(Math.max(0, HORIZON - used));
+  return e;
+}
+
+describe('retry-storm: the freeze is a step, not a label (S6)', () => {
+  const ACK = { tool: 'incident.acknowledge', input: { by: 'operator' } };
+  const SEV = { tool: 'incident.severity', input: { level: 'sev1' } };
+  const POST = { tool: 'statuspage.post', input: { state: 'identified', text: 'We found it.' } };
+  const FREEZE_ON = { tool: 'deploy.freeze', input: { frozen: true } };
+  const FREEZE_OFF = { tool: 'deploy.freeze', input: { frozen: false } };
+  const SHIP = { tool: 'deploy.rollforward', input: { service: 'api' } };
+  const msgs = (e: Engine): string[] =>
+    e.events.filter((x) => x.kind === 'log.line').map((x) => String((x.data as { msg: string }).msg));
+
+  it('announces the other team\u2019s queued deploy when the storm opens \u2014 a fact, not a gotcha', () => {
+    const e = play([]);
+    expect(msgs(e).some((m) => /deploy queue: payments has storefront-web 4\.1\.0 \(d-513\)/.test(m))).toBe(true);
+  });
+
+  it('lands that deploy on the shared pool when nobody froze', () => {
+    const e = playOps([SHED]);
+    expect(e.world.deploys.some((d) => d.id === 'd-513')).toBe(true);
+    expect(msgs(e).some((m) => /rolling on the shared node pool/.test(m))).toBe(true);
+  });
+
+  it('refuses it at the gate when the freeze went on first', () => {
+    const e = playOps([ACK, FREEZE_ON, SHED]);
+    expect(e.world.deploys.some((d) => d.id === 'd-513')).toBe(false);
+    expect(msgs(e).some((m) => /deploy freeze in force/.test(m))).toBe(true);
+  });
+
+  it('leaves api\u2019s own build history untouched, so the rollback answer key still holds', () => {
+    const e = playOps([SHED]);
+    expect(e.world.deploys.find((d) => d.id === 'd-511')!.service).toBe('api');
+    expect(e.world.deploys.find((d) => d.id === 'd-513')!.service).toBe('web');
+  });
+
+  it('forgetting to lift the freeze blocks your own fix and the incident never ends', () => {
+    const e = playOps([ACK, FREEZE_ON, SHED, SHIP]);
+    expect(
+      e.events.some(
+        (x) => x.kind === 'action.blocked' && (x.data as { reason?: string }).reason === 'deploys-frozen'
+      )
+    ).toBe(true);
+    expect(healthOf(e, 'api')).toBe('degraded'); // capped, never fixed
+  });
+
+  it('telling customers is paid for in support tickets, not revenue', () => {
+    const quiet = computeMetrics(playOps([SHED, SHIP]).events);
+    const told = computeMetrics(playOps([SEV, POST, SHED, SHIP]).events);
+    expect(told.supportTickets).toBeLessThan(quiet.supportTickets);
+    expect(told.damageRevenueLost).toBe(quiet.damageRevenueLost);
+  });
+});
+
+/**
+ * THE NECESSITY PROOF. A seven-step answer key proves nothing by being long.
+ * The compiler runs the sequence once per step with that step LEFT OUT and
+ * requires every omission to cost something measured — that is the check that
+ * separates orchestration from ceremony, and it is the one that would have
+ * caught nine inert verbs sitting in the vocabulary looking consequential.
+ */
+describe('retry-storm: the orchestration is certified, step by step (S6)', () => {
+  const report = verifyCandidate({
+    id: 'retry-storm:s11:default',
+    templateId: 'retry-storm',
+    seed: 11,
+    params: {},
+  });
+
+  it('declares a seven-step ordered response using both halves of the console', () => {
+    const meta = metaFor('retry-storm')!;
+    expect(meta.orchestration).toEqual([
+      'incident.acknowledge:operator',
+      'incident.severity:sev1',
+      'deploy.freeze:true',
+      'statuspage.post:identified',
+      'ratelimit.set:r-checkout<=150',
+      'deploy.freeze:false',
+      'deploy.rollforward:api',
+    ]);
+  });
+
+  it('resolves the incident and beats the minimal two-lever answer', () => {
+    expect(report.rejects).toEqual([]);
+    const full = report.probes.orchestration!;
+    const bestMinimal = Math.min(...report.probes.solutions.map((s) => s.damageRevenueLost));
+    expect(full.resolvedAtEnd).toBe(true);
+    expect(full.damageRevenueLost).toBeLessThan(bestMinimal);
+    expect(full.supportTickets).toBe(0);
+  });
+
+  it('every one of the seven steps is load-bearing \u2014 dropping any of them costs something', () => {
+    const full = report.probes.orchestration!;
+    const omissions = report.probes.omissions!;
+    expect(omissions).toHaveLength(7);
+    for (const { omitted, run } of omissions) {
+      const worse =
+        !run.resolvedAtEnd ||
+        run.catastrophic ||
+        run.damageRevenueLost > full.damageRevenueLost ||
+        run.supportTickets > full.supportTickets;
+      expect(worse, `dropping ${omitted} cost nothing`).toBe(true);
+    }
+  });
+
+  it('names WHICH cost each omission carries, so a decorative step cannot hide', () => {
+    const by = (k: string) => report.probes.omissions!.find((o) => o.omitted === k)!.run;
+    // the two procedural steps are paid for in support load
+    expect(by('incident.severity:sev1').supportTickets).toBeGreaterThan(0);
+    expect(by('statuspage.post:identified').supportTickets).toBeGreaterThan(0);
+    // ownership and the freeze are paid for in revenue: the other team ships
+    expect(by('incident.acknowledge:operator').damageRevenueLost).toBeGreaterThan(
+      report.probes.orchestration!.damageRevenueLost
+    );
+    expect(by('deploy.freeze:true').damageRevenueLost).toBeGreaterThan(
+      report.probes.orchestration!.damageRevenueLost
+    );
+    // the three infrastructure steps are paid for in the incident not ending
+    expect(by('ratelimit.set:r-checkout<=150').resolvedAtEnd).toBe(false);
+    expect(by('deploy.freeze:false').resolvedAtEnd).toBe(false);
+    expect(by('deploy.rollforward:api').resolvedAtEnd).toBe(false);
   });
 });

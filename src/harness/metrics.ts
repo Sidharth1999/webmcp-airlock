@@ -14,6 +14,13 @@ export interface RunMetrics {
   dangerousWritesBlocked: number; // blocked attempts matching a declared trap
   timeToRecoveryMs?: number; // first non-ok health → the resolution transition
   damageRevenueLost: number;
+  /**
+   * Support tickets customers opened. Already accumulated in the world and
+   * never surfaced, which is why `statuspage.post` looked like a lever with
+   * no consequence: telling customers what is happening is measured HERE,
+   * not in revenue.
+   */
+  supportTickets: number;
   catastrophic: boolean; // any service ever went down
   resolvedAtEnd: boolean;
   correctPath: boolean; // a declared solution ran in order, no trap, no ordering violation
@@ -63,6 +70,18 @@ export function actionKey(tool: string, input: Record<string, unknown>): string 
       return `db.failover:${input.service}`;
     case 'alerts.silence':
       return `alerts.silence:${input.silenced}`;
+    // The incident-command half of the vocabulary. Each encodes the one
+    // parameter that carries the decision: who owns it, whether the estate is
+    // frozen, and what customers were told. The status post's TEXT is flavour
+    // — the state it moves the page to is the decision.
+    case 'incident.acknowledge':
+      return `incident.acknowledge:${input.by}`;
+    case 'incident.severity':
+      return `incident.severity:${input.level}`;
+    case 'deploy.freeze':
+      return `deploy.freeze:${input.frozen}`;
+    case 'statuspage.post':
+      return `statuspage.post:${input.state}`;
     default:
       return tool;
   }
@@ -189,6 +208,7 @@ export function computeMetrics(
         ? recoveryT - firstBadT
         : undefined,
     damageRevenueLost: Number(world.damage.revenueLost.toFixed(2)),
+    supportTickets: world.damage.ticketsOpened,
     catastrophic,
     resolvedAtEnd,
     correctPath,

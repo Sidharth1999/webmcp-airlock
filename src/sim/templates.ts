@@ -29,6 +29,22 @@ export interface TemplateMeta {
    * doing the same work in the right order.
    */
   orderTraps?: string[][];
+  /**
+   * THE FULL ORDERED RESPONSE — what a competent on-call engineer actually
+   * does, not the minimum set of levers that ends the incident.
+   *
+   * Separate from `solutions` because it answers a different question.
+   * `solutions` is the answer key: the smallest correct path, and what
+   * `correctPath` is scored against. `orchestration` is the claim that this
+   * console has a SEQUENCE worth an agent at all — and the compiler proves
+   * it the hard way, by running the sequence with each step LEFT OUT in turn
+   * and requiring every omission to cost something (fail to resolve, burn
+   * more revenue, or leave more customers filing tickets).
+   *
+   * That omission probe is the whole point. Without it a longer answer key is
+   * just decoration, which is exactly what nine of the twenty verbs were.
+   */
+  orchestration?: string[];
 }
 
 export interface TemplateFactory {

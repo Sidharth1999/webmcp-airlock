@@ -97,6 +97,47 @@ export class Engine {
     const invalid = spec?.validate(input);
     if (invalid) throw new Error(`invalid input for ${tool}: ${invalid}`);
     const ctx = this.ctx();
+    // AN ORG-WIDE FREEZE NEEDS AN INCIDENT COMMANDER. Freezing every team's
+    // deploys is the highest-blast-radius thing on the incident-command row —
+    // real response tools make it a commander action, and it is the reason
+    // `incident.acknowledge` exists as a lever rather than as a label. The
+    // gate is what makes acknowledging a STEP: skip it and the freeze never
+    // lands, so the other team ships into your incident.
+    if (tool === 'deploy.freeze' && (input as { frozen?: boolean }).frozen === true
+        && !this.worldState.incident.acknowledgedBy) {
+      return ctx.emit(
+        'action.blocked',
+        actor,
+        {
+          tool,
+          input,
+          tier: spec!.tier,
+          tierName: spec!.tierName,
+          reason: 'incident-unowned',
+          detail: 'a deploy freeze is an incident-commander action — acknowledge the incident first',
+        },
+        causedBy
+      );
+    }
+    // A STATUS PAGE POST NEEDS A SEVERITY. Every real status page is keyed to
+    // one: it decides what customers are promised and who is standing by. This
+    // is what makes `incident.severity` a step rather than a badge — without
+    // it the page stays silent and customers file tickets instead.
+    if (tool === 'statuspage.post' && !this.worldState.incident.severity) {
+      return ctx.emit(
+        'action.blocked',
+        actor,
+        {
+          tool,
+          input,
+          tier: spec!.tier,
+          tierName: spec!.tierName,
+          reason: 'no-severity',
+          detail: 'declare a severity before telling customers — the page is keyed to one',
+        },
+        causedBy
+      );
+    }
     // THE FREEZE IS A GATE, NOT A LABEL. `deploy.freeze`'s own cost copy
     // promises it stops anyone shipping into an active incident "including
     // the fix you are about to ship" — that sentence was decoration while

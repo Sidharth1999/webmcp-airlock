@@ -10,7 +10,7 @@
  *   log/stills/   Sid's viewport, 1512x945 at 2x. Six frames, one claim each.
  *   log/devpost/  the curated Devpost set:
  *                   1..6  gallery, 1680x945 at 2x (exact 16:9), named by claim
- *                   thumb-*  three 1200x800 (3:2) crops of ONE moment each,
+ *                   thumb-*  five 1200x800 (3:2) crops of ONE moment each,
  *                            shot at 3x so they still read at ~300px wide;
  *                            preview-300/ holds the downscaled check copies.
  *
@@ -120,7 +120,14 @@ const thumb = async (p, anchorSel, name, { above = 8, prev = false } = {}) => {
   const w = Math.min(410, p._vp.width - Math.round(rail.x));
   const h = Math.round(w / 1.5);
   const x = Math.round(rail.x);
-  const y = Math.min(p._vp.height - h, Math.max(0, Math.round(top - above)));
+  // THE LEDGER'S OWN FLOOR IS THE FLOOR, not the viewport's. Clamping to the
+  // window bottom let the last live step's frame run past the end of the
+  // scroller and slice the dock's "tools available" footer in half — a cut
+  // that reads as a mistake at card size. The ledger ends where .dock-body
+  // ends; a thumbnail of a row in it ends there too.
+  const body = await p.locator('#tool-rail .dock-body').boundingBox();
+  const floor = Math.ceil(body ? Math.min(body.y + body.height, p._vp.height) : p._vp.height);
+  const y = Math.max(0, Math.min(floor - h, Math.max(0, Math.round(top - above))));
   await saveThumb(p, { x, y, width: w, height: h }, name, ' at 3x');
 };
 
@@ -338,27 +345,39 @@ if (want('provenance')) {
   const target = line ? (line.msg.match(/d-\d+/) ?? [])[0] : null;
   if (!target) throw new Error('no deploy id inside an untrusted log line');
   const prop = await invoke(s, 'propose_rollback', { deployId: target });
-  await s.getByTestId(`approval-${prop.proposalSeq}`).waitFor({ timeout: 10_000 });
-  await framed(s, [`[data-testid="approval-${prop.proposalSeq}"]`], `${STILLS}/5-the-page-knows-where-the-idea-came-from.png`, 40);
+  // A STANDALONE ASK IS A ROW ON THE SPINE, not a bordered card: the frame is
+  // the ROW (`[data-testid="ask-N"]`), whose head carries the title and the
+  // machine slot that says 'needs your key'. The inner `.ap-ask`
+  // (`approval-N`) is only the ask's own body and cuts that head off.
+  await s.getByTestId(`ask-${prop.proposalSeq}`).waitFor({ timeout: 10_000 });
+  // 24, the height of one collapsed ledger row: the rows are contiguous, so
+  // any other padding cuts the row above through its own text
+  await framed(s, [`[data-testid="ask-${prop.proposalSeq}"]`], `${STILLS}/5-the-page-knows-where-the-idea-came-from.png`, 24);
   await s.close();
 
-  // thumb-e: the same card from the review scene, cropped to the ask, the
-  // quoted customer text and the key rung — the buttons are not the idea
+  // thumb-e: the same ask from the review scene. The dock is a fixed 410 wide
+  // and the ask is taller than a 3:2 window of that width, so the window is
+  // the dock's own column and it holds the TOP of the story — the step marker
+  // on the spine, the title, 'a deploy · needs your key' in the machine slot,
+  // the cost, and the whole amber evidence block. It stops in the gap between
+  // that block and the key rung: reaching further would either slice the rung
+  // or push the frame out of the dock and into a sliver of the console, and
+  // the rung's checkbox is not what this frame is about.
   const t = await newPage(SID, 4);
   await sceneReady(t, 'provenance');
-  const card = await t.locator('.approval-card').first().boundingBox();
-  const key = await t.locator('.approval-card .ap-key').first().boundingBox();
-  if (!card || !key) throw new Error('provenance thumb: no card or key box');
-  // the card's own width sets the window; it ENDS under the key rung (the
-  // buttons are not the idea) and reaches up past 'Waiting on you'
-  // 3px of air each side: any more and the window reaches up into the
-  // 'Waiting on you' label and cuts it mid-word
-  const w = Math.round(card.width + 6);
+  const rail = await t.locator('#tool-rail').boundingBox();
+  const row = await t.locator('.tl-ask').first().boundingBox();
+  const prov = await t.locator('.tl-ask .ap-prov').first().boundingBox();
+  const key = await t.locator('.tl-ask .ap-key').first().boundingBox();
+  if (!rail || !row || !prov || !key) throw new Error('provenance thumb: no rail, row, evidence or key box');
+  // 408, not 410: a 3:2 window whose sides are both even at 4x, so `sips`
+  // resamples to exactly 1200x800 with no aspect drift
+  const w = Math.min(408, Math.round(t._vp.width - rail.x));
   const h = Math.round(w / 1.5);
-  const y1 = Math.round(key.y + key.height + 8);
-  const y0 = Math.max(0, y1 - h);
-  let x0 = Math.round(card.x + card.width / 2 - w / 2);
-  x0 = Math.max(0, Math.min(t._vp.width - w, x0));
+  const x0 = Math.max(0, Math.min(t._vp.width - w, Math.round(rail.x)));
+  const y0 = Math.max(0, Math.round(row.y));
+  if (prov.y + prov.height > y0 + h) throw new Error('provenance thumb: the evidence block does not fit');
+  if (key.y < y0 + h) throw new Error('provenance thumb: the frame slices the key rung');
   await saveThumb(t, { x: x0, y: y0, width: w, height: h }, 'thumb-e-the-page-knows-where-the-idea-came-from', ' at 4x');
   await t.close();
 }
@@ -383,7 +402,16 @@ if (want('counsel')) {
   await s.getByTestId('rollback-d-201').scrollIntoViewIfNeeded({ timeout: 6000 });
   await s.getByTestId('rollback-d-201').click();
   await s.waitForSelector('.agent-caution', { timeout: 10_000 });
+  // TAKE THE POINTER OFF THE LEVER. Two objections exist: the HOVER popover
+  // (`.agent-counsel`) that answers before the click, and the CLICK caution
+  // (`.agent-caution`) that files into the deploy's own row after it. A real
+  // hand moves; Playwright's does not, so the popover was still up, layered
+  // over the caution with the same sentence in it twice. Hovering the caution
+  // is a pointerover on a non-control, which is what dismisses the popover.
+  await s.locator('.agent-caution').first().hover();
   await s.waitForTimeout(700);
+  if (await s.locator('.agent-counsel').count())
+    throw new Error('counsel still: the hover popover is still over the caution');
   // the idea IS the relationship: the deploy they reached for, the lever, and
   // the answer it got, in one frame
   await framed(

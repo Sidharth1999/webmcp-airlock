@@ -1836,8 +1836,13 @@ body {
   display: flex;
   flex-direction: column;
   gap: var(--sp-2);
-  font-family: var(--font-instrument);
-  font-size: var(--text-xs);
+  /* PROSE, NOT MONO. The whole card was set in the instrument face at 11-12px
+     — twenty-eight lines of monospace for a seven-step plan, which is the
+     "density and font ... looks so ugly" Sid is reading. Mono is for machine
+     truth: identifiers, values, log lines. A sentence explaining why an order
+     matters is prose, and it is the thing an operator has to actually read. */
+  font-family: var(--font-prose);
+  font-size: var(--text-sm);
 }
 .plan-card[data-state='abandoned'] { opacity: 0.85; }
 .plan-card[data-state='abandoned']::before { background: var(--ink-ghost); }
@@ -1929,6 +1934,7 @@ body {
   letter-spacing: var(--tracking-label);
 }
 .pl-why-t {
+  line-height: 1.55;
   margin: 0;
   color: var(--ink);
   font-family: var(--font-prose);
@@ -1936,64 +1942,162 @@ body {
   line-height: 1.5;
 }
 
-.pl-steps { list-style: none; margin: 0; padding: 0; display: flex; flex-direction: column; gap: var(--sp-2); }
-.pl-step {
-  position: relative;
-  padding-left: var(--sp-4);
-  border-left: 1px solid var(--line);
-  counter-increment: pl;
+/* ONE DECISION IN FOCUS, THE REST AS A LIST.
+   Every step used to render its title, its price, its rationale and a status
+   note whatever state it was in. For an ordered PAIR that was four lines of
+   detail; for the real seven-step response it is a twenty-eight-line wall,
+   and twenty-six of those lines are about steps the operator is not being
+   asked about. Sid: "if it's too packed and mostly text ... no one wants to
+   look at it seriously".
+   So state decides density. A step that is DONE or NOT YET ASKED is one line.
+   The step you are being asked about is a card, with its price and its reason
+   and its buttons. That is the whole ergonomic idea. */
+.pl-steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  counter-reset: pl;
 }
-.pl-steps { counter-reset: pl; }
-/* the rail marker: hollow → ringed → filled, so state is legible without text */
+.pl-step {
+  display: grid;
+  grid-template-columns: 20px minmax(0, 1fr);
+  column-gap: var(--sp-3);
+  align-items: start;
+  padding: 5px 0;
+  counter-increment: pl;
+  border-radius: var(--r-sm);
+}
+.pl-step > * { grid-column: 2; }
+/* the marker: hollow → ringed → filled, so state is legible without text */
 .pl-step::before {
   content: counter(pl);
-  position: absolute;
-  left: -9px;
-  top: 0;
-  width: 17px;
-  height: 17px;
+  grid-column: 1;
+  grid-row: 1;
+  width: 18px;
+  height: 18px;
   border-radius: 50%;
   display: grid;
   place-items: center;
-  font-size: var(--text-2xs);
+  font-family: var(--font-instrument);
+  font-size: 10px;
+  line-height: 1;
   font-variant-numeric: tabular-nums;
-  background: var(--panel);
-  border: 1px solid var(--line);
+  background: none;
+  border: 1px solid var(--line-strong);
   color: var(--ink-ghost);
+  margin-top: 1px;
 }
 .pl-step[data-state='live']::before {
   border-color: var(--actor-agent);
-  color: var(--actor-agent);
-  box-shadow: 0 0 0 3px oklch(76% 0.13 310 / 0.18);
+  background: var(--actor-agent);
+  color: oklch(18% 0.03 310);
+  font-weight: 600;
 }
 .pl-step[data-state='done']::before {
   content: '✓';
-  border-color: var(--good);
-  background: var(--good);
-  color: var(--panel);
+  border-color: color-mix(in oklch, var(--good) 45%, transparent);
+  background: none;
+  color: var(--good);
 }
 .pl-step[data-state='skipped']::before,
 .pl-step[data-state='blocked']::before { border-color: var(--bad); color: var(--bad); }
 .pl-step[data-state='dropped'] { opacity: 0.5; }
 
+/* --- the quiet states: one line, and nothing else ---------------------- */
+.pl-step[data-state='pending'] .pl-cost,
+.pl-step[data-state='pending'] .pl-because,
+.pl-step[data-state='pending'] .pl-note,
+.pl-step[data-state='done'] .pl-cost,
+.pl-step[data-state='done'] .pl-because,
+.pl-step[data-state='done'] .pl-note,
+.pl-step[data-state='dropped'] .pl-cost,
+.pl-step[data-state='dropped'] .pl-because,
+.pl-step[data-state='dropped'] .pl-note { display: none; }
+.pl-step[data-state='pending'] .pl-what,
+.pl-step[data-state='dropped'] .pl-what {
+  color: var(--ink-faint);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+.pl-step[data-state='done'] .pl-what {
+  color: var(--ink-dim);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+/* --- the live step: the only card on the list -------------------------- */
+/* A REAL SURFACE. Everything else on this list is a line of text; the step
+   being decided is an object you can point at. It gets the panel's raised
+   ground, a hairline, and the agent's violet down its edge — the same accent
+   the dock already uses for "this is the agent asking". */
+.pl-step[data-state='live'] {
+  padding: var(--sp-3) var(--sp-3) var(--sp-3) var(--sp-3);
+  margin: var(--sp-2) 0;
+  grid-template-columns: 20px minmax(0, 1fr);
+  background: color-mix(in oklch, var(--panel-raised) 78%, var(--actor-agent) 6%);
+  border: 1px solid color-mix(in oklch, var(--actor-agent) 28%, var(--line));
+  border-left: 2px solid var(--actor-agent);
+  border-radius: var(--r-md);
+}
+/* the reason leads, so it reads as a sentence and not a caption */
+.pl-step[data-state='live'] .pl-because {
+  margin-top: var(--sp-2);
+  color: var(--ink);
+  font-size: var(--text-sm);
+  line-height: 1.5;
+}
+.pl-step[data-state='live'] .pl-what {
+  color: var(--ink);
+  font-weight: 600;
+  font-size: var(--text-md);
+  line-height: 1.35;
+  letter-spacing: -0.01em;
+}
+
 .pl-what { margin: 0; color: var(--ink); line-height: 1.45; }
-.pl-step[data-state='done'] .pl-what { color: var(--ink-dim); text-decoration: line-through; text-decoration-color: var(--ink-ghost); }
-.pl-cost { margin: 2px 0 0; color: var(--ink-faint); font-size: var(--text-2xs); line-height: 1.5; }
+.pl-cost {
+  margin: var(--sp-2) 0 0;
+  padding-top: var(--sp-2);
+  border-top: 1px solid var(--line);
+  color: var(--ink-dim);
+  font-size: var(--text-xs);
+  line-height: 1.55;
+}
+/* the price gets a label on its own line, not a word jammed in front of a
+   sentence — it is the one thing on the card an operator must not skim */
 .pl-cost-k {
+  display: block;
   color: var(--warn);
+  font-family: var(--font-instrument);
+  font-size: var(--text-2xs);
   text-transform: uppercase;
   letter-spacing: var(--tracking-label);
-  margin-right: var(--sp-2);
+  margin-bottom: 3px;
 }
+/* the agent's reason for THIS step, in its own voice: it leads the card,
+   above the price, because it is what the operator is weighing */
 .pl-because {
-  margin: 2px 0 0;
+  margin: 5px 0 0;
   color: var(--ink-dim);
   font-family: var(--font-prose);
   font-size: var(--text-xs);
-  line-height: 1.45;
+  line-height: 1.5;
 }
-.pl-note { margin: 2px 0 0; color: var(--ink-ghost); font-size: var(--text-2xs); }
-.pl-step[data-state='live'] .pl-note { color: var(--actor-agent); }
+.pl-note {
+  margin: var(--sp-2) 0 0;
+  color: var(--ink-ghost);
+  font-family: var(--font-instrument);
+  font-size: var(--text-2xs);
+}
+/* "waiting on your decision" under a card with Approve and Reject on it is a
+   caption restating its own buttons. The live step is the only one that never
+   needs a status line, because its status is the two controls at the bottom. */
+.pl-step[data-state='live'] .pl-note { display: none; }
 .pl-step[data-state='blocked'] .pl-note,
 .pl-step[data-state='skipped'] .pl-note { color: var(--bad); }
 /* the live step's own approval card sits inside the step, not beside it.
@@ -2001,7 +2105,16 @@ body {
    drops both and carries only what the step cannot: the tier, the evidence
    it was assembled from, the key when one is needed, and the decision. */
 .pl-slot:empty { display: none; }
-.pl-slot .approval-card { margin: var(--sp-2) 0 0; background: none; border-left-width: 2px; }
+.pl-slot .approval-card {
+  margin: var(--sp-3) 0 0;
+  background: none;
+  /* INSIDE a card already, so it brings no frame of its own — the nested
+     border was the last "card inside card" left in the dock. */
+  border: 0;
+  border-top: 1px solid var(--line);
+  border-radius: 0;
+  padding: var(--sp-3) 0 0;
+}
 .pl-slot .ap-diff,
 .pl-slot .ap-actor { display: none; }
 .pl-slot .ap-tier { margin-left: 0; }
@@ -2337,7 +2450,32 @@ body {
 /* A READ is the agent looking, not the agent concluding — it reports at the
    weight of a caption, and its pip is hollow. Consecutive reads merge into
    one entry so five lookups do not out-shout the finding they produced. */
-.thread-read { cursor: default; }
+.thread-read { cursor: pointer; }
+/* what the one-line summary opens into: the calls themselves, named. */
+.tr-list {
+  list-style: none;
+  margin: var(--sp-2) 0 0;
+  padding: 0;
+  display: grid;
+  gap: 3px;
+}
+.finding[data-fold='true'] .tr-list { display: none; }
+.tr-list li { display: flex; gap: var(--sp-2); align-items: baseline; min-width: 0; }
+.tr-tool {
+  flex: none;
+  font-family: var(--font-instrument);
+  font-size: var(--text-2xs);
+  color: var(--actor-agent);
+}
+.tr-says {
+  min-width: 0;
+  font-family: var(--font-prose);
+  font-size: var(--text-2xs);
+  color: var(--ink-ghost);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 .thread-read .finding-summary {
   color: var(--ink-faint);
   font-family: var(--font-instrument);

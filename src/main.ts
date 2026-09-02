@@ -1564,6 +1564,16 @@ function renderPlan(e: Event): void {
     what.className = 'pl-what';
     what.textContent = stepDescription(step);
     li.append(what);
+    // WHY BEFORE WHAT IT COSTS. The agent's reason for this step is what the
+    // operator is weighing; the lever's price is what they weigh it against.
+    // Rendered the other way round, the card opened with a generic warning
+    // about the lever and buried the one sentence specific to this incident.
+    if (step.because) {
+      const b = document.createElement('p');
+      b.className = 'pl-because';
+      renderCitedText(b, step.because);
+      li.append(b);
+    }
     const cost = WRITE_ACTIONS[step.tool]?.cost;
     if (cost) {
       const c = document.createElement('p');
@@ -1573,12 +1583,6 @@ function renderPlan(e: Event): void {
       ck.textContent = 'Costs';
       c.append(ck, document.createTextNode(cost));
       li.append(c);
-    }
-    if (step.because) {
-      const b = document.createElement('p');
-      b.className = 'pl-because';
-      renderCitedText(b, step.because);
-      li.append(b);
     }
     const note = document.createElement('p');
     note.className = 'pl-note';
@@ -2164,14 +2168,35 @@ function threadRead(tool: string): void {
   if (!host || !said) return;
   document.querySelector<HTMLElement>('#findings-empty')!.hidden = true;
 
+  // The summary collapses N reads into one line; the LIST is what that line
+  // opens into. Without it the entry toggled and showed nothing, which is
+  // worse than not being clickable at all (Sid: "clicking 'read 5 sources'
+  // does nothing though").
+  const paint = (el: HTMLElement): void => {
+    const tools = (el.dataset.tools ?? '').split(',').filter(Boolean);
+    el.querySelector('.tr-what')!.textContent =
+      tools.length === 1 ? (READ_NARRATION[tools[0]!]?.says ?? tools[0]!) : `read ${tools.length} sources`;
+    const list = el.querySelector<HTMLElement>('.tr-list')!;
+    list.innerHTML = '';
+    for (const t of tools) {
+      const li = document.createElement('li');
+      const name = document.createElement('code');
+      name.className = 'tr-tool';
+      name.textContent = t;
+      const says = document.createElement('span');
+      says.className = 'tr-says';
+      says.textContent = READ_NARRATION[t]?.says ?? '';
+      li.append(name, says);
+      list.append(li);
+    }
+  };
+
   const last = host.lastElementChild as HTMLElement | null;
   if (last?.dataset.kind === 'reads') {
     const seen = new Set((last.dataset.tools ?? '').split(',').filter(Boolean));
     seen.add(tool);
     last.dataset.tools = [...seen].join(',');
-    last.querySelector('.tr-what')!.textContent =
-      seen.size === 1 ? said.says : `read ${seen.size} sources`;
-    last.title = [...seen].join(' · ');
+    paint(last);
     return;
   }
 
@@ -2179,11 +2204,13 @@ function threadRead(tool: string): void {
   el.className = 'finding thread-read';
   el.dataset.kind = 'reads';
   el.dataset.tools = tool;
-  el.title = tool;
   const p = document.createElement('p');
   p.className = 'finding-summary tr-what';
-  p.textContent = said.says;
   el.append(p);
+  const list = document.createElement('ul');
+  list.className = 'tr-list';
+  el.append(list);
+  paint(el);
   host.append(el);
   while (host.children.length > 6) host.firstElementChild!.remove();
   foldOlderFindings(host);

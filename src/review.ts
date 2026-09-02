@@ -111,7 +111,7 @@ const SCENES: Scene[] = [
     id: 'plan',
     title: 'A plan: two levers, in one order, priced',
     tryThis: [
-      'Read the reason first. That is the point of stating the order.',
+      'Read WHY THIS ORDER before either step.',
       'Approve step 1 — step 2 is only proposed after it executes.',
       'Rings 1 and 2 on the console mark where it lands.',
     ],
@@ -150,11 +150,11 @@ const SCENES: Scene[] = [
   },
   {
     id: 'film',
-    title: 'The take: refused in Triage, then the order, then the trap',
+    title: 'A cap the page refused, then published',
     tryThis: [
-      'The agent reached for the cap in Triage and the page refused it — read the stream.',
-      'Recovery published the writes; only then could the plan exist.',
-      'Reach for Silence alerts before approving step 2.',
+      'Read the event stream: the agent asked for the cap in Triage and was refused.',
+      'The plan appears only after Recovery.',
+      'Reach for Silence alerts before you approve step 2.',
     ],
     template: 'retry-storm',
     /**
@@ -373,13 +373,14 @@ async function watchForYourDecision(
   if (!isRunning()) toggleRun();
   const el = document.querySelector<HTMLElement>('#review-banner');
   if (!el) return;
+  // The banner goes QUIET once the decision is made. It used to announce
+  // "running — watch the console" and then tell the reviewer the sim was
+  // running again — the harness narrating its own showcase, which is the one
+  // register that must never appear on this page. The scene is over; the
+  // console speaks for itself from here.
   el.dataset.state = 'running';
-  el.querySelector('.rv-state')!.textContent = 'running — watch the console';
-  const list = el.querySelector<HTMLElement>('.rv-try')!;
-  list.innerHTML = '';
-  const li = document.createElement('li');
-  li.textContent = 'The console is moving again — watch what your decision did.';
-  list.append(li);
+  el.querySelector('.rv-state')!.textContent = '';
+  el.querySelector<HTMLElement>('.rv-try')!.innerHTML = '';
 }
 
 /**

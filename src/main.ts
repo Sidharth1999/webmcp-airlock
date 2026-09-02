@@ -9,21 +9,6 @@ import { templateIds } from './sim/templates';
 import type { SimRequest, SimResponse } from './sim/worker';
 import type { Actor, Deploy, Event, Flag, World } from './sim/types';
 import { hasWebMCP } from './webmcp/shim';
-import orderingFacts from '../study/ordering.json';
-
-interface OrderingFact {
-  runs: number;
-  rightOrderUsd: number;
-  /** the plan's OWN actions in the wrong sequence — not any other trap */
-  reversedUsd: number;
-  reversedCatastrophic: number;
-  worstOrderUsd: number;
-  worstOrderCatastrophic: number;
-  doNothingUsd: number;
-}
-const ORDERING_FACTS = orderingFacts as Record<string, OrderingFact>;
-/** the scenario actually on screen; a re-seed moves it (see seed()) */
-let liveTemplateId = '';
 import { createAirlockTools, type AirlockTools } from './webmcp/tools';
 
 type Health = 'ok' | 'degraded' | 'down';
@@ -590,9 +575,6 @@ function seed(templateId: string): void {
   // it only ever updated from the picker's handler, so any programmatic
   // re-seed left the masthead naming the previous scenario
   markTemplate(templateId);
-  // ...and so is the id the ordering fact is looked up by: TEMPLATE_ID is
-  // fixed at boot, but a re-seed swaps the world underneath it
-  liveTemplateId = templateId;
   running = false;
   syncPacer();
   streamEl.innerHTML = '';
@@ -1414,7 +1396,6 @@ function advancePlan(plan: LivePlan): void {
     // about these two levers in THIS sequence versus the reverse; that is
     // true the moment the last step executes, and it does not depend on how
     // the incident happens to be going.
-    appendOrderingFact(plan.el);
     clearPlanAnchors(plan);
     syncAirlock();
     return;
@@ -1597,48 +1578,6 @@ function reportPlanOutcome(): void {
     plan.el.querySelector<HTMLElement>('.pl-state')!.textContent =
       'every step executed — the incident is over';
   }
-}
-
-/**
- * WHAT THE OTHER ORDER WOULD HAVE COST — measured, not asserted.
- *
- * This is the one number the film needs and the one that could most easily
- * have become an overclaim. It is not the agent's estimate and it is not a
- * marketing figure: `npm run corpus` runs the right order, the wrong order
- * and doing nothing to the same horizon on every candidate in the family, the
- * sim is deterministic, and `study/ordering.json` is written from those runs.
- * The console is a simulator and says so everywhere — the seed is in the
- * status bar — so it is entitled to report a measured property of the
- * scenario it just ran, as long as it shows the sample size and never
- * attributes the figure to the agent.
- *
- * It renders ONCE, on the receipt, at the moment the incident ends.
- */
-function appendOrderingFact(card: HTMLElement): void {
-  const fact = ORDERING_FACTS[liveTemplateId];
-  if (!fact || card.querySelector('.pl-counterfactual')) return;
-  const box = document.createElement('div');
-  box.className = 'pl-counterfactual';
-  box.dataset.testid = 'plan-counterfactual';
-  const head = document.createElement('span');
-  head.className = 'pl-cf-head';
-  head.textContent = 'the other order, measured';
-  const body = document.createElement('p');
-  body.className = 'pl-cf-body';
-  // SAY EXACTLY WHICH COUNTERFACTUAL THIS IS. The first version of this line
-  // took the worst order trap in the family and called it "reversed" — but
-  // the worst one is silence-then-ship, a DIFFERENT action set, and the
-  // reversal of these two levers costs a third of that. Overclaiming by
-  // conflation, in the one place built to avoid overclaiming. The receipt
-  // reports the reversal of THIS plan and nothing else.
-  body.textContent =
-    `Reversed, these same two levers cost $${fact.reversedUsd.toFixed(2)} and still did not resolve — ` +
-    `worse than doing nothing at all ($${fact.doNothingUsd.toFixed(2)}). This order: $${fact.rightOrderUsd.toFixed(2)}.`;
-  const src = document.createElement('span');
-  src.className = 'pl-cf-src';
-  src.textContent = `median of ${fact.runs} deterministic runs · same levers, wrong sequence`;
-  box.append(head, body, src);
-  card.append(box);
 }
 
 function resetPlans(): void {

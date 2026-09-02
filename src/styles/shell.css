@@ -2944,39 +2944,6 @@ h4.ctl-group-label { margin: 0 0 var(--sp-2); }
   right: 0;
   top: calc(100% + 6px);
 }
-/* THE MEASURED COUNTERFACTUAL on a finished plan's receipt. It is a study
-   result, not the agent speaking, so it takes the console's own instrument
-   face and the neutral surface rather than the agent's violet. */
-.pl-counterfactual {
-  margin-top: var(--sp-2);
-  padding: var(--sp-2) var(--sp-3);
-  background: var(--s-well);
-  border-left: 2px solid var(--warn-dim);
-  border-radius: var(--r-sm);
-  display: flex;
-  flex-direction: column;
-  gap: 3px;
-}
-.pl-cf-head {
-  font-family: var(--font-instrument);
-  font-size: var(--text-2xs);
-  letter-spacing: var(--tracking-label);
-  text-transform: uppercase;
-  color: var(--warn);
-}
-.pl-cf-body {
-  margin: 0;
-  font-family: var(--font-prose);
-  font-size: var(--text-xs);
-  line-height: 1.5;
-  color: var(--ink);
-}
-.pl-cf-src {
-  font-family: var(--font-instrument);
-  font-size: var(--text-2xs);
-  color: var(--ink-faint);
-}
-
 /* a value that just changed says so for a beat — see pulseValue() */
 [data-changed='true'] {
   animation: value-changed 700ms var(--ease-settle);

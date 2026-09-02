@@ -447,9 +447,14 @@ app.innerHTML = `
             </div>
           </li>
         </ol>
+        <!-- BEAT 0. The ledger starts empty and says so, and says what will
+             fill it, in the order it will fill it. Sid's sequence begins
+             here: *"Empty panel, agent not connected"*. -->
         <p class="tl-empty" id="findings-empty">
-          Nothing yet. When an agent connects, everything it reads, concludes
-          and proposes lands here in order.
+          No agent is connected. When one attaches, this becomes the record of
+          what it did: every tool call and what came back, what it concluded,
+          the order it proposes, and what each step you approve does to the
+          world.
         </p>
         </div>
       </div>
@@ -542,6 +547,52 @@ function runWorkerQuery(q: QueryRequest, viaTool?: string): Promise<Record<strin
     const id = ++queryId;
     pendingQueries.set(id, resolve);
     send({ type: 'query', id, query: q, viaTool });
+  });
+}
+
+/**
+ * WHAT THE AGENT ACTUALLY GOT BACK.
+ *
+ * The ledger could always say a tool was CALLED. It could never say what the
+ * call returned, so "read 5 sources" was a claim the console asked the
+ * operator to take on trust — the one thing this whole surface exists not to
+ * do. Sid, four times: *"we are able to see the tool call outputs by some
+ * expansion"*.
+ *
+ * The result exists here and nowhere else: the worker answers `queryResult`
+ * before it appends `tool.called`, and the tool's own `execute` stringifies
+ * exactly this object for the agent. So it is captured HERE, on the way past,
+ * and it is the same bytes the agent received — not a re-derivation, not a
+ * narration, not a second read of the world at render time (which would drift
+ * the moment the world moved).
+ *
+ * It is deliberately NOT put in the event log: pages are capped at 1.2KB and
+ * the schema is signed off. The log records that the call happened and how
+ * many bytes came back; this map holds the bytes for the row to open.
+ *
+ * One queue per tool, drained in call order. `queryResult` resolves this
+ * promise in a microtask, and the `tool.called` event that builds the row
+ * arrives in the next message task, so the payload is always queued before
+ * the row that wants it exists.
+ */
+const toolResults = new Map<string, Record<string, unknown>[]>();
+
+function captureToolResult(tool: string, result: Record<string, unknown>): void {
+  const q = toolResults.get(tool);
+  if (q) q.push(result);
+  else toolResults.set(tool, [result]);
+}
+
+/** The oldest un-rendered result for this tool, or null if we never saw it. */
+function takeToolResult(tool: string): Record<string, unknown> | null {
+  return toolResults.get(tool)?.shift() ?? null;
+}
+
+/** The tool path the agent uses — the read runner, with the answer kept. */
+function runToolQuery(q: QueryRequest, viaTool?: string): Promise<Record<string, unknown>> {
+  return runWorkerQuery(q, viaTool).then((r) => {
+    if (viaTool) captureToolResult(viaTool, r);
+    return r;
   });
 }
 
@@ -1192,18 +1243,28 @@ function resetEvidence(): void {
   latestFinding = null;
 }
 
-/** Take the human to the surface a read looked at, so a chip is a place. */
+/**
+ * Take the human to the surface a read looked at, so a row is a place.
+ *
+ * A DEAD LINK IS WORSE THAN NO LINK. Four of the six reads point at a tab
+ * inside the evidence panel, and the panel is a region the operator can
+ * close — with it shut, the pane is not `hidden` (its whole region is), so
+ * the old code found nothing to switch to and did nothing at all. Ask for the
+ * tab by name instead: `selectTab` opens the region as part of selecting.
+ */
+const READ_TAB: Record<string, TabName> = {
+  list_deploys: 'changed',
+  read_logs: 'logs',
+  traffic_history: 'chart',
+};
+
 function focusRead(tool: string): void {
-  if (tool === 'read_logs') {
-    selectTab('logs');
-    return;
-  }
   const region = READ_NARRATION[tool]?.region;
   if (!region) return;
+  const tab = READ_TAB[tool];
+  if (tab) selectTab(tab);
   const el = document.querySelector<HTMLElement>(region);
   if (!el) return;
-  const pane = el.closest<HTMLElement>('.tabpane');
-  if (pane?.hidden) selectTab(pane.id.replace(/^zone-|^err-/, ''));
   el.scrollIntoView({ block: 'nearest' });
   touchRegion(region);
 }
@@ -1412,19 +1473,14 @@ function setStepState(plan: LivePlan, i: number, state: string, note: string): v
   if (!el) return;
   el.dataset.state = state;
   el.querySelector<HTMLElement>('.pl-note')!.textContent = note;
-  // A REFUSAL IS AN OBSERVATION TOO. The note lives in the detail, which is
-  // collapsed for every state but `live`, so a rejected step said nothing at
-  // all — the one row on the list where the operator most needs to see their
-  // own decision reflected back. It takes the observation slot, because that
-  // is what happened to the world: nothing.
-  if (state === 'skipped' || state === 'blocked' || state === 'dropped') {
-    const obs = el.querySelector<HTMLElement>('.pl-obs');
-    if (obs) {
-      obs.textContent = note;
-      obs.dataset.landed = 'true';
-      obs.dataset.refused = 'true';
-    }
-  }
+  // STATE DECIDES DENSITY. The step being decided is open; everything else on
+  // the list is a line. A person can still open any of them by hand, and once
+  // they have, `data-pin` keeps their choice — the list must not re-fold a row
+  // out from under someone reading it.
+  if (el.dataset.pin !== 'open') el.dataset.fold = state === 'live' ? 'false' : 'true';
+  // A REFUSAL IS AN OBSERVATION TOO, and it takes the observation's row: what
+  // happened to the world is that nothing did, because a person said no.
+  if (state === 'skipped' || state === 'blocked') landRefusal(el, note);
   // the console row wears the same state, so the plan is legible from the
   // controls as well as from the list
   const anchor = plan.anchors[i];
@@ -1439,6 +1495,23 @@ function clearPlanAnchors(plan: LivePlan): void {
     delete a.dataset.planStep;
     delete a.dataset.planState;
   }
+}
+
+
+/**
+ * A PLAN THAT STOPS SAYS SO IN ONE WORD, and says why in its own expansion.
+ * The whole sentence in the row's machine-value slot squeezed the title into
+ * three wrapped lines — a row that reflows when it fails is a row that failed
+ * twice.
+ */
+function planStopped(plan: LivePlan, word: string, why: string): void {
+  plan.el.querySelector<HTMLElement>('.pl-state')!.textContent = word;
+  const p = document.createElement('p');
+  p.className = 'tl-line pl-stopped';
+  p.textContent = why;
+  tlBody(plan.el).append(p);
+  plan.el.dataset.pin = 'open';
+  plan.el.dataset.fold = 'false';
 }
 
 /** Put the next step through the airlock. Nothing else advances a plan. */
@@ -1464,8 +1537,7 @@ function advancePlan(plan: LivePlan): void {
       setStepState(plan, plan.index, 'blocked', res.reason ?? 'refused by the airlock');
       plan.state = 'abandoned';
       plan.el.dataset.state = 'abandoned';
-      plan.el.querySelector<HTMLElement>('.pl-state')!.textContent =
-        'stopped: the airlock refused this step';
+      planStopped(plan, 'stopped', 'The airlock refused this step, so the rest of the order was never proposed.');
       clearPlanAnchors(plan);
       return;
     }
@@ -1511,6 +1583,10 @@ function planDecided(proposalSeq: number, executed: boolean): void {
     // THE ARGUMENT FOR THE ORDER IS PRE-DECISION READING. Once the first step
     // is approved it folds to its heading and opens again on click.
     plan.el.dataset.advanced = 'true';
+    if (plan.el.dataset.pin === 'open') {
+      delete plan.el.dataset.pin;
+      plan.el.dataset.fold = 'true';
+    }
     setStepState(plan, plan.index, 'done', 'executed');
     // BEAT 6 — what this approval did to the world, landing on the SAME LINE
     // as the action that caused it. This is the alternation, and putting it
@@ -1527,8 +1603,7 @@ function planDecided(proposalSeq: number, executed: boolean): void {
   }
   plan.state = 'abandoned';
   plan.el.dataset.state = 'abandoned';
-  plan.el.querySelector<HTMLElement>('.pl-state')!.textContent =
-    'abandoned — a sequence with a hole in it is not the plan that was agreed';
+  planStopped(plan, 'abandoned', 'A sequence with a hole in it is not the plan that was agreed, so the remaining steps were dropped rather than skipped.');
   clearPlanAnchors(plan);
 }
 
@@ -1536,80 +1611,57 @@ function renderPlan(e: Event): void {
   const d = e.data as { planId?: string; reason?: string; steps?: PlanStep[] };
   const steps = Array.isArray(d.steps) ? d.steps : [];
   if (!d.planId || steps.length < 2) return;
+  threadConnected(); // beat 1 first, whatever order the events arrived in
 
-  const el = document.createElement('div');
-  el.className = 'plan-card';
+  // THE PLAN IS A ROW, NOT A CARD. It is the beat where the agent stops
+  // reading and proposes; that is one event, and it files like every other
+  // event on this ledger. What used to be a bordered card mounted inside the
+  // timeline's tail — a second row grammar stacked on the first — is now the
+  // ledger continuing: one row saying an order was proposed, opening onto
+  // the reason the ORDER is load-bearing, and then the steps themselves as
+  // rows directly beneath it on the same spine.
+  const el = tlAdd('plan', `Proposed a ${steps.length}-step response, in one order`);
+  el.classList.add('plan-card');
   el.dataset.state = 'running';
   el.dataset.testid = `plan-${d.planId}`;
   el.dataset.planId = d.planId;
+  // the reason is PRE-DECISION READING, so it is open when the plan lands and
+  // folds itself away once the first step has actually run
+  el.dataset.pin = 'open';
+  tlMeta(el).className = 'tl-meta pl-state';
 
-  // THE ORDER'S REASON COMES FIRST and it is the only prose above the list.
-  // It is what distinguishes this from a batch, and the operator must weigh
-  // it before the first approval rather than discover it between steps.
-  const why = document.createElement('div');
-  why.className = 'pl-why';
-  const k = document.createElement('button');
-  k.type = 'button';
-  k.className = 'pl-why-k';
-  k.textContent = 'Why this order';
-  k.addEventListener('click', () => {
-    el.dataset.why = el.dataset.why === 'open' ? 'shut' : 'open';
-  });
-  const body = document.createElement('p');
-  body.className = 'pl-why-t';
-  renderCitedText(body, String(d.reason ?? ''));
-  const state = document.createElement('span');
-  state.className = 'pl-state';
-  why.append(k, state, body);
-  el.append(why);
+  const why = document.createElement('p');
+  why.className = 'pl-why-t';
+  renderCitedText(why, String(d.reason ?? ''));
+  tlBody(el).append(why);
 
   const list = document.createElement('ol');
-  list.className = 'pl-steps';
+  list.className = 'tl pl-steps';
   const stepEls: HTMLElement[] = [];
   const anchors: (HTMLElement | null)[] = [];
   steps.forEach((step, i) => {
-    const li = document.createElement('li');
-    li.className = 'pl-step';
+    const li = tlRow('step', stepDescription(step), '', i + 1);
+    li.classList.add('pl-step');
     li.dataset.state = 'pending';
+    // STATE DECIDES DENSITY, from the first frame: a queued step is one line.
+    // Built open, seven of them filled the dock before anyone was asked
+    // anything, which is the plan card's old problem in a new node.
+    li.dataset.fold = 'true';
     li.dataset.testid = `plan-step-${d.planId}-${i}`;
+    tlTitle(li).classList.add('pl-what');
+    tlTitle(li).title = stepDescription(step);
 
-    // ---- the LINE: what it does, and once it has run, what that did -------
-    const line = document.createElement('div');
-    line.className = 'pl-line';
-    const what = document.createElement('button');
-    what.type = 'button';
-    what.className = 'pl-what';
-    what.textContent = stepDescription(step);
-    what.title = stepDescription(step);
-    // a one-line clamp opens on click: an ellipsis you cannot open is a bug
-    what.addEventListener('click', () => {
-      li.dataset.expand = li.dataset.expand === 'true' ? 'false' : 'true';
-    });
-    const obs = document.createElement('code');
-    obs.className = 'pl-obs';
     // WHAT IT TOUCHES BELONGS TO THE ACTION, so it rides the action's own
-    // row. Parked next to the evidence line it read as a caption on the
-    // evidence, which is a different claim entirely.
-    const touches = document.createElement('span');
-    touches.className = 'pl-touch';
+    // row, in the machine-value slot every other row uses for the same job.
     const spec = WRITE_ACTIONS[step.tool];
     if (spec) {
-      touches.textContent = WHAT_IT_TOUCHES[spec.tierName] ?? spec.tierName;
+      const m = tlMeta(li);
+      m.classList.add('pl-touch');
+      m.textContent = WHAT_IT_TOUCHES[spec.tierName] ?? spec.tierName;
     }
-    line.append(what, touches, obs);
-    li.append(line);
-    // the live reading under the newest observation — the discrete diff says
-    // the freeze is on, only this can say the queue is draining
-    const since = document.createElement('p');
-    since.className = 'pl-since';
-    since.hidden = true;
-    li.append(since);
 
-    // ---- the DETAIL: rendered always, revealed only while live -----------
-    const detail = document.createElement('div');
-    detail.className = 'pl-detail';
-    const inner = document.createElement('div');
-    inner.className = 'pl-detail-in';
+    // ---- what the row opens into: why, what it costs, and the two buttons
+    const inner = tlBody(li);
     if (step.because) {
       const b = document.createElement('p');
       b.className = 'pl-because';
@@ -1633,8 +1685,6 @@ function renderPlan(e: Event): void {
     const slot = document.createElement('div');
     slot.className = 'pl-slot';
     inner.append(slot);
-    detail.append(inner);
-    li.append(detail);
 
     list.append(li);
     stepEls.push(li);
@@ -1659,8 +1709,6 @@ function renderPlan(e: Event): void {
     '<span class="plr-count"></span><span class="plr-bypass"></span>';
   el.append(receipt);
 
-  airlockCards.appendChild(el);
-
   const plan: LivePlan = {
     id: d.planId,
     reason: String(d.reason ?? ''),
@@ -1673,7 +1721,6 @@ function renderPlan(e: Event): void {
     state: 'running',
   };
   plans.set(plan.id, plan);
-  mergePreamble();
   foldTimeline(); // the preamble compresses the moment the plan lands
   syncAirlock();
   advancePlan(plan);
@@ -1733,6 +1780,11 @@ function addApprovalCard(e: Event): void {
     requiresKey?: boolean;
     provenance?: { ref: string; lineSeq: number; excerpt: string; service: string };
   };
+  // ONE VOICE AT THE MOMENT OF DECISION. The narration line is for what the
+  // agent is doing while nobody is being asked anything; left running under a
+  // pending approval it is a second, staler voice describing a read that has
+  // already finished, above the two buttons that are the actual question.
+  narrate(null);
   const card = document.createElement('div');
   card.className = 'approval-card';
   card.dataset.proposalSeq = String(e.seq);
@@ -1995,7 +2047,9 @@ function moveAgentCursor(target: Element | null): void {
 const READ_NARRATION: Record<string, { says: string; reads: string; region: string }> = {
   airlock_status: { says: 'checking service health and impact', reads: 'service health and impact', region: '#situation' },
   list_deploys: { says: 'reviewing what shipped recently', reads: 'what shipped recently', region: '#zone-changed' },
-  read_logs: { says: 'reading service logs', reads: 'the service logs', region: '#zone-activity' },
+  // the logs are their own pane; #zone-activity is the activity feed, and
+  // pointing a read at a surface that does not hold what it read is a dead link
+  read_logs: { says: 'reading service logs', reads: 'the service logs', region: '#zone-logs' },
   list_changes: { says: 'checking flags, env and routes', reads: 'flags, env and routes', region: '#zone-controls' },
   traffic_history: { says: 'looking at the error-rate history', reads: 'the error-rate history', region: '#err-chart' },
   explain_surface: { says: 'asking why its tools changed', reads: 'why its tools changed', region: '#tool-surface' },
@@ -2231,7 +2285,7 @@ document.querySelector('#console')!.addEventListener('focusout', clearHoverCouns
    beat cannot arrive without picking one.
    ====================================================================== */
 
-type TlKind = 'connect' | 'reads' | 'finding' | 'plan' | 'state' | 'resolved';
+type TlKind = 'connect' | 'call' | 'finding' | 'plan' | 'step' | 'state' | 'resolved';
 
 const tlHost = (): HTMLElement | null => document.querySelector<HTMLElement>('#agent-timeline');
 const tlTail = (): HTMLElement | null => document.querySelector<HTMLElement>('#tl-tail');
@@ -2243,14 +2297,20 @@ function tlStarted(): void {
 }
 
 /**
- * One entry. The head is always a button because every entry folds — that is
- * the "collapsing/minimizability of older parts" half of the brief, and an
- * entry that folds has to LOOK clickable at rest, not on hover.
+ * THE ROW. There is exactly one, and every beat of the incident is one of
+ * these: the agent connecting, each tool call, each finding, the plan, each
+ * step of it, each observation of what a step did, and the resolution.
+ *
+ *   [marker]  what happened, in prose            the machine value
+ *             └── what it opens into
+ *
+ * Kind decides the marker and the voice; NOTHING else varies. A plan step is
+ * not a card, an observation is not a tinted box, a tool call is not a list
+ * item in someone else's list. That is the whole of *"there is still no
+ * linear ledger"*: the previous panel had a row grammar for the preamble and
+ * a card grammar for the plan, stacked, and two grammars read as two things.
  */
-function tlAdd(kind: TlKind, title: string, meta = ''): HTMLElement {
-  const host = tlHost();
-  if (!host) throw new Error('timeline missing');
-  tlStarted();
+function tlRow(kind: TlKind, title: string, meta = '', ordinal?: number): HTMLElement {
   const el = document.createElement('li');
   el.className = 'tl-ev';
   el.dataset.kind = kind;
@@ -2259,6 +2319,13 @@ function tlAdd(kind: TlKind, title: string, meta = ''): HTMLElement {
   const head = document.createElement('button');
   head.type = 'button';
   head.className = 'tl-head';
+  if (ordinal !== undefined) {
+    const n = document.createElement('span');
+    n.className = 'tl-n';
+    n.textContent = String(ordinal);
+    n.setAttribute('aria-hidden', 'true');
+    head.append(n);
+  }
   const t = document.createElement('span');
   t.className = 'tl-title';
   t.textContent = title;
@@ -2270,14 +2337,29 @@ function tlAdd(kind: TlKind, title: string, meta = ''): HTMLElement {
     head.append(m);
   }
   head.addEventListener('click', () => {
+    if (el.dataset.leaf === 'true') return;
     el.dataset.fold = el.dataset.fold === 'true' ? 'false' : 'true';
+    el.dataset.pin = el.dataset.fold === 'true' ? 'shut' : 'open';
   });
   el.append(head);
 
+  // TWO ELEMENTS, because the 0fr -> 1fr collapse only tracks ONE grid row:
+  // the outer is the track, the inner is the content that gets clipped.
   const body = document.createElement('div');
   body.className = 'tl-body';
+  const inner = document.createElement('div');
+  inner.className = 'tl-in';
+  body.append(inner);
   el.append(body);
+  return el;
+}
 
+/** A row, filed on the ledger above the live tail. `tlRow` is the shape. */
+function tlAdd(kind: TlKind, title: string, meta = '', ordinal?: number): HTMLElement {
+  const host = tlHost();
+  if (!host) throw new Error('timeline missing');
+  tlStarted();
+  const el = tlRow(kind, title, meta, ordinal);
   // the tail is the PRESENT — everything that already happened goes above it
   const tail = tlTail();
   if (tail && tail.parentElement === host) host.insertBefore(el, tail);
@@ -2286,10 +2368,10 @@ function tlAdd(kind: TlKind, title: string, meta = ''): HTMLElement {
   return el;
 }
 
-const tlBody = (el: HTMLElement): HTMLElement => el.querySelector<HTMLElement>('.tl-body')!;
+const tlBody = (el: HTMLElement): HTMLElement => el.querySelector<HTMLElement>('.tl-in')!;
 const tlTitle = (el: HTMLElement): HTMLElement => el.querySelector<HTMLElement>('.tl-title')!;
 const tlMeta = (el: HTMLElement): HTMLElement => {
-  let m = el.querySelector<HTMLElement>('.tl-meta');
+  let m = el.querySelector<HTMLElement>(':scope > .tl-head > .tl-meta');
   if (!m) {
     m = document.createElement('span');
     m.className = 'tl-meta';
@@ -2299,10 +2381,12 @@ const tlMeta = (el: HTMLElement): HTMLElement => {
 };
 
 /**
- * NEWEST OPEN, EVERYTHING ABOVE IT FOLDED — except the two entries that are
- * never detail. A running plan is the thing being decided, and a resolution
- * is the answer to the only question anyone asked; folding either of those
- * to a title would be the console hiding its own point.
+ * NEWEST OPEN, EVERYTHING ABOVE IT FOLDED — except what a person opened by
+ * hand, and except the resolution, which is the answer to the only question
+ * anyone asked.
+ *
+ * Plan steps are NOT folded here: their state folds them (see setStepState),
+ * because a step's density is a fact about the step, not about its age.
  */
 function foldTimeline(): void {
   const host = tlHost();
@@ -2310,11 +2394,12 @@ function foldTimeline(): void {
   const entries = [...host.children].filter(
     (c) => (c as HTMLElement).classList.contains('tl-ev') && (c as HTMLElement).dataset.kind !== 'live'
   ) as HTMLElement[];
-  // ONCE A PLAN IS ON SCREEN, THE PREAMBLE IS PREAMBLE. Connect, the reads and
-  // the findings are why the plan is worth reading; they are not what anyone
-  // is deciding, and left at full height they cost the seventh step its place
-  // on screen. Every one of them folds to a line the moment the plan arrives,
-  // and every one of them still opens on click.
+  // ONCE A PLAN IS ON SCREEN, THE PREAMBLE IS PREAMBLE. The connect, the tool
+  // calls and the findings are why the plan is worth reading; they are not
+  // what anyone is deciding, and left at full height they cost the seventh
+  // step its place on screen. Every one of them folds to a line the moment
+  // the plan arrives — and every one of them still opens on click, which is
+  // the difference between folding history and hiding it.
   const planning = plans.size > 0;
   const last = entries[entries.length - 1];
   for (const el of entries) {
@@ -2339,64 +2424,98 @@ function threadConnected(): void {
   tlBody(el).append(p);
 }
 
-/**
- * BEAT 2 — THE TRACE, NOT JUST THE CONCLUSIONS. Sid: "one nearly designed
- * component linearly reporting an issue detected as soon as the agent
- * connects, see it call tools to diagnose then propose a plan and then
- * execute it".
- *
- * Consecutive reads MERGE into one entry rather than filing six near-
- * identical rows — the operator wants to know it looked, and at what, not to
- * scroll a tool log. The summary collapses N reads into one line; the LIST is
- * what that line opens into (Sid: "clicking 'read 5 sources' does nothing").
- */
-function threadRead(tool: string): void {
-  const host = tlHost();
-  const said = READ_NARRATION[tool];
-  if (!host || !said) return;
-  threadConnected();
+/* ----------------------------------------------------------------------
+   BEAT 2 — THE CALLS, AND WHAT CAME BACK.
 
-  const paint = (el: HTMLElement): void => {
-    const list = (el.dataset.tools ?? '').split(',').filter(Boolean);
-    tlTitle(el).textContent =
-      list.length === 1 ? `Read ${READ_NARRATION[list[0]!]?.reads ?? list[0]!}` : `Read ${list.length} sources`;
-    tlMeta(el).textContent = list.length === 1 ? '' : `${list.length} tools`;
-    const ul = el.querySelector<HTMLElement>('.tr-list')!;
-    ul.innerHTML = '';
-    for (const t of list) {
-      const li = document.createElement('li');
-      const name = document.createElement('code');
-      name.className = 'tr-tool';
-      name.textContent = t;
-      const says = document.createElement('span');
-      says.className = 'tr-says';
-      says.textContent = READ_NARRATION[t]?.says ?? '';
-      li.append(name, says);
-      li.addEventListener('click', (ev) => {
-        ev.stopPropagation();
-        focusRead(t);
-      });
-      ul.append(li);
-    }
-  };
+   Every read is its own row, because *"we see it call tools"* is a sequence
+   of events and not a count. Five reads merged into "Read 5 sources" told
+   the operator a number; it never told them the agent read the logs BEFORE
+   it concluded anything about the logs, which is the only reason the
+   conclusion is worth anything.
 
-  // the newest entry, ignoring the live tail
-  const kids = [...host.children] as HTMLElement[];
-  const last = kids.filter((k) => k.dataset.kind !== 'live').pop();
-  if (last?.dataset.kind === 'reads') {
-    const seen = new Set((last.dataset.tools ?? '').split(',').filter(Boolean));
-    seen.add(tool);
-    last.dataset.tools = [...seen].join(',');
-    paint(last);
-    return;
+   And the row opens onto THE OUTPUT — the bytes the agent got back, from
+   `toolResults`, captured on the way past on the main thread. Not the tool's
+   name, not a hand-written phrase about what the tool is for: the answer.
+   Everything downstream on this ledger is a claim about these bytes, so
+   this is the bottom of the provenance chain and the only row on the list
+   that is not somebody's summary of something else.
+   ---------------------------------------------------------------------- */
+
+/** `{ "a": 1 }` tinted so a key reads as a key. Tokens only; no parsing. */
+const JSON_TOKENS = /("(?:\\.|[^"\\])*")(\s*:)?|\b(true|false|null)\b|(-?\d+(?:\.\d+)?(?:[eE][+-]?\d+)?)/g;
+
+function paintJson(host: HTMLElement, text: string): void {
+  let last = 0;
+  for (const m of text.matchAll(JSON_TOKENS)) {
+    const at = m.index ?? 0;
+    if (at > last) host.append(document.createTextNode(text.slice(last, at)));
+    const span = document.createElement('span');
+    if (m[1] !== undefined) span.className = m[2] ? 'j-k' : 'j-s';
+    else if (m[3] !== undefined) span.className = 'j-b';
+    else span.className = 'j-n';
+    span.textContent = m[0];
+    host.append(span);
+    last = at + m[0].length;
   }
+  if (last < text.length) host.append(document.createTextNode(text.slice(last)));
+}
 
-  const el = tlAdd('reads', '');
-  el.dataset.tools = tool;
-  const ul = document.createElement('ul');
-  ul.className = 'tr-list';
-  tlBody(el).append(ul);
-  paint(el);
+/** The row's expansion: the tool's answer, and a way onto the surface it read. */
+function renderCallOutput(el: HTMLElement, tool: string): void {
+  const body = tlBody(el);
+  body.textContent = '';
+  const result = takeToolResult(tool);
+
+  const head = document.createElement('div');
+  head.className = 'tc-head';
+  const k = document.createElement('span');
+  k.className = 'tc-k';
+  k.textContent = result ? 'It got back' : 'No answer was recorded for this call';
+  head.append(k);
+  if (result) {
+    const bytes = JSON.stringify(result).length;
+    tlMeta(el).textContent = `${bytes} B`;
+    const stamp = document.createElement('code');
+    stamp.className = 'tc-stamp';
+    const asOf = result.asOfSeq;
+    stamp.textContent = typeof asOf === 'number' ? `${bytes} bytes · as of #${asOf}` : `${bytes} bytes`;
+    head.append(stamp);
+  }
+  const where = document.createElement('button');
+  where.type = 'button';
+  where.className = 'tc-where';
+  where.textContent = 'show me where';
+  where.addEventListener('click', (ev) => {
+    ev.stopPropagation();
+    focusRead(tool);
+  });
+  head.append(where);
+  body.append(head);
+
+  if (result) {
+    const pre = document.createElement('pre');
+    pre.className = 'tc-out';
+    pre.dataset.testid = `tool-output-${tool}`;
+    paintJson(pre, JSON.stringify(result, null, 2));
+    body.append(pre);
+  } else {
+    el.dataset.leaf = 'true';
+  }
+}
+
+function threadRead(tool: string): void {
+  const said = READ_NARRATION[tool];
+  if (!tlHost() || !said) return;
+  threadConnected();
+  const el = tlAdd('call', `Read ${said.reads}`);
+  el.dataset.tool = tool;
+  // the tool's own name is a machine value, so it is set in the machine face
+  // beside the prose rather than instead of it
+  const name = document.createElement('code');
+  name.className = 'tl-tool';
+  name.textContent = tool;
+  tlTitle(el).after(name);
+  renderCallOutput(el, tool);
 }
 
 /** BEAT 3 — a hypothesis. The agent's own words, and what it ruled out. */
@@ -2411,6 +2530,13 @@ function renderFinding(e: Event): void {
 
   const el = tlAdd('finding', d.summary);
   el.dataset.seq = String(e.seq);
+  // A CLAMPED LINE MUST OPEN, and it must not open onto a copy of itself. The
+  // claim IS the title, so opening the row is what unclamps it — the body
+  // carries only what the title does not. Citations are rendered into the
+  // title itself so they stay clickable in both states.
+  const t = tlTitle(el);
+  t.textContent = '';
+  renderCitedText(t, d.summary);
   if (d.ruledOut) {
     const ruled = document.createElement('p');
     ruled.className = 'finding-ruled';
@@ -2419,9 +2545,6 @@ function renderFinding(e: Event): void {
     k.textContent = 'Ruled out';
     ruled.append(k, document.createTextNode(d.ruledOut));
     tlBody(el).append(ruled);
-  } else {
-    // nothing to open into: the title IS the whole entry
-    el.dataset.leaf = 'true';
   }
 }
 
@@ -2497,14 +2620,13 @@ let liveState: LiveState | null = null;
 const pctText = (n: number): string => `${(n * 100).toFixed(1)}%`;
 
 /**
- * BEAT 6 — WHAT THE STEP DID TO THE WORLD, on the step's own line.
+ * BEAT 6 — WHAT THE STEP DID TO THE WORLD, AS ITS OWN ROW.
  *
- * It used to be a tinted box mounted UNDER the step, inside a card, inside a
- * scrolling column: the alternation existed and was two levels too deep to
- * read, and every beat cost two rows so the seventh one was off the bottom of
- * the dock. The observation now lands on the RIGHT of the same row as the
- * action that caused it, in the machine face, so reading down the finished
- * list is literally action, observation, action, observation.
+ * *"Clean interleaving of action/observation of state"*. It is interleaving
+ * only if the observation is a beat in the same sequence as the action, so
+ * an observation is a row of the same grammar, filed directly under the step
+ * that caused it. Read the spine and it is agent, world, agent, world, seven
+ * times: violet marker, green marker, violet marker, green marker.
  *
  * It is DERIVED, not narrated: the world is a pure fold of the event log, so
  * this is a diff of two folds. Nothing is authored per action, which is why
@@ -2513,49 +2635,48 @@ const pctText = (n: number): string => `${(n * 100).toFixed(1)}%`;
  */
 function landObservation(step: HTMLElement, changes: FactChange[]): void {
   if (!world) return;
-  const obs = step.querySelector<HTMLElement>('.pl-obs');
-  if (!obs) return;
-  obs.textContent = '';
+  const row = tlRow('state', '');
+  row.dataset.leaf = String(changes.length < 2);
+  row.dataset.obsFor = step.dataset.testid ?? '';
+
+  const title = tlTitle(row);
+  title.classList.add('tl-fact');
   if (!changes.length) {
-    obs.textContent = 'no change';
-    obs.dataset.empty = 'true';
+    title.textContent = 'nothing in the world moved';
+    row.dataset.empty = 'true';
   } else {
-    // one row, so one change leads. A step that moved two things says so and
-    // the rest is on the title — an operator scanning the column wants the
-    // headline fact per beat, not a paragraph on a 32px line.
-    const c = changes[0]!;
-    const k = document.createElement('span');
-    k.className = 'plo-k';
-    k.textContent = c.label;
-    const from = document.createElement('span');
-    from.className = 'plo-from';
-    from.textContent = c.from;
-    const arrow = document.createElement('span');
-    arrow.className = 'plo-arrow';
-    arrow.textContent = '→';
-    arrow.setAttribute('aria-hidden', 'true');
-    const to = document.createElement('span');
-    to.className = 'plo-to';
-    to.textContent = c.to;
-    obs.append(k, from, arrow, to);
+    // ONE CHANGE LEADS. A step that moved three things says so on the right
+    // and opens onto all of them — an operator scanning the column wants the
+    // headline fact per beat, and the audit one click under it.
+    title.append(...factParts(changes[0]!));
     if (changes.length > 1) {
-      const more = document.createElement('span');
-      more.className = 'plo-more';
-      more.textContent = `+${changes.length - 1}`;
-      more.title = changes
-        .slice(1)
-        .map((x) => `${x.label}: ${x.from} → ${x.to}`)
-        .join('\n');
-      obs.append(more);
+      tlMeta(row).textContent = `+${changes.length - 1} more`;
+      const dl = document.createElement('dl');
+      dl.className = 'tl-state-rows';
+      for (const c of changes.slice(1)) {
+        const dt = document.createElement('dt');
+        dt.textContent = c.label;
+        const dd = document.createElement('dd');
+        dd.append(...factParts(c).slice(1));
+        dl.append(dt, dd);
+      }
+      tlBody(row).append(dl);
     }
   }
-  // it ARRIVES, once, so the eye is told a beat happened. The value is the
-  // only thing on this surface that is allowed to animate.
-  obs.dataset.landed = 'true';
 
   // ...and what the world is DOING since, which a discrete diff cannot say.
   // The freeze is instantaneous; the queue draining is not.
-  //
+  const since = document.createElement('p');
+  since.className = 'pl-since';
+  since.hidden = true;
+  row.append(since);
+
+  step.after(row);
+
+  // it ARRIVES, once, so the eye is told a beat happened. The value is the
+  // only thing on this surface that is allowed to animate.
+  row.dataset.landed = 'true';
+
   // IT IS A LIVE READING, NOT A MEASUREMENT OF THIS STEP. Left frozen on the
   // row when the next step supersedes it, it becomes a causal claim the
   // console cannot support — seven steps each captioned with whatever the
@@ -2567,7 +2688,7 @@ function landObservation(step: HTMLElement, changes: FactChange[]): void {
     prior.textContent = '';
   }
   liveState = {
-    el: step,
+    el: row,
     at: {
       err: world.traffic.errRate,
       users: world.damage.usersErrored,
@@ -2575,6 +2696,38 @@ function landObservation(step: HTMLElement, changes: FactChange[]): void {
     },
   };
   refreshLiveState();
+}
+
+/** `Deploys  open → frozen`, in the machine face, as spans. */
+function factParts(c: FactChange): HTMLElement[] {
+  const k = document.createElement('span');
+  k.className = 'plo-k';
+  k.textContent = c.label;
+  const from = document.createElement('span');
+  from.className = 'plo-from';
+  from.textContent = c.from;
+  const arrow = document.createElement('span');
+  arrow.className = 'plo-arrow';
+  arrow.textContent = '→';
+  arrow.setAttribute('aria-hidden', 'true');
+  const to = document.createElement('span');
+  to.className = 'plo-to';
+  to.textContent = c.to;
+  return [k, from, arrow, to];
+}
+
+/**
+ * A REFUSAL IS AN OBSERVATION TOO — and the only one where the answer is
+ * that nothing happened because a person said no. It gets the same row, so
+ * the operator's own decision is reflected back on the ledger rather than
+ * buried in a detail pane the step collapses.
+ */
+function landRefusal(step: HTMLElement, note: string): void {
+  if (step.nextElementSibling?.getAttribute('data-kind') === 'state') return;
+  const row = tlRow('state', note);
+  row.dataset.leaf = 'true';
+  row.dataset.refused = 'true';
+  step.after(row);
 }
 
 /**
@@ -2606,36 +2759,12 @@ function refreshLiveState(): void {
 function standaloneStateReport(): void {
   const changes = diffFacts(prevFacts, snapshotFacts(world ?? undefined));
   if (!changes.length) return;
-  const el = tlAdd(
-    'state',
-    changes.map((c) => `${c.label} ${c.from} → ${c.to}`).join(' · ')
-  );
+  const el = tlAdd('state', '');
+  const title = tlTitle(el);
+  title.classList.add('tl-fact');
+  title.append(...factParts(changes[0]!));
+  if (changes.length > 1) tlMeta(el).textContent = `+${changes.length - 1} more`;
   el.dataset.leaf = 'true';
-}
-
-/**
- * TWO BEATS, ONE LINE, ONCE THERE IS A PLAN TO READ.
- *
- * "An agent connected to this console" and "Read 5 sources" are two rows that
- * are, by the time a plan exists, one fact: it turned up and it looked before
- * it asked. Keeping them apart cost 30px, and 30px is exactly what the
- * seventh step needed to stay on screen. Neither beat is lost — the sentence
- * carries both, and the row still opens onto the tool calls themselves.
- */
-function mergePreamble(): void {
-  const host = tlHost();
-  if (!host) return;
-  const conn = host.querySelector<HTMLElement>('.tl-ev[data-kind="connect"]');
-  const reads = host.querySelector<HTMLElement>('.tl-ev[data-kind="reads"]');
-  if (!conn || !reads || conn.hidden) return;
-  const n = (reads.dataset.tools ?? '').split(',').filter(Boolean).length;
-  tlTitle(reads).textContent = `An agent connected, then read ${n} source${n === 1 ? '' : 's'}`;
-  // THE READ COUNT IS THE TRUST SENTENCE. "It looked at five things before it
-  // asked you for anything" is half the reason to take the ask seriously, and
-  // it costs six characters. The reads themselves are one click away, here and
-  // on every step's evidence strip.
-  tlMeta(reads).textContent = `${n} before the first ask`;
-  conn.hidden = true;
 }
 
 /** A new scenario is a new story: the timeline starts empty, not mid-thought. */
@@ -2651,6 +2780,7 @@ function resetTimeline(): void {
   connected = false;
   liveState = null;
   prevFacts = new Map();
+  toolResults.clear();
 }
 
 /**
@@ -2662,20 +2792,10 @@ function threadResolved(): void {
   const host = tlHost();
   if (!host || host.querySelector('[data-kind="resolved"]')) return;
   tlStarted();
-  const el = document.createElement('li');
-  el.className = 'tl-ev';
-  el.dataset.kind = 'resolved';
-  el.dataset.fold = 'false';
+  const el = tlRow('resolved', 'Checkout is serving again and the error rate is back to baseline.');
   el.dataset.pin = 'open';
   el.dataset.testid = 'thread-resolved';
   el.dataset.leaf = 'true';
-  const head = document.createElement('div');
-  head.className = 'tl-head';
-  const t = document.createElement('span');
-  t.className = 'tl-title';
-  t.textContent = 'Checkout is serving again and the error rate is back to baseline.';
-  head.append(t);
-  el.append(head);
   // the resolution is the last word, so it sits AFTER the live tail
   host.append(el);
   foldTimeline();
@@ -4433,7 +4553,7 @@ function proposePlanToWorker(plan: {
 }
 
 const airlockTools = createAirlockTools(
-  runWorkerQuery,
+  runToolQuery,
   proposeToWorker,
   recordFindingToWorker,
   proposePlanToWorker

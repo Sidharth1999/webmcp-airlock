@@ -357,9 +357,16 @@ function banner(scene: Scene, state: 'running' | 'ready' | 'failed', detail = ''
     (host ?? document.body).append(el);
   }
   el.dataset.state = state;
-  el.querySelector('.rv-title')!.textContent = scene.title;
+  // NO PROSE. Sid, 2026-09-02: the line "sounds like demo narrative", and it
+  // did — the scene's own title ("A seven-step response, in one order,
+  // priced") is copy written to sell the scene, and "your turn" is a showcase
+  // addressing its audience. Neither belongs on a page whose whole rule is
+  // that the product never explains itself. What has to survive is the
+  // DISCLOSURE: in a ?review= scene the caller is a script, not a model. So
+  // the line is now the scene's id and its machine state, and nothing else.
+  el.querySelector('.rv-title')!.textContent = scene.id;
   el.querySelector('.rv-state')!.textContent =
-    state === 'running' ? detail : state === 'ready' ? 'your turn' : `failed — ${detail}`;
+    state === 'running' ? 'preparing' : state === 'failed' ? `failed — ${detail}` : '';
   // the reviewer instructions used to render here as a bullet list; the
   // banner is a one-line disclosure now and the scenes' own tryThis copy
   // stays in STATUS.md, which is where a reviewer is actually reading it.

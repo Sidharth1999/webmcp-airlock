@@ -25,11 +25,11 @@
   min-width: 0;
 }
 #review-banner .rv-head { display: contents; }
+/* sentence case, no tracking: the uppercase tracked-out micro-cap is retired
+   everywhere else in this console and this line was the last one wearing it */
 #review-banner .rv-tag {
   flex: none;
   color: var(--ink-faint);
-  text-transform: uppercase;
-  letter-spacing: var(--tracking-label);
 }
 #review-banner .rv-title {
   flex: 1 1 auto;

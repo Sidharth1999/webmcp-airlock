@@ -1865,7 +1865,6 @@ function addApprovalCard(e: Event): void {
   // already finished, above the two buttons that are the actual question.
   narrate(null);
   const card = document.createElement('div');
-  card.className = 'approval-card';
   card.dataset.proposalSeq = String(e.seq);
   card.dataset.tier = String(d.tier);
   card.dataset.testid = `approval-${e.seq}`;
@@ -1920,7 +1919,21 @@ function addApprovalCard(e: Event): void {
   }
   // a plan step's card belongs INSIDE its step, so the sequence stays one
   // object on screen instead of scattering into loose asks
-  (planHostFor(e.seq) ?? airlockCards).appendChild(card);
+  const slot = planHostFor(e.seq);
+  if (slot) {
+    card.classList.add('approval-card');
+    slot.appendChild(card);
+  } else {
+    // A STANDALONE PROPOSAL IS A STEP OF ONE. It was the last bordered card
+    // in the dock — its own left rule, its own ground, mounted in the live
+    // tail under a "Waiting on you" label — which is the second grammar the
+    // plan gave up. A real agent mostly makes exactly this move: one
+    // propose_* call, no plan. So it files the way a plan step files: a row
+    // on the spine, what it would do as the title, what it touches on the
+    // right, and the ask itself in the row's own expansion.
+    card.classList.add('ap-ask');
+    askRow(e.seq, d, dualKey).querySelector<HTMLElement>('.pl-slot')!.appendChild(card);
+  }
   // THE COLUMN ADVANCES, it does not jump. The live step is sticky to the
   // bottom of the dock, so scrollIntoView saw it as already visible and did
   // nothing — which meant the steps between the top of the timeline and the
@@ -1951,8 +1964,87 @@ function revealAnchor(anchor: HTMLElement): void {
   anchor.scrollIntoView({ block: 'nearest' });
 }
 
+/** proposalSeq → the ledger row a standalone proposal filed as */
+const askRows = new Map<number, HTMLElement>();
+
+/**
+ * The row a standalone proposal files as. It is a plan step's row — same
+ * kind, same states, same density rule, same slot for the ask — with one
+ * difference in the marker: a step of one has no ordinal, so the disc in
+ * the step-number slot carries the agent's diamond instead of a number.
+ */
+function askRow(
+  seq: number,
+  d: { tool: string; tierName: string; diffSummary: string },
+  dualKey: boolean
+): HTMLElement {
+  threadConnected(); // beat 1 first, whatever order the events arrived in
+  const touches = WHAT_IT_TOUCHES[d.tierName] ?? d.tierName;
+  const el = tlAdd('step', d.diffSummary, `${touches}${dualKey ? ' · needs your key' : ''}`);
+  el.classList.add('tl-ask');
+  el.dataset.state = 'live';
+  el.dataset.testid = `ask-${seq}`;
+  // it holds itself open until it is decided; foldTimeline leaves it alone
+  el.dataset.hold = 'true';
+  el.dataset.fold = 'false';
+  const n = document.createElement('span');
+  n.className = 'tl-n tl-n-ask';
+  n.setAttribute('aria-hidden', 'true');
+  el.querySelector('.tl-head')!.prepend(n);
+  tlTitle(el).classList.add('pl-what');
+  tlTitle(el).title = d.diffSummary;
+  tlMeta(el).classList.add('pl-touch');
+
+  const inner = tlBody(el);
+  const cost = WRITE_ACTIONS[d.tool]?.cost;
+  if (cost) {
+    const c = document.createElement('p');
+    c.className = 'pl-cost';
+    const ck = document.createElement('span');
+    ck.className = 'pl-cost-k';
+    ck.textContent = 'Costs';
+    c.append(ck, document.createTextNode(cost));
+    inner.append(c);
+  }
+  const note = document.createElement('p');
+  note.className = 'pl-note';
+  note.textContent = 'waiting on your decision';
+  inner.append(note);
+  const slot = document.createElement('div');
+  slot.className = 'pl-slot';
+  inner.append(slot);
+  askRows.set(seq, el);
+  return el;
+}
+
+/** The state a standalone ask's row takes once a person has answered it. */
+function askDecided(proposalSeq: number, state: 'done' | 'skipped', note: string): void {
+  const el = askRows.get(proposalSeq);
+  if (!el) return;
+  el.dataset.state = state;
+  el.querySelector<HTMLElement>('.pl-note')!.textContent = note;
+  delete el.dataset.hold;
+  // STATE DECIDES DENSITY, and a person's own pin still wins — see setStepState
+  if (el.dataset.pin !== 'open') el.dataset.fold = 'true';
+  if (state === 'skipped') landRefusal(el, note);
+}
+
+/**
+ * The same beat a plan step gets when its write lands: what it did to the
+ * world, as a row directly beneath it. Without a row to file against
+ * (a proposal from before a reset) the observation files on its own line.
+ */
+function askExecuted(proposalSeq: number): void {
+  const el = askRows.get(proposalSeq);
+  if (!el) {
+    standaloneStateReport();
+    return;
+  }
+  el.querySelector<HTMLElement>('.pl-note')!.textContent = 'executed';
+  landObservation(el, diffFacts(prevFacts, snapshotFacts(world ?? undefined)));
+}
+
 const airlockEl = document.querySelector<HTMLElement>('#airlock')!;
-const airlockCards = document.querySelector<HTMLElement>('#airlock-cards')!;
 /**
  * Assigned by the palette, which is built further down this file. Reaching
  * the other way — a `const` down there, called from up here — puts a proposal
@@ -2483,6 +2575,9 @@ function foldTimeline(): void {
   const last = entries[entries.length - 1];
   for (const el of entries) {
     if (el.dataset.pin === 'open') continue;
+    // an undecided standalone ask holds itself open until it is decided —
+    // that is the system's hold, kept apart from a person's `data-pin`
+    if (el.dataset.hold === 'true') continue;
     el.dataset.fold = !planning && el === last ? 'false' : 'true';
   }
 }
@@ -2860,6 +2955,7 @@ function resetTimeline(): void {
   liveState = null;
   prevFacts = new Map();
   toolResults.clear();
+  askRows.clear();
 }
 
 /**
@@ -3077,7 +3173,7 @@ document.addEventListener('click', (e) => {
   switch (btn.dataset.act) {
     case 'approve':
     case 'reject': {
-      const card = btn.closest<HTMLElement>('.approval-card');
+      const card = btn.closest<HTMLElement>('.approval-card, .ap-ask');
       const keyEngaged = card?.querySelector<HTMLInputElement>('.ap-key-toggle')?.checked ?? false;
       send({
         type: 'decide',
@@ -3927,13 +4023,18 @@ function renderEvents(events: Event[], w: World): void {
       // approval is not execution — the mode or the key can still refuse at
       // decision time — so a plan advances on the WRITE, and action.executed
       // names only its approval. Keep the join.
-      if (e.kind === 'action.approved') approvalToProposal.set(e.seq, ps);
-      else planDecided(ps, false);
+      if (e.kind === 'action.approved') {
+        approvalToProposal.set(e.seq, ps);
+        askDecided(ps, 'done', 'approved');
+      } else {
+        planDecided(ps, false);
+        askDecided(ps, 'skipped', 'you rejected this');
+      }
     } else if (e.kind === 'action.executed' && typeof e.causedBy === 'number') {
       const ps = approvalToProposal.get(e.causedBy);
       if (ps !== undefined) {
         if (planForProposal.has(ps)) planDecided(ps, true);
-        else standaloneStateReport();
+        else askExecuted(ps);
       }
     } else if (e.kind === 'annotation.added' && e.actor === 'agent') {
       telestrate((e.data as { target: EntityRef }).target);

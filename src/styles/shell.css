@@ -2121,6 +2121,31 @@ body {
 .pl-slot details.ap-evidence > summary { align-self: flex-start; }
 .pl-slot details.ap-evidence > summary::after { margin-left: 6px; }
 
+/* --- A STANDALONE PROPOSAL IS A STEP OF ONE --------------------------
+   One propose_* call with no plan behind it is the move a real agent makes
+   most, and it was the last bordered card in the dock. It is a step row now
+   (`.tl-ask`, kind=step) and its ask sits in the step's own slot, so every
+   rule above applies to it unchanged. The ask brings no frame of its own —
+   it never had one to strip. */
+.pl-slot .ap-ask {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-3);
+  margin-top: var(--sp-3);
+  min-width: 0;
+  font-family: var(--font-prose);
+  font-size: var(--text-xs);
+}
+/* A STEP OF ONE HAS NO ORDINAL. The disc in the step-number slot stays — same
+   size, same states, same x on the spine — and carries the agent's diamond,
+   the mark this ledger already gives the agent's own claims. */
+.tl-n-ask::before {
+  content: '';
+  width: 5px; height: 5px;
+  rotate: 45deg;
+  background: currentColor;
+}
+
 /* --- a plan, on the console itself --------------------------------------
    The card says what the sequence is; these numbers say WHERE it lands, on
    the same rows the operator uses by hand. Pending is quiet, live is the

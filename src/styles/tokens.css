@@ -5,8 +5,15 @@
    drives all motion (agent motion gets its own signature).
    ============================================================ */
 
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;450;500;600;700;800&family=JetBrains+Mono:ital,wght@0,400;0,500;0,600;0,700;1,400&family=Fraunces:opsz,wght@9..144,500;9..144,650&display=swap');
-
+/* NO WEBFONT. Sid, 2026-09-01: "not a fan of the font families used in the
+   app, it looks too unnatural and not like real UIs", and then the
+   clarification that changed the job: "I'm also not saying I want every single
+   font to be the same i just don't think the fonts we're using are very common
+   and don't look professional". So the type SYSTEM stays — an instrument face
+   for machine truth, a prose face for reasoning — and only the FACES change.
+   JetBrains Mono, Inter and Fraunces are all characterful; the reference he
+   sent uses none of them. The system stack is the least remarkable, most
+   widely deployed type on the machine he reviews on, and it costs no request. */
 /* --- Health hue: the console-wide instrument -------------- */
 /* Registered so hue transitions ANIMATE (teal sweeps through
    amber on its way to red — the needle moves, never teleports). */
@@ -94,9 +101,13 @@
   --good: oklch(75% 0.13 160);
 
   /* --- type ----------------------------------------------- */
-  --font-instrument: "JetBrains Mono", ui-monospace, "SF Mono", Menlo, monospace;
-  --font-prose: "Inter", -apple-system, "SF Pro Text", "Segoe UI", system-ui, sans-serif;
-  --font-display: "Fraunces", "New York", Georgia, serif; /* the shop's voice, never the console's */
+  --font-instrument: ui-monospace, "SF Mono", SFMono-Regular, Menlo, Consolas, monospace;
+  --font-prose: system-ui, -apple-system, "SF Pro Text", "Segoe UI", Roboto, sans-serif;
+  /* The storefront's voice. It was a serif, which is a real two-worlds move
+     and also the third uncommon face in a console that wanted none. The shop
+     still reads as a different world — it keeps its own colour, its own
+     radius and its own density — it just stops doing it with a display serif. */
+  --font-display: system-ui, -apple-system, "SF Pro Display", "Segoe UI", Roboto, sans-serif;
   /* floor raised 2026-08-30: the console was 10-11px almost everywhere, which
      read as dense-and-unreadable rather than dense-and-authoritative */
   --text-2xs: 0.6875rem;   /* 11px — genuine fine print only (ids, timestamps) */

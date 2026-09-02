@@ -802,13 +802,19 @@ function lever(
   tool: string,
   input: Record<string, unknown>,
   label: string,
-  testid: string
+  testid: string,
+  full?: string
 ): string {
   const spec = WRITE_ACTIONS[tool];
   const cost = spec ? spec.cost : '';
+  // `full` is the unabbreviated wording. The incident-command strip shortens
+  // its labels to hold ONE line, and a screen reader must still hear the whole
+  // verb — "Freeze" on screen, "Freeze deploys" to the accessibility tree.
+  const aria = full ?? label;
   return `<button type="button" class="ctl-btn lever" data-act="lever" data-tool="${tool}"
     data-input='${JSON.stringify(input)}' data-testid="${testid}"
-    title="${cost.replace(/"/g, '&quot;')}">${label}<span class="lever-cost">${cost}</span></button>`;
+    aria-label="${aria.replace(/"/g, '&quot;')}"
+    title="${`${aria} — ${cost}`.replace(/"/g, '&quot;')}">${label}<span class="lever-cost">${cost}</span></button>`;
 }
 
 /**
@@ -848,27 +854,28 @@ function renderCommand(w: World): void {
         ? ''
         : lever('incident.acknowledge', { by: 'you' }, 'Acknowledge', 'ack-incident')
     }
-    ${inc.severity ? '' : lever('incident.severity', { level: 'sev1' }, 'Declare SEV1', 'sev1')}
+    ${inc.severity ? '' : lever('incident.severity', { level: 'sev1' }, 'SEV1', 'sev1', 'Declare SEV1')}
     ${
       inc.escalatedTo
         ? ''
-        : lever('incident.escalate', { team: 'database on-call' }, 'Page database on-call', 'escalate')
+        : lever('incident.escalate', { team: 'database on-call' }, 'Page on-call', 'escalate', 'Page database on-call')
     }
     ${
       inc.alertsSilenced
-        ? lever('alerts.silence', { silenced: false }, 'Unsilence alerts', 'silence')
-        : lever('alerts.silence', { silenced: true }, 'Silence alerts', 'silence')
+        ? lever('alerts.silence', { silenced: false }, 'Unsilence', 'silence', 'Unsilence alerts')
+        : lever('alerts.silence', { silenced: true }, 'Silence', 'silence', 'Silence alerts')
     }
     ${
       inc.deploysFrozen
-        ? lever('deploy.freeze', { frozen: false }, 'Lift deploy freeze', 'freeze')
-        : lever('deploy.freeze', { frozen: true }, 'Freeze deploys', 'freeze')
+        ? lever('deploy.freeze', { frozen: false }, 'Lift freeze', 'freeze', 'Lift the deploy freeze')
+        : lever('deploy.freeze', { frozen: true }, 'Freeze', 'freeze', 'Freeze deploys')
     }
     ${lever(
       'statuspage.post',
       { state: 'investigating', text: 'We are investigating elevated checkout failures.' },
-      'Post update',
-      'statuspage-post'
+      'Update',
+      'statuspage-post',
+      'Post a status page update'
     )}
     <span class="cmdbar-meta" id="command-meta">${
       posture.length ? posture.join(' · ') : 'not acknowledged'

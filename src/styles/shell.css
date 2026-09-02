@@ -2510,7 +2510,22 @@ body {
 /* --- incident command ----------------------------------------------------
    The first five minutes of on-call are ownership, severity, paging and
    what customers are told — not infrastructure. */
-.cmd-row { display: flex; flex-wrap: wrap; gap: var(--sp-2); align-items: center; }
+/* ONE LINE, ALWAYS. Sid, twice: "why is incident command still in the same
+   list of buttons UI I complained about". A state strip shipped that shrinks
+   AFTER you acknowledge — which optimised a state he never looks at, because
+   the resting state is six full-width buttons wrapping onto two lines the
+   moment the dock elevates and the centre falls to its floor. The labels are
+   the fix: shortened to the verb, full wording on aria-label and title. It
+   does not wrap, and the posture caption yields before any control does. */
+.cmd-row { display: flex; flex-wrap: nowrap; gap: 6px; align-items: center; min-width: 0; }
+.cmd-row > .ctl-btn.lever { flex: 0 0 auto; white-space: nowrap; }
+.cmd-row > .cmdbar-meta {
+  flex: 0 1 auto;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 /* the status page is the one surface customers can read; it looks like it */
 .statuspage {

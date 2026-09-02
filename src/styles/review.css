@@ -7,67 +7,38 @@
    the region it sits in: a tag, a title, one line per idea, and the scene
    list. Never a paragraph.
    ====================================================================== */
+/* A ONE-LINE DISCLOSURE AT THE FOOT OF THE DOCK, not a card at the top of it.
+   What it must never stop saying: the caller in a ?review= scene is a SCRIPT,
+   not a model. Everything else it used to carry — a title block, a bulleted
+   list of things to try, a scene switcher — was dev chrome sitting above the
+   agent's own work in every frame Sid reviews. */
 #review-banner {
   display: flex;
-  flex-direction: column;
+  align-items: baseline;
   gap: var(--sp-2);
-  margin: 0 0 var(--sp-3);
-  padding: var(--sp-2) var(--sp-3);
-  border: 1px solid oklch(70% 0.16 95 / 0.45);
-  border-left: 3px solid oklch(70% 0.16 95);
-  border-radius: var(--r-sm);
-  background: oklch(70% 0.16 95 / 0.06);
+  margin: var(--sp-3) 0 0;
+  padding: var(--sp-2) 0 0;
+  border-top: 1px solid var(--line);
   font-family: var(--font-instrument);
   font-size: var(--text-2xs);
-  color: var(--ink-dim);
+  color: var(--ink-ghost);
+  min-width: 0;
 }
-#review-banner .rv-head { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px var(--sp-2); min-width: 0; }
+#review-banner .rv-head { display: contents; }
 #review-banner .rv-tag {
   flex: none;
-  padding: 0 5px;
-  background: oklch(70% 0.16 95);
-  color: oklch(16% 0.03 95);
-  font-weight: 600;
+  color: var(--ink-faint);
   text-transform: uppercase;
   letter-spacing: var(--tracking-label);
 }
-/* it used to ellipsis, which in a 486px dock meant the scene's own name was
-   cut off — the one line telling you what you are looking at. It wraps. */
 #review-banner .rv-title {
-  color: var(--ink);
-  font-family: var(--font-prose);
-  font-size: var(--text-xs);
-  font-weight: 600;
+  flex: 1 1 auto;
   min-width: 0;
-  flex: 1 1 60%;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--ink-faint);
 }
-#review-banner .rv-state {
-  margin-left: auto;
-  flex: none;
-  color: oklch(70% 0.16 95);
-}
+#review-banner .rv-state { flex: none; margin-left: auto; color: var(--ink-ghost); }
 #review-banner[data-state='ready'] .rv-state { color: var(--good); }
 #review-banner[data-state='failed'] .rv-state { color: var(--bad); }
-
-/* one idea per line. Never a wall of prose in a 400px column. */
-#review-banner .rv-try { list-style: none; margin: 0; padding: 0; }
-#review-banner .rv-try:empty { display: none; }
-#review-banner .rv-try li {
-  position: relative;
-  padding-left: var(--sp-3);
-  color: var(--ink);
-  font-family: var(--font-prose);
-  font-size: var(--text-xs);
-  line-height: 1.45;
-}
-#review-banner .rv-try li + li { margin-top: 3px; }
-#review-banner .rv-try li::before {
-  content: '';
-  position: absolute;
-  left: 2px;
-  top: 0.62em;
-  width: 4px;
-  height: 4px;
-  border-radius: 50%;
-  background: oklch(70% 0.16 95);
-}

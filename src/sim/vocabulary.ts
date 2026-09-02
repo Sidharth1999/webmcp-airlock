@@ -259,7 +259,11 @@ WRITE_ACTIONS['incident.acknowledge'] = {
   tierName: 'incident',
   cost: 'Claims the incident. Whoever else was paged stops looking at it, so only take it if you are actually driving.',
   validate: (i) => needString(i, 'by'),
-  describe: (i) => `${String(i.by)} takes ownership of the incident`,
+  // Every other verb on this sheet is written as the ACTION ("cap /checkout
+  // at 150 req/s", "freeze deploys across all services"). This one narrated a
+  // third party doing something — "operator takes ownership of the incident" —
+  // which is the demo voice the framing law bans, sitting on a control card.
+  describe: () => `take ownership of the incident`,
 };
 
 WRITE_ACTIONS['incident.severity'] = {

@@ -336,33 +336,33 @@ function banner(scene: Scene, state: 'running' | 'ready' | 'failed', detail = ''
     el = document.createElement('div');
     el.id = 'review-banner';
     el.dataset.testid = 'review-banner';
+    // ONE QUIET LINE, AT THE FOOT. Sid: "I don't think we need review plan
+    // panel at all". It was a bordered yellow card at the TOP of the dock —
+    // the loudest thing in the frame, above the agent's own work, in every
+    // screenshot he takes. It cannot be deleted outright: it is the permanent
+    // on-screen disclosure that the CALLER here is a script rather than a
+    // model, and removing that would let a scene be mistaken for a model
+    // reasoning. So it keeps the disclosure and loses the card.
     el.innerHTML = `
       <div class="rv-head">
-        <span class="rv-tag">review</span>
+        <span class="rv-tag">dev scene</span>
         <span class="rv-title"></span>
         <span class="rv-state"></span>
       </div>
-      <ul class="rv-try"></ul>
     `;
     // ONE reserved area for anything agent- or review-related: this belongs
     // inside the agent dock, at the top of it, not floating in a corner
     // competing with the decision it is describing.
     const host = document.querySelector<HTMLElement>('#tool-rail .dock-body');
-    (host ?? document.body).prepend(el);
+    (host ?? document.body).append(el);
   }
   el.dataset.state = state;
   el.querySelector('.rv-title')!.textContent = scene.title;
   el.querySelector('.rv-state')!.textContent =
     state === 'running' ? detail : state === 'ready' ? 'your turn' : `failed — ${detail}`;
-  const list = el.querySelector<HTMLElement>('.rv-try')!;
-  list.innerHTML = '';
-  if (state === 'ready') {
-    for (const line of scene.tryThis) {
-      const li = document.createElement('li');
-      li.textContent = line;
-      list.append(li);
-    }
-  }
+  // the reviewer instructions used to render here as a bullet list; the
+  // banner is a one-line disclosure now and the scenes' own tryThis copy
+  // stays in STATUS.md, which is where a reviewer is actually reading it.
 }
 
 /**
@@ -396,7 +396,6 @@ async function watchForYourDecision(
   // console speaks for itself from here.
   el.dataset.state = 'running';
   el.querySelector('.rv-state')!.textContent = '';
-  el.querySelector<HTMLElement>('.rv-try')!.innerHTML = '';
 }
 
 /**

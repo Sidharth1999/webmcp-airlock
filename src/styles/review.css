@@ -71,29 +71,3 @@
   border-radius: 50%;
   background: oklch(70% 0.16 95);
 }
-
-/* Seven bare lowercase words in a row read as debris — "I don't know what
-   they are meant to do". The row says what it is, and each link carries its
-   scene's own sentence as its accessible name. */
-#review-banner .rv-scenes { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px; }
-#review-banner .rv-scenes-label {
-  flex-basis: 100%;
-  color: var(--ink-ghost);
-  font-size: var(--text-2xs);
-  letter-spacing: var(--tracking-label);
-  text-transform: uppercase;
-  margin-bottom: 2px;
-}
-#review-banner .rv-scene {
-  padding: 1px var(--sp-2);
-  border: 1px solid var(--line);
-  background: var(--panel-inset);
-  color: var(--ink-faint);
-  text-decoration: none;
-}
-#review-banner .rv-scene:hover { color: var(--ink); border-color: oklch(70% 0.16 95); }
-#review-banner .rv-scene[aria-current='true'] {
-  color: oklch(16% 0.03 95);
-  background: oklch(70% 0.16 95);
-  border-color: oklch(70% 0.16 95);
-}

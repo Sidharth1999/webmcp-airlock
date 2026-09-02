@@ -312,27 +312,12 @@ function banner(scene: Scene, state: 'running' | 'ready' | 'failed', detail = ''
         <span class="rv-state"></span>
       </div>
       <ul class="rv-try"></ul>
-      <nav class="rv-scenes" aria-label="Review scenes">
-        <span class="rv-scenes-label">Other things to look at</span>
-      </nav>
     `;
     // ONE reserved area for anything agent- or review-related: this belongs
     // inside the agent dock, at the top of it, not floating in a corner
     // competing with the decision it is describing.
     const host = document.querySelector<HTMLElement>('#tool-rail .dock-body');
     (host ?? document.body).prepend(el);
-    const nav = el.querySelector<HTMLElement>('.rv-scenes')!;
-    for (const sc of SCENES) {
-      const a = document.createElement('a');
-      a.href = `?review=${sc.id}`;
-      a.className = 'rv-scene';
-      a.textContent = sc.id;
-      a.dataset.testid = `review-scene-${sc.id}`;
-      a.title = sc.title;
-      a.setAttribute('aria-label', `${sc.id} — ${sc.title}`);
-      if (sc.id === scene.id) a.setAttribute('aria-current', 'true');
-      nav.append(a);
-    }
   }
   el.dataset.state = state;
   el.querySelector('.rv-title')!.textContent = scene.title;

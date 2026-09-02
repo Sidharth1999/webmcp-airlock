@@ -1,5 +1,66 @@
 # STATUS — live audit log
 
+## CHECKPOINT 2026-09-02 16:50 EDT — LIGHTHOUSE AGENTIC 1/3 → 4/4 (Chrome's own category)
+
+A Lighthouse 13.4.1 run that morning counted us **1/3** on `agentic-browsing`
+while a competitor cites 4/4. The judges include Chrome staff and this category
+is theirs, so every fix that costs nothing in product terms was made. Six
+commits, `fd6c974`..`c576131`, design untouched.
+
+| audit | before | after |
+| --- | --- | --- |
+| `llms-txt` | N/A (404 — uncounted, hence a denominator of 3) | **PASS** |
+| `agent-accessibility-tree` | FAIL `aria-required-children` | **PASS** |
+| `cumulative-layout-shift` | FAIL 0.269 | **PASS 0** |
+| `webmcp-schema-validity` | PASS | PASS |
+| **agentic-browsing** | **1/3** | **4/4** |
+| performance / a11y / best-practices | 85 / 90 / 96 | 100 / 96 / 100 |
+
+- **`public/llms.txt`** — one H1, two sentences in the README's voice, the live
+  console + `<REPO-URL>` + the three docs. **`public/favicon.svg`** — the
+  ledger's agent diamond (`#agent-cursor .ac-dot` geometry, `--actor-agent` on
+  `--panel`), which kills the `/favicon.ico` 404 in best-practices.
+- **The evidence tabs got their own `div.ptabs[role=tablist]`**; the audit
+  toggle and the close button are siblings of it inside the same
+  `.panel-tabs` strip. Bounding rects identical, `#wb-panel` screenshots
+  byte-identical (log/lh-frames), both handlers untouched.
+- **CLS was one shift and one cause**: the shell painted at ~97ms with
+  `#sit-fields` and `#cmd-row` empty (they are folds of a world that arrives
+  from the Worker a message later), then repainted filled and pushed
+  `.wb-centre-body` down 62px. Reserving space was not available —
+  `#sit-fields` settles at 31px wide and 44px narrow, so a min-height is dead
+  space at one width. `.wb` now holds `visibility: hidden` until the Worker's
+  first message (or `worker.onerror`). An unpainted box cannot shift; layout at
+  rest is unchanged and the 1512x945 frame is byte-identical.
+- **`?mode=recovery` / `?mode=diagnosis`** boot params, calling the same
+  `switchMode()` the operator's click calls. This unblocks the thing
+  study/chrome-evals/README.md named as a blocker: 9 of the 11 recovery eval
+  cases are tools absent in triage, so Chrome's `webmcp-evals` CLI could not
+  run that set against the deployed URL at all. It can now.
+- **a11y wins that are not design**: `section.wb-centre#console` → `main`
+  (`landmark-one-main`), the scenario `<summary>`'s aria-label dropped, and two
+  `lever()` long forms rewritten so the accessible name contains the visible
+  text ("Page on-call: database", "Lift freeze on deploys").
+  **`color-contrast` deliberately NOT touched — colour is design, Sid's call.**
+
+### Test-file diff (adds only, nothing edited or removed) — Sid to eyeball
+`tools/smoke.mjs`, **+20 / -0**, one `check(...)` gate appended immediately
+before the existing `no page errors` gate:
+
+- *`?template=retry-storm&mode=recovery` boots on the Recovery stage with 27
+  tools in the dock footer* — asserts `mode-recovery` pressed, `#wbs-mode` =
+  recovery, `#tool-count` = 27, `window.__airlock.mode()` = recovery, and
+  exactly one `mode.changed` row on the stream.
+
+**Gate count 114 → 115.** Verification: `npm run smoke` GREEN alone (115) ·
+`npm test` 206 · `npm run typecheck` · `npm run lint:sim`. New Lighthouse
+report and the before/after write-up: `log/lighthouse/README.md`,
+`release-airlock-after.report.{html,json}`.
+
+**Not yet deployed** — the live URL still serves the earlier build; the after
+run is against `npm run build` on `vite preview` 8918. The numbers follow the
+next `cp -R dist/. .deploy/... && npx vercel deploy --prod`.
+
 ## CHECKPOINT 2026-09-02 13:35 EDT — walkthrough merged, landing URL live, field known
 
 - **Merged** `worktree-agent-a11359104200e88cf` (`57f171b`): the empty dock says

@@ -49,6 +49,54 @@ bundle has no trace of it.
 **The eighteen feedback items are all closed.** Nothing from Sid's review round
 is outstanding.
 
+## THE APP HAS A MOOD NOW — 2026-09-01 (Tue, late)
+
+Sid: *"are we already changing colour schema based on incident resolution?
+Seeing the actual mood of the app change on resolution would be really cool."*
+
+The instrument for it already existed and was being wasted. `--health-hue` and
+`--health-chroma` are **registered `@property` values that already transition
+over 900ms** — teal sweeps through amber on its way to red, the needle moves
+rather than teleports, and smoke has a gate sampling that. They were spending
+themselves on a 2px strip and a status dot.
+
+**The ground was the obvious place for the wash and was the wrong one.** Tried
+first: a radial wash on `body::before`, then painted onto `.wb` and
+`.wb-centre`. Invisible in every frame — every dock and panel between the body
+and the eye is opaque by design, and, more to the point, **the control deck now
+fills the console (#13), so there is no bare ground left for a wash to land
+on.** The fix from this morning removed the surface this evening's idea wanted.
+
+So the FRAME carries it: the title bar, the status bar and the activity rail
+take the health hue as a wash over their own surface. Those are visible in
+every single frame, and the whole app now warms as the incident bites and cools
+to teal when it is over — for free, because the tokens were already animating.
+
+### The capability count counts
+13 -> 27 is the one claim the submission rests on and it SNAPPED. `pulseValue()`
+tweens it over 520ms with an ease-out and pulses the styling for a beat.
+**Honest about the risk, recorded in the code:** the tween writes intermediate
+values into `textContent`, so a test reading that node mid-flight reads a
+number in motion. Nothing does — both capability gates read
+`window.__airlock.list()`, the surface itself rather than its label, which is
+the right assertion anyway. Reduced motion lands on the answer immediately.
+
+### A miss worth recording: the burn went into the renderer the film never shows
+The console has TWO damage renderers — the stat CARDS and the compressed FIELD
+list. At 1512x945 with the storefront open the centre is at its 560px floor and
+the FIELD list is what is on screen, so the burn rate initially shipped into
+the one renderer the film would never show. Caught by looking at the capture,
+not by any gate. Then appending it to the field overflowed and truncated to
+`$39.7…`, so the field now carries users and the BURN and drops the cumulative
+— which is history during an incident, and is still on the card underneath.
+
+Reads `387 users · $723/min` in the film scene now, against `$19.33` before.
+
+**Audio: dropped, Sid's call and mine.** A Devpost video runs under voiceover;
+UI sound competes with narration, many judges watch muted, and it is a new
+subsystem (assets, mute affordance, autoplay policy) at T-38h. If audio is
+wanted it belongs in the edit, not the product.
+
 ## THE OUTSIDE PASS + THE TAKE — 2026-09-01 (Tue, night)
 
 Eight shots at 1512x945 went to **Claude.ai (Fable 5, high)** and **ChatGPT

@@ -45,6 +45,17 @@
   --health-dim: oklch(45% 0.08 var(--health-hue));
   --health-glow: oklch(70% 0.15 var(--health-hue) / 0.16);
   --health-surface: oklch(26% 0.045 var(--health-hue) / 0.6);
+  /* THE ROOM'S LIGHT. The hue was already the console's one instrument and it
+     already animates (teal sweeps through amber on its way to red — the
+     needle moves, it never teleports), but it was spending itself on a 2px
+     strip and a status dot. This is the same needle applied to the ambient
+     light in the room: an edge wash that warms as the incident bites and
+     cools back to teal when it is over, so recovery is something you FEEL
+     before you have read a single number. Kept at the threshold of notice on
+     purpose — content colour never shifts, only the ground around it. */
+  --ambient: oklch(58% var(--health-chroma) var(--health-hue) / 0.30);
+  --ambient-mid: oklch(58% var(--health-chroma) var(--health-hue) / 0.11);
+  --ambient-far: oklch(58% var(--health-chroma) var(--health-hue) / 0);
 
   /* --- surfaces: layered depth, slightly cool -------------- */
   --bg: oklch(13.5% 0.014 250);

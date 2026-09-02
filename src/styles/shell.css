@@ -29,6 +29,10 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  :root { transition: none; }
+}
+
 /* surface ladder (Radix 12-step semantics mapped onto our oklch ramp):
    which surface a thing sits on now follows a rule instead of taste. */
 :root {
@@ -90,7 +94,9 @@ body {
 /* --- title bar --------------------------------------------- */
 .wb-title {
   grid-area: title;
-  background: var(--s-chrome);
+  background:
+    linear-gradient(180deg, var(--ambient), var(--ambient-far)),
+    var(--s-chrome);
   border-bottom: 1px solid var(--line-strong);
   box-shadow: inset 0 -2px 0 var(--health);  /* the health strip is a hairline */
   display: flex;
@@ -131,6 +137,9 @@ body {
 
 /* --- activity bar: the one place a region's visibility lives ---------- */
 .wb-act {
+  background:
+    linear-gradient(90deg, var(--ambient-mid), var(--ambient-far)),
+    var(--s-chrome);
   grid-area: act;
   background: var(--s-chrome);
   border-right: 1px solid var(--line-strong);
@@ -372,7 +381,17 @@ body {
 /* --- status bar: reference lives at the edge -------------------------- */
 .wb-status {
   grid-area: status;
-  background: var(--s-chrome);
+  /* THE FRAME CARRIES THE MOOD — see --ambient in tokens.css. The ground was
+     the obvious place for it and turned out to be the wrong one: the control
+     deck now fills the console (#13), so there is no bare ground left for a
+     wash to land on. The chrome is what is visible in every single frame, so
+     the title bar and this bar take the health hue as a wash over their own
+     surface. It animates for free — the hue and chroma are registered
+     @property values that already transition over 900ms, so the app warms as
+     the incident bites and cools when it is over. */
+  background:
+    linear-gradient(0deg, var(--ambient), var(--ambient-far)),
+    var(--s-chrome);
   border-top: 1px solid var(--line-strong);
   display: flex;
   align-items: center;
@@ -2925,6 +2944,19 @@ h4.ctl-group-label { margin: 0 0 var(--sp-2); }
   right: 0;
   top: calc(100% + 6px);
 }
+/* a value that just changed says so for a beat — see pulseValue() */
+[data-changed='true'] {
+  animation: value-changed 700ms var(--ease-settle);
+}
+@keyframes value-changed {
+  0%   { color: var(--actor-agent); transform: translateY(-2px); }
+  60%  { color: var(--actor-agent); }
+  100% { color: inherit; transform: none; }
+}
+@media (prefers-reduced-motion: reduce) {
+  [data-changed='true'] { animation: none; }
+}
+
 @keyframes counsel-in {
   from { opacity: 0; transform: translateY(-3px); }
   to   { opacity: 1; transform: none; }

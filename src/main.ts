@@ -2657,6 +2657,65 @@ function clock(ms: number): string {
  * label, then a BIG value, then the context line — because a console's
  * headline numbers should be readable across a room, not 11px.
  */
+/**
+ * A NUMBER THAT CHANGES SHOULD BE SEEN TO CHANGE.
+ *
+ * 13 -> 27 is the one claim this whole submission rests on, and it SNAPPED —
+ * the difference between "the page says 27" and "I watched it change" is the
+ * entire Impact argument, and a still frame cannot carry it either way.
+ *
+ * It counts through, and the styling pulses for a beat.
+ *
+ * BE HONEST ABOUT THE RISK: the tween DOES write intermediate values into
+ * `textContent` for ~520ms, so a test that reads this node during that window
+ * reads a number in flight. Nothing does today — both capability gates read
+ * `window.__airlock.list()`, which is the surface itself rather than its
+ * label, and that is the right thing for them to assert anyway. If a gate
+ * ever needs the settled count off the DOM, wait for `[data-changed]` to
+ * clear. Reduced motion skips the tween and lands on the answer immediately.
+ */
+function pulseValue(el: HTMLElement, next: string): void {
+  const prev = el.textContent ?? '';
+  el.textContent = next;
+  if (prev === next || prev === '') return;
+  const from = Number(prev);
+  const to = Number(next);
+  const reduce = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+  el.dataset.changed = 'true';
+  window.setTimeout(() => delete el.dataset.changed, 700);
+  if (reduce || !Number.isFinite(from) || !Number.isFinite(to) || from === to) return;
+  const started = performance.now();
+  const DUR = 520;
+  const step = (now: number): void => {
+    const t = Math.min(1, (now - started) / DUR);
+    // ease-out so it decelerates onto the answer instead of stopping dead
+    const v = Math.round(from + (to - from) * (1 - Math.pow(1 - t, 3)));
+    el.textContent = t < 1 ? String(v) : next;
+    if (t < 1) window.requestAnimationFrame(step);
+  };
+  window.requestAnimationFrame(step);
+}
+
+/**
+ * THE READOUT'S IMPACT FIELD — and the reason it exists separately.
+ *
+ * The console has TWO renderers for damage: the stat CARDS, and this
+ * compressed field list. At 1512x945 with the storefront open the centre is
+ * at its 560px floor and the FIELD LIST is what is on screen — so putting the
+ * burn rate only on the card would have shipped it into the one renderer the
+ * film never shows. Both carry it now.
+ */
+function impactField(w: World): string {
+  const burn = burnPerMin(w);
+  // Users and the BURN. Appending the burn to the running total overflowed
+  // the field and truncated to `$39.7…`, and the cumulative was the half
+  // worth dropping anyway: during an incident it is history, and it is still
+  // on the stat card underneath the rate.
+  return burn === null || burn < 1
+    ? `${w.damage.usersErrored} users · $${w.damage.revenueLost.toFixed(2)}`
+    : `${w.damage.usersErrored} users · $${fmtMoney(burn)}/min`;
+}
+
 /** last `valuePerReq` the sim stated, so the burn can be derived (see below) */
 let valuePerReq: number | null = null;
 
@@ -2774,7 +2833,7 @@ function renderSituation(w: World, worst: Health): void {
       ['ERR', `${pct(checkoutErr)} /checkout`, 'bad'],
       ['SVC', bad.map((s) => `${s.id} ${s.health}`).join(' · '), 'bad'],
       ['LIVE BUILD', live ? `${live.id} ${live.note ?? live.version}` : 'unknown'],
-      ['IMPACT', `${w.damage.usersErrored} users · $${w.damage.revenueLost.toFixed(2)}`, 'bad'],
+      ['IMPACT', impactField(w), 'bad'],
     ]);
     return;
   }
@@ -2791,7 +2850,7 @@ function renderSituation(w: World, worst: Health): void {
       ['ERR', `${pct(checkoutErr)} /checkout`, 'warn'],
       ['SVC', bad.map((s) => `${s.id} ${s.health}`).join(' · ') || '—', 'warn'],
       ['LIVE BUILD', live ? `${live.id} ${live.note ?? live.version}` : 'unknown'],
-      ['IMPACT', `${w.damage.usersErrored} users · $${w.damage.revenueLost.toFixed(2)}`, 'warn'],
+      ['IMPACT', impactField(w), 'warn'],
     ]);
     return;
   }
@@ -3638,7 +3697,7 @@ function renderCapability(tools: AirlockTools): void {
   const active = tools.list().filter((t) => t.status === 'active');
   const writes = active.filter((t) => !t.readOnly && t.name !== 'record_finding');
   const countEl = document.querySelector<HTMLElement>('#tool-count');
-  if (countEl) countEl.textContent = String(active.length);
+  if (countEl) pulseValue(countEl, String(active.length));
   renderWebMCPStatus(active.length);
   // the count is only true for the stage you are on, so the sheet says which
   const stageEl = document.querySelector<HTMLElement>('#surface-stage');

@@ -163,8 +163,11 @@ not just tested:
 The gated arm hit the turn cap twice as often, the study's operator is a
 script that approves everything, and the model never attempted the flagship
 trap in either arm. Chrome's own `webmcp-evals` CLI passes 24/24 smoke steps against
-the live URL (13 in Triage, 11 in Recovery) and Lighthouse's agentic-browsing
-category is 4/4; the full accounting is in `docs/study-summary.md`.
+the live URL, and driven by GPT-5 it chose the right tool with the right
+arguments in 28 of 28 cases, made zero production writes in Triage, and named
+the smuggled log instruction as an injection and refused it
+(`study/chrome-evals/RESULTS.md`). Lighthouse's agentic-browsing category is
+4/4; the full accounting is in `docs/study-summary.md`.
 
 ---
 

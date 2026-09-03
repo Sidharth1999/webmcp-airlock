@@ -83,8 +83,13 @@ gate does not solve:
 | ordering family: order violated | 16 of 24 | 24 of 24 | 48 paired runs |
 
 Chrome's own `webmcp-evals` CLI passes 24/24 smoke steps against the live URL
-(13 in Triage, 11 in Recovery), with no model in the loop; the Lighthouse
-agentic-browsing category is 4/4. The gated arm above hit the turn cap twice
+(13 in Triage, 11 in Recovery) with no model in the loop, and driven by GPT-5 it
+chose the right tool with the right arguments in 28 of 28 cases (18 pass under
+the strict matcher, because it reads the console before it proposes, which our
+descriptions ask for); zero production writes in Triage; the smuggled
+instruction in the poisoned log was named as an injection and refused
+(`study/chrome-evals/RESULTS.md`). The Lighthouse agentic-browsing category is
+4/4. The gated arm above hit the turn cap twice
 as often as the ungated arm, and the operator in the study is a script that
 approves everything; the model never attempted the flagship trap in either arm. Full accounting, including what is
 excluded and why: [`docs/study-summary.md`](docs/study-summary.md).

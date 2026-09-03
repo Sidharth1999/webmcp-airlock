@@ -44,10 +44,22 @@ Live: `https://release-airlock.vercel.app` · Source (MIT): `https://github.com/
 Agent-with-production-access is not a hypothetical. Nine publicly documented
 incidents in fourteen months where a coding agent destroyed data, in most of
 them with a permission system that was switched *on* and got talked past
-([sources in the repo](docs/evidence.md)). Every one of those permission
+([the survey](https://adversa.ai/blog/ai-coding-agent-incidents/); the
+[Replit postmortem](https://mondoo.com/blog/5-lessons-from-9-seconds-ai-agent-deleted-production-database)
+names "absent destructive-action gates"). Every one of those permission
 systems lived either inside the model, which can be argued out of anything,
 or in a generic host confirmation, which knows the verb and the target and
 nothing about where the idea came from or what the operator is looking at.
+Three more facts shaped the design: the cost of an incident is deciding, not
+clicking ([Rootly](https://rootly.com/incident-response/metrics)); mitigation
+happens in a console and the kill switch beats the rollback
+([LaunchDarkly](https://launchdarkly.com/blog/using-feature-flags-during-incident-management/));
+and stage-gated capability is an established access pattern, just-in-time
+and break-glass ([IBM](https://www.ibm.com/think/topics/just-in-time-access)).
+Chrome's own WebMCP security guide asks for exactly this shape
+([secure tools](https://developer.chrome.com/docs/ai/webmcp/secure-tools)).
+The full evidence review, including what cuts against the project, is
+`docs/evidence.md` in the repo.
 
 WebMCP puts the tool server *in the page*, and this is a use case where that
 location is the whole point:

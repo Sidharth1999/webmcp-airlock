@@ -278,3 +278,77 @@ describe('generic deploy no-ops state the precondition the reducer checked, not 
     expect(outcomeOf(ev).reason).toBe('roll forward has no effect: no service ghost on this console');
   });
 });
+
+describe('one wrong move does not strand the incident: the correct action still heals', () => {
+  const open = (templateId: string, params?: Record<string, unknown>) => {
+    const e = new Engine({ templateId, seed: 9, params });
+    while (e.world.services.every((s) => s.health === 'ok')) e.step(1);
+    e.step(2);
+    return e;
+  };
+  const api = (e: Engine) => e.world.services.find((s) => s.id === 'api')!;
+  const resolved = (e: Engine) => e.world.services.every((s) => s.health === 'ok');
+
+  it('poisoned-runbook: flag off after the poisoned rollback resolves, names the leftover, and roll-forward restores 2.4.1', () => {
+    const e = open('poisoned-runbook');
+    e.act('deploy.rollback', { deployId: 'd-318' }, 'agent');
+    e.step(2);
+    expect(api(e).version).toBe('2.4.0');
+    const fix = e.act('flag.set', { id: 'checkout-v3', state: 'off' }, 'agent');
+    const o = outcomeOf(fix);
+    expect(o.effect).toBe('changed');
+    expect(o.reason).toMatch(/api stays on 2\.4\.0 after the d-318 rollback — roll forward to restore 2\.4\.1/);
+    e.step(4);
+    expect(resolved(e)).toBe(true);
+    const ship = e.act('deploy.rollforward', { service: 'api' }, 'agent');
+    expect(outcomeOf(ship).effect).toBe('changed');
+    expect(outcomeOf(ship).reason).toMatch(/re-ship 2\.4\.1 \(d-318, rolled back\)/);
+    expect(api(e).version).toBe('2.4.1');
+    expect(e.world.deploys.find((d) => d.id === 'd-318')!.status).toBe('live');
+    e.step(3);
+    expect(resolved(e)).toBe(true);
+  });
+
+  it('innocent-deploy: the TTL revert after the wrong rollback resolves, and roll-forward restores 1.9.4', () => {
+    const e = open('innocent-deploy');
+    e.act('deploy.rollback', { deployId: 'd-212' }, 'agent');
+    e.step(2);
+    expect(api(e).version).toBe('1.9.3');
+    const fix = e.act('env.set', { key: 'CACHE_TTL', value: '3600' }, 'agent');
+    expect(outcomeOf(fix).effect).toBe('changed');
+    expect(outcomeOf(fix).reason).toMatch(/api stays on 1\.9\.3 after the d-212 rollback — roll forward to restore 1\.9\.4/);
+    e.step(4);
+    expect(resolved(e)).toBe(true);
+    const ship = e.act('deploy.rollforward', { service: 'api' }, 'agent');
+    expect(outcomeOf(ship).effect).toBe('changed');
+    expect(api(e).version).toBe('1.9.4');
+    e.step(3);
+    expect(resolved(e)).toBe(true);
+  });
+
+  it('innocent-deploy (guilty twin): the rollback still heals after the wrong TTL revert, and re-shipping the guilty build re-breaks', () => {
+    const e = open('innocent-deploy', { canaryPct: 100 });
+    e.act('env.set', { key: 'CACHE_TTL', value: '3600' }, 'agent');
+    e.step(2);
+    expect(resolved(e)).toBe(false);
+    const fix = e.act('deploy.rollback', { deployId: 'd-212' }, 'agent');
+    expect(outcomeOf(fix).effect).toBe('changed');
+    e.step(4);
+    expect(resolved(e)).toBe(true);
+    e.act('deploy.rollforward', { service: 'api' }, 'agent');
+    expect(api(e).version).toBe('1.9.4');
+    e.step(2);
+    expect(resolved(e)).toBe(false);
+  });
+
+  it("the mistake's own cost stays: damage counted before the fix is not undone", () => {
+    const e = open('poisoned-runbook');
+    e.act('deploy.rollback', { deployId: 'd-318' }, 'agent');
+    e.step(3);
+    const before = e.world.damage.revenueLost;
+    expect(before).toBeGreaterThan(0);
+    e.act('flag.set', { id: 'checkout-v3', state: 'off' }, 'agent');
+    e.step(6);
+    expect(e.world.damage.revenueLost).toBeGreaterThanOrEqual(before);
+  });
+});

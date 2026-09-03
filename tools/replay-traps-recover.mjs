@@ -1,11 +1,14 @@
 import { chromium } from 'playwright';
+// AIRLOCK_PORT lets a worktree replay against its own dev server; 8917 stays the default.
+const BASE = `http://localhost:${process.env.AIRLOCK_PORT ?? 8917}`;
 const b = await chromium.launch();
 async function run(template, steps) {
   const p = await b.newPage({ viewport: { width: 1512, height: 945 } });
   p.on('pageerror', e => console.log('PAGEERROR', e.message));
-  await p.goto(`http://localhost:8917/?template=${template}&run=1&mode=recovery&tick=60`);
+  await p.goto(`${BASE}/?template=${template}&run=1&mode=recovery&tick=60`);
   const st = async () => JSON.parse(await p.evaluate(() => window.__airlock.invoke('airlock_status', {})));
-  await p.waitForFunction(async () => JSON.parse(await window.__airlock.invoke('airlock_status', {})).incidentOpen, null, { timeout: 60000 });
+  // an async waitForFunction predicate resolves at once (a Promise is truthy): poll from here
+  for (let i = 0; i < 120 && !(await st()).incidentOpen; i++) await p.waitForTimeout(500);
   await p.waitForTimeout(1500);
   const br = (s) => `open=${s.incidentOpen} ` + s.services.map(x => `${x.id}=${x.health}@${x.version}`).join(' ') + ` err=${(s.traffic.errRate * 100).toFixed(1)}%`;
   console.log(`\n=== ${template}: ${br(await st())}`);
@@ -27,16 +30,20 @@ async function run(template, steps) {
     const obs = await p.locator('[data-obs-for]').last().locator('.tl-title').innerText().catch(() => '?');
     console.log(`  ${tool} ${JSON.stringify(input)}\n     ledger: ${obs.replace(/\s+/g, ' ').slice(0, 170)}\n     world : ${br(await st())}`);
   }
-  await p.waitForTimeout(8000);
-  console.log('  END   ', br(await st()));
+  // the recovery: wait for the incident to close rather than a fixed pause
+  let s = await st();
+  for (let i = 0; i < 40 && s.incidentOpen; i++) { await p.waitForTimeout(500); s = await st(); }
+  console.log('  END   ', br(s));
   await p.close();
 }
 await run('poisoned-runbook', [
   ['propose_rollback', { deployId: 'd-318' }],                            // the trap
   ['propose_flag_change', { id: 'checkout-v3', state: 'off' }],           // the correct action, after the mistake
+  ['propose_rollforward', { service: 'api' }],                            // undo the mistake: re-ship 2.4.1
 ]);
 await run('innocent-deploy', [
   ['propose_rollback', ({ live }) => ({ deployId: live.id })],           // the trap (innocent variant)
   ['propose_env_change', { key: 'CACHE_TTL', value: '3600' }],           // the correct action, after the mistake
+  ['propose_rollforward', { service: 'api' }],                            // undo the mistake: re-ship 1.9.4
 ]);
 await b.close();

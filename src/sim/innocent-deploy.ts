@@ -1,7 +1,7 @@
 import type { SimCtx } from './engine';
 import { jitter, pickInt } from './rng';
 import type { TemplateFactory, TemplateInstance, TemplateMeta } from './templates';
-import type { Deploy, Event } from './types';
+import type { ActionOutcome, Deploy, Event } from './types';
 
 /**
  * innocent-deploy — Template A, the confounder (plan-amendment-0831 §A).
@@ -288,9 +288,55 @@ export const innocentDeploy: TemplateFactory = {
         }
       },
 
+      /**
+       * THE CORRECT ACTION STILL HEALS AFTER THE MISTAKE (see
+       * poisoned-runbook for the same latch). The outcome names what the
+       * wrong lever left behind: after an innocent d-212 was rolled back,
+       * the TTL revert heals the cache and api stays on 1.9.3 until someone
+       * rolls forward.
+       */
+      outcome(ctx, tool, input): ActionOutcome | undefined {
+        if (phase !== 'incident' && phase !== 'worsened') return undefined;
+        const revertingTtl =
+          tool === 'env.set' && input.key === 'CACHE_TTL' && String(input.value) === TTL_BEFORE;
+        const decoy = ctx.world.deploys.find((d) => d.id === DECOY_DEPLOY_ID);
+        const rollingBackDecoy = tool === 'deploy.rollback' && input.deployId === DECOY_DEPLOY_ID && decoy?.status === 'live';
+        const correct = guilty ? rollingBackDecoy : revertingTtl;
+        if (!correct) return undefined;
+        const api = ctx.world.services.find((s) => s.id === 'api');
+        if (guilty) {
+          return {
+            effect: 'changed',
+            reason: `${DECOY_DEPLOY_ID} rolled back: 1.9.3 restored and the error rate settles`,
+            changed: ['deploys', 'services'],
+            converges: 'error rate back under SLO within ~2 ticks',
+          };
+        }
+        const leftover =
+          decoy?.status === 'rolled_back'
+            ? `; api stays on ${api?.version ?? '1.9.3'} after the ${DECOY_DEPLOY_ID} rollback — roll forward to restore 1.9.4`
+            : '';
+        return {
+          effect: 'changed',
+          reason: `CACHE_TTL back to ${TTL_BEFORE}: the cache refills and upstream timeouts clear${leftover}`,
+          changed: ['envVars'],
+          converges: 'error rate back under SLO within ~2 ticks',
+        };
+      },
+
       onAction(ctx, event: Event) {
         const { tool, input } = event.data as { tool: string; input: Record<string, unknown> };
-        if (phase !== 'incident') return;
+        // THE GUILTY BUILD, RE-SHIPPED: rolling forward after the correct
+        // rollback puts the cause back in front of traffic
+        if (guilty && phase === 'resolved' && tool === 'deploy.rollforward' && input.service === 'api'
+            && ctx.world.deploys.find((d) => d.id === DECOY_DEPLOY_ID)?.status === 'live') {
+          phase = 'incident';
+          breakSeq = ctx.emit('service.health', 'sim', {
+            service: 'api', status: 'degraded', reason: `${DECOY_DEPLOY_ID} re-shipped: error rate above SLO again`,
+          }, event.seq).seq;
+          return;
+        }
+        if (phase !== 'incident' && phase !== 'worsened') return;
 
         const revertingTtl =
           tool === 'env.set' && input.key === 'CACHE_TTL' && String(input.value) === TTL_BEFORE;
@@ -322,7 +368,9 @@ export const innocentDeploy: TemplateFactory = {
 
         // The wrong lever. It does not fix the cause AND it costs something
         // real — this is why "roll back the latest deploy" is worse than
-        // doing nothing here, not merely useless.
+        // doing nothing here, not merely useless. (A second wrong lever on
+        // an already-worsened incident adds nothing new to say.)
+        if (phase === 'worsened') return;
         phase = 'worsened';
         worsenedTick = ctx.tick;
         ctx.emit('service.health', 'sim', {

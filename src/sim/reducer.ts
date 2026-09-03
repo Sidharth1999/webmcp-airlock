@@ -291,6 +291,25 @@ export function reduce(world: World, event: Event): World {
               : [...world.routes, next],
           };
         }
+        // ROLL-FORWARD AFTER A WRONG ROLLBACK RE-SHIPS THE BUILD. To an SRE
+        // "roll forward" means "put the newer build back"; with nothing newer
+        // than the live build the reducer has nothing to apply and the
+        // template owns any consequence (retry-storm ships its staged 2.4.2).
+        case 'deploy.rollforward': {
+          const i = input as { service: string };
+          const { liveIdx, nextIdx } = rolledBackAhead(world.deploys, i.service);
+          if (nextIdx < 0) return world;
+          const next = world.deploys[nextIdx]!;
+          return {
+            ...world,
+            deploys: world.deploys.map((d, idx) => {
+              if (idx === nextIdx) return { ...d, status: 'live' as const };
+              if (idx === liveIdx) return { ...d, status: 'superseded' as const };
+              return d;
+            }),
+            services: world.services.map((s) => (s.id === i.service ? { ...s, version: next.version } : s)),
+          };
+        }
         case 'deploy.rollback': {
           const i = input as { deployId: string };
           const target = world.deploys.find((d) => d.id === i.deployId);
@@ -341,6 +360,25 @@ export function reduce(world: World, event: Event): World {
     case 'plan.proposed':
       return world;
   }
+}
+
+/**
+ * The newest rolled-back build of a service that is NEWER than its live
+ * build — what a roll-forward re-ships — as append indexes (-1 = none).
+ */
+export function rolledBackAhead(deploys: readonly Deploy[], service: string): { liveIdx: number; nextIdx: number } {
+  let liveIdx = -1;
+  let nextIdx = -1;
+  for (let idx = deploys.length - 1; idx >= 0; idx--) {
+    const d = deploys[idx]!;
+    if (d.service !== service) continue;
+    if (d.status === 'live') {
+      liveIdx = idx;
+      break; // anything rolled back below the live build is older than it
+    }
+    if (d.status === 'rolled_back' && nextIdx < 0) nextIdx = idx;
+  }
+  return { liveIdx, nextIdx };
 }
 
 export function replay(events: readonly Event[], from: World = initialWorld()): World {

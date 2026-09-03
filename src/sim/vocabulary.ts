@@ -1,3 +1,4 @@
+import { rolledBackAhead } from './reducer';
 import type { World } from './types';
 
 /**
@@ -102,6 +103,9 @@ export const WRITE_ACTIONS: Record<string, WriteAction> = {
     describe(input, world) {
       const svc = String(input.service ?? '?');
       const cur = world.services.find((s) => s.id === svc);
+      const { nextIdx } = rolledBackAhead(world.deploys, svc);
+      const back = nextIdx >= 0 ? world.deploys[nextIdx] : undefined;
+      if (back) return `roll forward ${svc}: re-ship ${back.version} (${back.id}, rolled back)${cur ? ` over ${cur.version}` : ''}`;
       return `roll forward ${svc}: ship the next build${cur ? ` (currently ${cur.version})` : ''}`;
     },
   },

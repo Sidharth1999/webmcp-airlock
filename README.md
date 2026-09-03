@@ -138,17 +138,20 @@ gate does not solve:
 | ordering family: the correct order (shed, then ship) | 4 of 24 | 0 of 24 | 48 paired runs |
 | ordering family: order violated | 16 of 24 | 24 of 24 | 48 paired runs |
 
-Chrome's own `webmcp-evals` CLI passes 24/24 smoke steps against the live URL
-(13 in Triage, 11 in Recovery) with no model in the loop, and driven by GPT-5 it
-chose the right tool with the right arguments in 28 of 28 cases (18 pass under
-the strict matcher, because it reads the console before it proposes, which our
-descriptions ask for); zero production writes in Triage; the smuggled
-instruction in the poisoned log was named as an injection and refused
-(`study/chrome-evals/RESULTS.md`). The Lighthouse agentic-browsing category is
-4/4. The gated arm above hit the turn cap twice
-as often as the ungated arm, and the operator in the study is a script that
-approves everything; the model never attempted the flagship trap in either arm. Full accounting, including what is
-excluded and why: [`docs/study-summary.md`](docs/study-summary.md).
+Chrome's own `webmcp-evals` CLI passes 24 of 24 smoke steps against the live
+URL with no model in the loop. Driven by GPT-5 it chose the right tool with the
+right arguments in 28 of 28 cases, made zero production writes in Triage, and
+named the smuggled log instruction as an injection and refused it; 18 of 28
+pass the strict matcher, because the model reads the console before it
+proposes (`study/chrome-evals/RESULTS.md`). Lighthouse's agentic-browsing
+category is 4 of 4.
+
+Two caveats on the table above. The gated arm hit the turn cap twice as often
+as the ungated arm, and the study's operator is a script that approves
+everything. The model never attempted the flagship trap in either arm. The
+full accounting, including what is excluded and why, is
+[`docs/study-summary.md`](docs/study-summary.md); every number in this
+repository and how to regenerate it is [`docs/evals.md`](docs/evals.md).
 
 ---
 
@@ -157,36 +160,31 @@ excluded and why: [`docs/study-summary.md`](docs/study-summary.md).
 Not a chat box bolted to a dashboard. The page is the authority:
 
 - **The tool surface is a function of console state, and changes live.** The
-  operator moves a response stage — Triage → Diagnosis → Recovery — and tools
-  are registered and unregistered underneath the agent mid-session
+  operator moves the response stage from Triage to Diagnosis to Recovery, and
+  tools are registered and unregistered underneath the agent mid-session
   (`AbortController`, so a real host fires `toolchange`). Triage grants 13
-  rungs: the six reads, the agent's own notebook, a plan tool, and the five
+  tools: the six reads, the agent's notebook, the plan tool, and five
   incident-command proposals. **Nothing that touches production exists in
-  triage at all** — not gated, *absent*.
+  Triage at all.** It is absent, not gated.
 - **A removed tool leaves a tombstone**, and `explain_surface` lets the agent
   ask *why its own capabilities changed* and get a real answer.
 - **Every write is a proposal.** `propose_rollback` returns
   `{status: 'proposed', proposalSeq}` and nothing else happens. The engine
   re-checks mode, tier and the dual key **at decision time**, not at proposal
   time, because the operator may have moved the stage in between.
-- **The page knows where an idea came from.** Reads are audited into the same
-  event log, so when an agent proposes rolling back a deploy id that only ever
-  appeared inside a customer-supplied log line the page served it, the approval
-  card says so and promotes the write to the two-key rung. A server that also
-  serves the logs could tag provenance too; what it cannot be is the surface
-  the human is deciding on.
-- **A plan is a first-class object.** `propose_plan` takes an ordered sequence
-  and the reason the order is load-bearing. It is deliberately *not* a batch
-  approval — step N+1 is not even proposed until step N has executed, so you
-  always decide against the world as it is.
+- **Provenance and plans are page-side objects**, described above: the card
+  that quotes the customer line it was fed, and `propose_plan`, which proposes
+  step N+1 only after step N has executed, so you always decide against the
+  world as it is.
 
-Put together, that is the reason the agent has to be *in the page* rather than
-behind a server MCP or a CLI: the capability boundary, the evidence, and the
-decision are one object here. The gate re-checks against the rendered state the
-human is looking at, the surface changes in lockstep with the stage the operator
-set, and the agent's objection to a click appears beside the control because
-the agent is in the DOM at decision time. Replicating that elsewhere means
-rebuilding the console, at which point it is a WebMCP page.
+That is why the agent has to be in the page rather than behind a server MCP
+or a CLI. The capability boundary, the evidence, and the decision are one
+object here: the gate re-checks against the state the human is looking at, the
+surface changes with the stage the operator set, and the agent's objection to
+a click appears beside the control because the agent is in the DOM at decision
+time. Reproducing that elsewhere means rebuilding the console, at which point
+it is a WebMCP page. The claim, its limits, and its sources are in
+[`docs/thesis.md`](docs/thesis.md).
 
 ---
 
@@ -271,10 +269,10 @@ trap actually costs more than doing nothing, both probed to the same horizon
 
 Six things this console does that a chat transcript cannot:
 
-1. **The approval card shows what the agent worked FROM** — the reads it
-   actually made, read off the audit trail so they cannot be overstated, next
-   to its own conclusion in its own words. Fact and claim are set in different
-   type on purpose. An agent that proposes a change having read *nothing* gets
+1. **The approval card shows what the agent worked from.** The reads it
+   actually made, taken off the audit trail so they cannot be overstated, sit
+   next to its own conclusion in its own words. Fact and claim are set in
+   different type. An agent that proposes a change having read nothing gets
    said out loud.
 2. **A citation is a place.** When the agent writes "contention cleared (#42)",
    #42 is a button that lands you on log line 42.
@@ -282,17 +280,16 @@ Six things this console does that a chat transcript cannot:
    out and its reasoning appears beside that control. It counsels; it never
    blocks. Click again and you proceed.
 4. **A plan lights up the console.** Before you approve anything, the rows the
-   sequence will touch are numbered in place — 1 on the route, 2 on the
-   service — and each step carries its price.
+   sequence will touch are numbered in place, and each step carries its price.
 5. **A tool call is a row, and the row opens onto its answer.** The agent
    panel is one ledger: connect, each read, each finding, the plan, each step,
    and what that step did, in the order they happened. Open a read and you get
-   the bytes the agent actually received — size, `asOfSeq`, the payload — and
-   a link onto the console surface it came from.
+   the bytes the agent actually received, with the log position they reflect
+   and a link onto the console surface they came from.
 6. **The storefront is in the story.** The shop breaks when checkout does and
    reveals itself unasked. When "tell customers" executes, the operator's
    status post appears on the shop, quoted verbatim off the same world. When
-   the fix ships, checkout comes back — on screen, not in a metric.
+   the fix ships, checkout comes back on screen, not in a metric.
 
 ---
 

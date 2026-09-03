@@ -1,5 +1,86 @@
 # STATUS — live audit log
 
+## 2026-09-02 22:45 EDT — approval is a HELD gesture while a host is attached (branch `worktree-agent-ac67657c2bd28e2aa`, rebased on main 3c424d4, not merged)
+
+**What happened.** In ChatGPT's in-app browser the agent proposed a change
+through `propose_*` and then clicked the page's own Approve button. The
+receipt said "2 of 2 approved by you" because a host's synthetic click is
+indistinguishable from the operator's. The page cannot make a computer-use
+host impossible to bypass; it can make approval a gesture a one-shot click
+does not satisfy, and say so. (spec-feedback 7 names the same hole.)
+
+- **Hold to approve, only with a host on the line** (`hostAttached()` =
+  the same `document.modelContext`/`navigator.modelContext` test that prints
+  `host attached` in the status bar). `pointerdown` starts a 700ms hold, the
+  agent's violet fills the button left to right, `pointerup` / `pointerleave`
+  / `pointercancel` before the end cancels, completion approves. A plain
+  click — Playwright's, or `element.click()` from script — starts a hold and
+  ends it a few ms later, so it approves nothing and the button says so for
+  a beat. The label reads `Hold to approve`; Reject stays a click.
+- **⌘ enter is held the same way in host mode** (keydown starts the hold,
+  auto-repeat ignored, any keyup of Enter/Meta/Ctrl cancels). Kept as a chord,
+  made a hold: a synthesised keypress costs a computer-use host exactly what
+  a synthesised click costs, so an instant chord would have been the same
+  hole with a different name. Without a host the chord is unchanged.
+- **The second key is the same gesture.** On a dual-key card in host mode
+  the `engage key` label is press-and-hold; a click (or Space) never engages
+  it, only releases it. The label reads `hold to engage key`.
+- **Without a host NOTHING changes** — no `data-hold`, no fill, a click is a
+  click. Smoke, the walkthrough and the review harness drive tools with no
+  host and every existing gate that clicks `.ap-approve` passes untouched.
+  `?host=1` is a DEV-ONLY stand-in (`import.meta.env.DEV`, folded out of the
+  production bundle); production detects the host itself.
+- **The receipt is honest.** The gesture rides the decision into the log
+  (`engine.decide(..., via)` → `action.approved.data.via` = `hold` /
+  `key-hold` / `click` / `key`; the stream line prints it). A held gesture,
+  or any gesture with no host attached, is `approved by you`; a plain click
+  or chord while a host was attached would print `approved by click` /
+  `approved by keyboard` on the plan receipt and the ask row. By
+  construction that path is unreachable through the UI now (the hold
+  refuses the click), so the label is a guarantee, not a detector — nothing
+  is inferred about who held.
+- **The dock says it.** Third prompt is now `Move the stage to Recovery,
+  propose the fix, and don't click anything in the console — I decide.`;
+  one line under the prompts: `Approvals are a held gesture while an agent
+  is attached.`
+
+**Frames** `log/hold/` (1512x945, dev build with `?host=1`, `tools/walk-hold.mjs`,
+`AIRLOCK_PORT=8929`): `00` dock empty state with the new prompt and line ·
+`01` the pending ask reading Hold to approve · `02` a click refused (violet
+ring) · `03`/`04` a hold at 350ms, then cancelled · `05` the fill mid-hold ·
+`06` approved by hold · `07`/`08` the chord held and approved · `09`–`13`
+the second key: click refused, cancelled hold, held, engaged, the write
+landing under `key: operator · hold` · `14` the seven-step plan, every step
+held, receipt `7 of 7 approved by you` · `15` no host: click approves.
+Walk verdict GREEN, 26 assertions, 0 page errors.
+
+**Honest limits.** A determined automation host can still approve: hold the
+pointer down for 700ms (`mouse.down`, wait, `mouse.up`), hold ⌘ enter for
+700ms, or dispatch its own `pointerdown` and wait. The page does not claim
+otherwise — the record says `hold`, which is what happened, not who did it.
+What changed is that the cheapest, most common host gesture (one click, one
+keypress) no longer moves anything, and the product says so on the card,
+in the dock and in the log.
+
+### Test-file diff (adds only, nothing edited or removed) — Sid to eyeball
+`tools/smoke.mjs`, **+109 / -0**, six `check(...)` gates appended immediately
+before the existing `no page errors` gate, on a page whose init script
+installs a `document.modelContext` stub (the production bundle has no
+`?host=1`; the stub is the flag the page reads):
+1. status bar `host attached`, button reads `Hold to approve`, dock line and third prompt present
+2. a plain click on Approve — pointer or `element.click()` — does not approve
+3. a hold released at 350ms does not approve
+4. a 700ms hold approves and the log records `· hold`
+5. ⌘ enter tapped does not approve; held 700ms it does, recorded `· key-hold`
+6. the second key: click does not engage, hold does, write lands `key: operator · hold`
+
+`npm run smoke` ALONE on 8930: **GREEN, 129 gates** (121 + 2 from main's service-strip gates + these 6) · typecheck · 206 tests ·
+lint:sim. Engine change: `decide()` takes an optional `via` and stamps it on
+`action.approved` only when given — the airlock tests that assert the exact
+shape of that data (`keyHolder` absent) still pass unchanged.
+
+---
+
 ## 2026-09-02 19:45 EDT — the service chain is a LIVE strip (branch `worktree-agent-a0b393c27e8edc8da`, not merged)
 
 - **What shipped** (`ea31dde`): the three version chips in the Response

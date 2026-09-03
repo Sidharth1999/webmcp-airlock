@@ -255,6 +255,8 @@ Six things this console does that a chat transcript cannot:
   are deliberately separate copies with a test asserting they agree, because
   the engine must never trust that a tool was unregistered.
 
+The thesis and how far it is defended: [`docs/thesis.md`](docs/thesis.md).
+Every number and how to regenerate it: [`docs/evals.md`](docs/evals.md).
 Full map: [`docs/architecture.md`](docs/architecture.md). Event schema:
 [`docs/schema.md`](docs/schema.md). What writing 27 tools taught us:
 [`docs/lessons-for-tool-authors.md`](docs/lessons-for-tool-authors.md). Feedback to the spec from

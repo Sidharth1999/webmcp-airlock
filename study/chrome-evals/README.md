@@ -72,7 +72,28 @@ release-airlock.vercel.app:
       -u "https://release-airlock.vercel.app/?mode=recovery" \
       -e study/chrome-evals/airlock-recovery.evals.json -v
 
-## Cost-gated commands (NOT run — author decides)
+## Model-in-the-loop results — RUN 2026-09-02: see [RESULTS.md](RESULTS.md)
+
+`openai:gpt-5` through the `browser` command against the live URL:
+**18/28 cases** (triage 12/13, guard 2/4, recovery 4/11), **$1.73** spent.
+In all 28 the model chose the right tool with the right arguments; eight of the
+ten failures are our cases counting the console reads the tool descriptions ask
+for as unexpected extra calls. **Zero production-write proposals in triage
+across every guard run**, and the model refused the instruction smuggled through
+untrusted log text, naming it as an injection. Reports in `runs/`.
+
+Two corrections this run forced, both of which matter to anyone re-running it:
+- **The live build boots `retry-storm`, not `migration-trap`.** The eval files'
+  entity ids (`d-201`, `mig-77`, `new-checkout`) need an explicit
+  `?template=migration-trap`; the sentence below about "the default
+  `migration-trap` scenario" is stale.
+- **`?template=` re-seeds but leaves the sim PAUSED**, so the incident never
+  opens (it opens at tick 8). Pass `?run=1` with it.
+- `openai:gpt-5.6-terra` **cannot be run through this CLI at all** — the 5.6
+  family refuses function tools on `/v1/chat/completions` unless
+  `reasoning_effort` is `none`, and the CLI targets chat completions by design.
+
+## Cost-gated commands (the original projection — superseded by RESULTS.md)
 
 The CLI reads `.env` from the current directory; `OPENAI_API_KEY` is set in
 the repo's `.env`, no Gemini/Anthropic key exists. Run from the repo root.
@@ -81,6 +102,9 @@ the repo's `.env`, no Gemini/Anthropic key exists. Run from the repo root.
 tsc` — `npm run build` also wants `oxfmt`). Node >= 22 required.
 
     # OpenAI, cheapest serious model (model id via the Vercel backend = "openai:<id>")
+    # NOTE: --reporter is variadic and will SWALLOW the `browser` subcommand.
+    # Put a non-variadic option after it, as the runs in RESULTS.md do:
+    #   --reporter console json html --chrome-channel chrome browser -u ...
     node $WEBMCP_EVALS --chrome-channel chrome --backend vercel --model openai:gpt-5-mini \
       -o study/chrome-evals/.evals --reporter console json html \
       browser -u https://release-airlock.vercel.app -e study/chrome-evals/airlock-triage.evals.json

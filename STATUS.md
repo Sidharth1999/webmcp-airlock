@@ -1,5 +1,21 @@
 # STATUS — live audit log
 
+## CHECKPOINT 2026-09-02 ~23:20 EDT — every trap is recoverable; merged, verified, deployed
+
+Merged `worktree-agent-ad52f28395e88b950` (`761cd9a`, `4ccc789`): a cap ≤150
+gives the wedged retry-storm fleet headroom and the next roll completes;
+after a wrong rollback the correct action still heals in poisoned-runbook and
+innocent-deploy (root cause: `onAction` ignored everything once
+`phase='worsened'`); roll-forward re-ships the rolled-back build; generic
+deploy no-op reasons name the real precondition. Replays through the real
+tool path (`tools/replay-*.mjs`) end every scenario at open=false after the
+mistake. 229 tests (+13, `src/sim/outcome.test.ts`), corpus 91/91 with
+`study/corpus.json` byte-identical, smoke ALONE GREEN 131 gates. No existing
+test edited. Handoff: `_handoff/2026-09-02-final-night.md`.
+
+---
+
+
 ## CHECKPOINT 2026-09-02 ~23:15 EDT — after the real ChatGPT run: legible outcomes + held approval, main at d46941e
 
 **What the run showed (Sid, ChatGPT in-app browser, GPT-5.6 Sol Light, live

@@ -1171,6 +1171,142 @@ try {
   if (walkErrors.length) console.error('[smoke] walkthrough page errors:', walkErrors);
   await walk.close();
 
+  // ---- the full response: the seven-step plan, playable from the product --
+  // "I would like the walkthrough to have a larger sequence of actions like
+  // updating the status page for customers as well." The dock's second
+  // control plays the seven-step plan — ownership, severity, freeze, the
+  // status post, the cap, the lift, the ship — with the shop open, because
+  // step 4 lands there. The film arc stays on the first control, untouched.
+  const full = await browser.newPage({ viewport: { width: 1512, height: 945 } });
+  const fullErrors = [];
+  full.on('pageerror', (e) => fullErrors.push(e.message));
+  await full.goto(URL, { waitUntil: 'networkidle' });
+  await full.getByTestId('flag-toggle-new-checkout').waitFor({ timeout: 15_000 });
+  check(
+    'the empty dock offers the full response beside the walkthrough, shop closed until asked',
+    (await full.getByTestId('walk-start').innerText()) === 'Watch a walkthrough' &&
+      (await full.getByTestId('walk-full').innerText()) === 'Watch the full response' &&
+      (await full.locator('.shell').getAttribute('data-site')) === 'off'
+  );
+  await full.getByTestId('walk-full').click();
+  await full.locator('[data-testid="walk-line"][data-state="running"]').waitFor({ timeout: 10_000 });
+  await full.locator('[data-testid="walk-line"][data-state="ready"]').waitFor({ timeout: 90_000 });
+  await full.waitForTimeout(300);
+  check(
+    'the full response reaches a seven-step plan with step 1 decidable, the shop open, no refusal',
+    (await full.locator('.plan-card .pl-step').count()) === 7 &&
+      (await full.locator('.pl-step[data-state="live"] .ap-approve').count()) === 1 &&
+      (await full.locator('.shell').getAttribute('data-site')) === 'on' &&
+      (await full.getByTestId('storefront').isVisible()) &&
+      (await full.locator('#event-stream li[data-kind="action.blocked"][data-actor="agent"]').count()) === 0 &&
+      /scripted caller, not a model/.test(await full.getByTestId('walk-line').innerText()) &&
+      (await full.getByTestId('sf-status').isHidden())
+  );
+  const fullPlan = full.locator('.plan-card').first();
+  const fullPlanId = ((await fullPlan.getAttribute('data-testid')) ?? '').replace(/^plan-/, '');
+  let fullNoticeAt4 = false;
+  for (let i = 0; i < 7; i++) {
+    const approve = full.locator('.pl-step[data-state="live"] .ap-approve');
+    await approve.waitFor({ timeout: 15_000 });
+    if (await approve.isDisabled()) {
+      await full.locator('.pl-step[data-state="live"] .ap-key').first().click();
+      await full.waitForTimeout(200);
+    }
+    await approve.click();
+    await full.waitForFunction(
+      (n) => document.querySelectorAll('.plan-card .pl-step[data-state="done"]').length >= n,
+      i + 1,
+      { timeout: 15_000 }
+    );
+    await full.waitForTimeout(300);
+    if (i === 3) {
+      const st = full.getByTestId('sf-status');
+      fullNoticeAt4 =
+        (await st.isVisible()) &&
+        /Checkout is failing for some customers/.test(await st.innerText()) &&
+        (await st.getAttribute('data-state')) === 'identified';
+    }
+  }
+  check('approving step 4 quotes the status post on the shop, as a known issue', fullNoticeAt4);
+  await full.waitForFunction(
+    (id) => document.querySelector(`[data-testid="plan-${id}"]`)?.dataset.state === 'complete',
+    fullPlanId,
+    { timeout: 15_000 }
+  );
+  check(
+    'all seven steps done and the receipt stays on screen',
+    (await fullPlan.locator('.pl-step[data-state="done"]').count()) === 7 && (await fullPlan.isVisible())
+  );
+  // the airlock is empty, so the sim moves again and the ship heals checkout
+  await full
+    .waitForFunction(
+      () => document.querySelector('[data-testid="sf-status"]')?.dataset.state === 'stale',
+      null,
+      { timeout: 90_000 }
+    )
+    .catch(() => {});
+  await full.waitForTimeout(600);
+  check(
+    'after step 7 checkout is back on the shop and the status strip stands down to a last update',
+    !(await full.getByTestId('sf-banner').isVisible()) &&
+      (await full.getByTestId('sf-status').getAttribute('data-state')) === 'stale' &&
+      /^Checkout/.test(await full.getByTestId('sf-buy').innerText()) &&
+      (await full.getByTestId('walk-stop').innerText()) === 'Reset'
+  );
+  await full.getByTestId('walk-stop').click();
+  await full.waitForTimeout(1200);
+  check(
+    'reset after the full response returns the console to its empty state',
+    (await full.getByTestId('findings-empty').isVisible()) &&
+      (await full.getByTestId('walk-line').isHidden()) &&
+      (await full.locator('.plan-card').count()) === 0
+  );
+  check('no page errors during the full response', fullErrors.length === 0);
+  if (fullErrors.length) console.error('[smoke] full response page errors:', fullErrors);
+  await full.close();
+
+  // ---- ?walk=<film|plan|provenance>: a walkthrough as a boot param --------
+  // Applied after the other boot params; the scene's own scenario wins over
+  // ?template=; an unknown value does nothing.
+  const wp = await browser.newPage({ viewport: { width: 1512, height: 945 } });
+  wp.on('pageerror', (e) => pageErrors.push(e.message));
+  await wp.goto(URL + '?walk=provenance', { waitUntil: 'networkidle' });
+  await wp.locator('[data-testid="walk-line"][data-state="ready"]').waitFor({ timeout: 90_000 });
+  await wp.waitForTimeout(300);
+  const wpCard = wp.locator('[data-testid^="approval-"]').first();
+  const wpText = ((await wpCard.textContent()) ?? '').replace(/\s+/g, ' ');
+  check(
+    '?walk=provenance reaches the two-key card with the customer line quoted and approve disarmed',
+    /came from untrusted content/.test(wpText) &&
+      /customer-supplied text/.test(wpText) &&
+      (await wpCard.locator('.ap-key').count()) === 1 &&
+      (await wpCard.locator('.ap-approve').isDisabled())
+  );
+  await wp.close();
+  const wf = await browser.newPage({ viewport: { width: 1512, height: 945 } });
+  wf.on('pageerror', (e) => pageErrors.push(e.message));
+  await wf.goto(URL + '?template=baseline&walk=film', { waitUntil: 'networkidle' });
+  await wf.locator('[data-testid="walk-line"][data-state="ready"]').waitFor({ timeout: 90_000 });
+  await wf.waitForTimeout(300);
+  check(
+    '?walk=film still plays the refusal-and-unlock arc, and its scenario wins over ?template=',
+    (await wf.locator('#event-stream li[data-kind="action.blocked"][data-actor="agent"]').count()) >= 1 &&
+      (await wf.locator('.plan-card .pl-step').count()) === 2 &&
+      (await wf.locator('.pl-step[data-state="live"] .ap-approve').count()) === 1
+  );
+  await wf.close();
+  const wu = await browser.newPage({ viewport: { width: 1512, height: 945 } });
+  wu.on('pageerror', (e) => pageErrors.push(e.message));
+  await wu.goto(URL + '?walk=bogus', { waitUntil: 'networkidle' });
+  await wu.getByTestId('flag-toggle-new-checkout').waitFor({ timeout: 15_000 });
+  await wu.waitForTimeout(800);
+  check(
+    'an unknown ?walk= value does nothing',
+    (await wu.getByTestId('walk-line').isHidden()) &&
+      (await wu.getByTestId('sim-status').innerText()) === 'seeded · paused'
+  );
+  await wu.close();
+
   // ---- ?mode=<stage>: the response stage as a boot param -----------------
   // Chrome's webmcp-evals CLI drives a URL, and 9 of the 11 recovery cases are
   // tools that do not exist in triage — so the recovery set could not be run

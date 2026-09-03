@@ -1,5 +1,50 @@
 # STATUS — live audit log
 
+## CHECKPOINT 2026-09-02 ~23:15 EDT — after the real ChatGPT run: legible outcomes + held approval, main at d46941e
+
+**What the run showed (Sid, ChatGPT in-app browser, GPT-5.6 Sol Light, live
+URL, retry-storm):** (1) executed-but-no-effect actions read "nothing in the
+world moved" with no reason — the rollout was halted at the autoscaler ceiling
+(the scenario's trap) and the agent could not learn why, so it scaled, rolled
+back, restarted; (2) **the host clicked Approve itself** — ChatGPT's browser is
+both the WebMCP caller and a DOM automation agent; a synthetic click is
+indistinguishable from the operator's, so the receipt said "approved by you".
+
+**Merged tonight (all smoke-GREEN alone, 216 tests, corpus 91/91 with
+`study/corpus.json` byte-identical):**
+- `e066580` outcomes: every executed write carries
+  `result.outcome {effect, reason, changed?, converges?}`; `effect:'none'`
+  leaves the world untouched AND logs a line; observation rows read
+  `No effect · <reason>` / `Halted · <reason>`; `airlock_status` adds
+  per-service `capacity {instances, ceiling, headroom}`, `admittedRps`+`cap`
+  beside offered `rps`, and `recentOutcomes` (last 3); `traffic_history`
+  ticks carry admitted/cap. Schema amendment dated in docs/schema.md.
+  +10 unit tests (`src/sim/outcome.test.ts`), +2 smoke gates.
+- `c810aa5` hold-to-approve while a host is attached (`hostAttached()` =
+  real modelContext, or dev-only `?host=1`): 700ms press-and-hold with a
+  violet fill, plain click/`element.click()` refused, ⌘ enter must be held,
+  dual key is a held engage; `engine.decide(..., via)` stamps the gesture;
+  receipt says `approved by click/keyboard` if a non-held path ever lands;
+  dock third prompt now says "don't click anything in the console — I
+  decide" + line "Approvals are a held gesture while an agent is attached."
+  +6 smoke gates. Without a host nothing changed.
+- Five on-camera defects (`fb0e9c9`…`704367c`), the service strip
+  (`76cbf73`, +2 gates), evals RESULTS (`6ffabd4`), spec-feedback point 7,
+  film script cut 2 (seven-step arc) + ChatGPT demo script.
+
+**Test-file diffs this checkpoint, all ADDS:** outcome.test.ts (10), smoke
++2 (strip) +6 (hold) +2 (outcomes) → **131 gates**. No existing test edited.
+An agent `git reset` main once and dropped a commit (`9d1d81d`); re-applied
+as `3c424d4`. Check `git log` after agent work.
+
+**Honest limit, written into the Devpost draft and spec-feedback §7:** a
+determined automation host can still hold for 700ms. The hold removes the
+cheapest gesture and the product says what happened; only a host-side rule
+closes it.
+
+---
+
+
 ## 2026-09-02 22:45 EDT — approval is a HELD gesture while a host is attached (branch `worktree-agent-ac67657c2bd28e2aa`, rebased on main 3c424d4, not merged)
 
 **What happened.** In ChatGPT's in-app browser the agent proposed a change

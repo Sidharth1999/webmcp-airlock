@@ -2192,20 +2192,79 @@ function agentSettled(): void {
  */
 let lastAgentTarget: Element | null = null;
 
+/** what the chip must never sit on: anything a hand could be reaching for */
+const CONTROL_SEL = 'button, [data-act], summary, input, select, textarea, a, label';
+
+/** true if a chip drawn at (x, y, w, h) would cover a control */
+function coversControl(x: number, y: number, w: number, h: number): boolean {
+  const pts: [number, number][] = [
+    [x + 2, y + 2],
+    [x + w - 2, y + 2],
+    [x + 2, y + h - 2],
+    [x + w - 2, y + h - 2],
+    [x + w / 2, y + h / 2],
+  ];
+  // the chip itself is pointer-events: none, so hit-testing looks through it
+  return pts.some(([px, py]) => document.elementFromPoint(px, py)?.closest(CONTROL_SEL) != null);
+}
+
+/**
+ * The left edge of a gap inside a single-line row wide enough for the chip,
+ * or null. A row's words and controls sit at its ends; the middle is ground.
+ * Text is measured by its glyphs, not its box — the state column stretches
+ * across the row and right-aligns its text, so its box says nothing.
+ */
+function freeSpanIn(target: Element, r: DOMRect, need: number): number | null {
+  const spans: [number, number][] = [];
+  const walker = document.createTreeWalker(target, NodeFilter.SHOW_TEXT);
+  for (let n = walker.nextNode(); n; n = walker.nextNode()) {
+    if (!n.textContent?.trim()) continue;
+    const range = document.createRange();
+    range.selectNodeContents(n);
+    for (const b of range.getClientRects()) if (b.width) spans.push([b.left, b.right]);
+  }
+  for (const el of target.querySelectorAll(`${CONTROL_SEL}, svg, img`)) {
+    const b = el.getBoundingClientRect();
+    if (b.width) spans.push([b.left, b.right]);
+  }
+  spans.sort((a, b) => a[0] - b[0]);
+  let edge = r.left + 4;
+  for (const [l, rt] of spans) {
+    if (l - edge >= need) return Math.round(edge + 6);
+    edge = Math.max(edge, rt);
+  }
+  return r.right - 4 - edge >= need ? Math.round(edge + 6) : null;
+}
+
 function placeAgentCursor(target: Element): void {
   const r = target.getBoundingClientRect();
   if (r.width === 0) return;
   const offscreen = r.bottom < 0 || r.top > window.innerHeight;
   agentCursor.hidden = offscreen;
   if (offscreen) return;
-  const labelY = Math.max(4, Math.round(r.top - 22));
-  // RIGHT-aligned to the target, not left. Left-aligned, the pill sat 22px
-  // above the row's left edge — which is exactly where the group heading
-  // above it starts, so "Agent" was printed on top of "TRAFFIC". Headings in
-  // this console are left-aligned, so the space above-right is the free one.
-  const w = agentCursor.getBoundingClientRect().width || 64;
-  const x = Math.round(Math.min(Math.max(4, r.right - w), window.innerWidth - w - 4));
-  agentCursor.style.transform = `translate(${x}px, ${labelY}px)`;
+  const box = agentCursor.getBoundingClientRect();
+  const w = box.width || 64;
+  const h = box.height || 18;
+  const clampX = (x: number): number => Math.round(Math.min(Math.max(4, x), window.innerWidth - w - 4));
+  const above = Math.max(4, Math.round(r.top - 22));
+  const below = Math.round(r.bottom + 4);
+  // WHERE IT RESTS. Above-right was the rule (above-left printed "Agent" on
+  // the group heading), but every control row ends in an `Actions` menu, so
+  // above-right of one row is exactly on top of the row above's menu — at
+  // the resolved beat the chip sat on the web row's `Actions ▾`. A single-
+  // line row has ground in its middle, between its name and its state, and
+  // a chip there covers nothing and says "on this row" more plainly than a
+  // chip floating over the row above. Failing that, the four shoulders in
+  // the old order, the first that does not land on a control.
+  const rest: [number, number] = [clampX(r.right - w), above];
+  const cands: [number, number][] = [];
+  if (r.height <= 48) {
+    const gap = freeSpanIn(target, r, w + 12);
+    if (gap !== null) cands.push([clampX(gap), Math.round(r.top + (r.height - h) / 2)]);
+  }
+  cands.push(rest, [clampX(r.left), above], [clampX(r.right - w), below], [clampX(r.left), below]);
+  const [x, y] = cands.find(([cx, cy]) => !coversControl(cx, cy, w, h)) ?? rest;
+  agentCursor.style.transform = `translate(${x}px, ${y}px)`;
 }
 
 function repositionAgentCursor(): void {

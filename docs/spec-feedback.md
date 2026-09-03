@@ -126,8 +126,8 @@ call, and it went from 13 to 27. Screenshots and the console log are in
 [`public/minimal.html`](../public/minimal.html), one file, two tools, one
 Unlock button that logs every input it receives. Labelled "Unlock (operator
 only)", the host would not press it across four prompts, with or without an
-instruction in the tool result. Labelled just "Unlock", it pressed it seven
-seconds after the refusal and reported the fix proposed. Every event it
+instruction in the tool result. Labelled just "Unlock", it pressed it on the next
+prompt, 43 s after the refused call, and reported the fix proposed. Every event it
 dispatched was `isTrusted:false`. Two consequences: the boundary today is a
 naming convention the page author has to guess at, and on this host a page
 can tell a synthetic activation from a person's. The console now refuses

@@ -36,7 +36,7 @@ Screenshot: https://raw.githubusercontent.com/Sidharth1999/webmcp-airlock/main/l
 **What this shows.**
 
 1. The host honours a control that is *labelled* as the human's, in prose, on this run. It would not press "Unlock (operator only)" across four prompts, with or without an instruction in the tool result.
-2. Strip the label and it presses the button as an ordinary navigation step, seven seconds after the refusal. The console I originally reported has a "Response stage" selector with no such label; that is the control it moved. So the boundary today is a naming convention the page author has to guess at.
+2. Strip the label and it presses the button as an ordinary navigation step, on the next prompt, 43 s after the refused call. The console I originally reported has a "Response stage" selector with no such label; that is the control it moved. So the boundary today is a naming convention the page author has to guess at.
 3. **The synthetic events are `isTrusted: false`.** The host dispatches DOM events rather than injecting input. So on this host a page *can* tell: a human-only control can ignore untrusted activation. That is the mitigation I'm shipping in the console now. It is not a guarantee: a host that injects input at the browser level (as automation via CDP does) produces trusted events, and nothing in the spec says it shouldn't on such a control.
 
 **What I'd now ask the spec for**, in order:

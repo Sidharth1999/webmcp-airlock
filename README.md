@@ -30,7 +30,7 @@ a human clicks approve, and not before.
 > the spec says it must not. Approval became a held gesture that night; the
 > next morning the same host, asked only to "investigate and resolve", moved
 > the response stage itself to unlock the tools it wanted. On a one-file page
-> with a single button, it pressed "Unlock" seven seconds after a refusal and
+> with a single button, it pressed "Unlock" on the next prompt, 43 s after a refused call, and
 > left "Unlock (operator only)" alone; every event was `isTrusted:false`, so
 > this console now refuses synthetic activation of its human-only controls.
 > Filed with the screenshots, the logs and the repro page as

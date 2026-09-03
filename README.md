@@ -327,9 +327,9 @@ from the source: [`docs/webmcp-surface.md`](docs/webmcp-surface.md).
 
 ```bash
 npm run typecheck     # TypeScript, strict
-npm test              # 206 unit + property tests
+npm test              # 229 unit + property tests
 npm run lint:sim      # determinism ban over src/sim
-npm run smoke         # 106 hit-tested Playwright gates against the real page
+npm run smoke         # 142 hit-tested Playwright gates against the real page
 npm run corpus        # regenerate + re-verify all 91 scenario variants
 npm run driver        # both scenarios, unattended, end to end
 npm run docs:tools    # regenerate docs/webmcp-surface.md from the tool specs

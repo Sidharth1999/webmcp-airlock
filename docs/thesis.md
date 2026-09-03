@@ -65,7 +65,8 @@ would otherwise need.
   browser both calls the tools and drives the DOM; on a real run it clicked
   Approve itself. The held gesture removes the one-shot click and the record
   says which gesture happened; only a host-side rule closes the hole. See
-  [`spec-feedback.md`](spec-feedback.md), point 7.
+  [`spec-feedback.md`](spec-feedback.md), point 7, filed upstream as
+  [webmachinelearning/webmcp#288](https://github.com/webmachinelearning/webmcp/issues/288).
 - **That this runs against real infrastructure.** It is a deterministic
   simulation modelled on published incidents. Damage figures compare courses
   of action within a scenario only.

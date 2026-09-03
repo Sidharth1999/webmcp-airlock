@@ -23,6 +23,14 @@ a human clicks approve, and not before.
 > console is clickable by hand, states its cost, and is worth having on a bad
 > day. The agent makes it better; it is not what makes it work.
 
+> **One finding went upstream.** On a real run the night before submission,
+> ChatGPT's in-app browser proposed a change through a tool and then clicked
+> the page's own Approve button. A host that both calls tools and drives the
+> DOM can complete the page's human-in-the-loop step by itself, and nothing in
+> the spec says it must not. Filed as
+> [webmachinelearning/webmcp#288](https://github.com/webmachinelearning/webmcp/issues/288); the mitigation and the
+> argument are in [`docs/spec-feedback.md`](docs/spec-feedback.md), point 7.
+
 ---
 
 ## The problem, and who has it

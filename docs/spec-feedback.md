@@ -113,6 +113,8 @@ page marks as human-only) and a way for the page to mark them: an attribute a
 host honours, or user-activation that automation cannot mint. Without it,
 "human in the loop" on a computer-use host is a convention, not a guarantee.
 
+**Filed upstream** on 2026-09-03 as [webmachinelearning/webmcp#288](https://github.com/webmachinelearning/webmcp/issues/288).
+
 ---
 
 Everything above is implemented and tested in this repository; the surface

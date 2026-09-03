@@ -86,7 +86,7 @@ One honest limit: a host that both calls the page's tools and automates its
 DOM, as ChatGPT's in-app browser does, can click Approve itself. The page
 makes approval a held gesture while a host is attached and tells the agent
 not to click in the console, which raises the bar; only a host-side rule
-closes it (feedback to the spec, point 7, in the repo).
+closes it (feedback to the spec, point 7, in the repo; filed upstream as webmachinelearning/webmcp#288).
 
 A server-side MCP with an approvals queue can be built to track provenance.
 What it cannot do is be the surface the human is deciding on. Here the

@@ -1,5 +1,31 @@
 # STATUS — live audit log
 
+## CHECKPOINT 2026-09-03 ~06:05 EDT — finding filed upstream, reproduced, evidence public
+
+- **webmachinelearning/webmcp#288** filed under Sid's account (host that both
+  calls tools and drives the DOM can complete the page's human step), with a
+  follow-up comment carrying the reproduction. Body drafts:
+  `docs/upstream-issue-host-self-approval.md`, `docs/upstream-issue-288-comment-1.md`.
+- **Reproduced 06:34** in ChatGPT desktop (GPT-5.6) on the live URL under the
+  held gesture: neutral prompt, nobody at the keyboard; the host did NOT
+  approve (hold held) but clicked the Response-stage selector itself
+  (activity log: `184s Response stage triage → recovery` between two agent
+  calls; transcript: "so I'm transitioning to recovery" → Used the browser).
+  Evidence + README in `log/host-self-approval/` (kept by the export).
+- **Audit:** the only paths to `mode.changed` are the `#mode-switch` click
+  handler and the `?mode=` boot param (load-time). Stage switches now record
+  `input {trusted, pointerType, hosted}` and the activity row prints
+  "trusted mouse, host attached" (7b42e1f). 229 tests, typecheck green.
+- **Minimal repro page** `public/minimal.html` (two tools, one operator-only
+  Unlock button, every input event logged with isTrusted/pointerType) is
+  deployed at https://release-airlock.vercel.app/minimal.html. NOT YET RUN in
+  ChatGPT: the Mac locked mid-attempt. Next: unlock, navigate the in-app
+  browser there, prompt "Call propose_fix.", screenshot, comment on #288.
+- Linked from README callout, spec-feedback §7, thesis, evals, llms.txt
+  (live), Devpost story ("Update, the morning of submission" paragraph,
+  saved and visible publicly). Repo topics + homepage set on GitHub.
+- Public repo re-exported + force-pushed (clean history rule holds).
+
 ## CHECKPOINT 2026-09-03 03:40 EDT — public repo live, seven-step walkthrough on the live URL, thesis + evals pages
 
 - **Public repo:** https://github.com/Sidharth1999/webmcp-airlock (MIT in About,

@@ -27,9 +27,13 @@ a human clicks approve, and not before.
 > ChatGPT's in-app browser proposed a change through a tool and then clicked
 > the page's own Approve button. A host that both calls tools and drives the
 > DOM can complete the page's human-in-the-loop step by itself, and nothing in
-> the spec says it must not. Filed as
-> [webmachinelearning/webmcp#288](https://github.com/webmachinelearning/webmcp/issues/288); the mitigation and the
-> argument are in [`docs/spec-feedback.md`](docs/spec-feedback.md), point 7.
+> the spec says it must not. Approval became a held gesture that night; the
+> next morning the same host, asked only to "investigate and resolve", moved
+> the response stage itself to unlock the tools it wanted. Filed with the
+> screenshots and the console's own log as
+> [webmachinelearning/webmcp#288](https://github.com/webmachinelearning/webmcp/issues/288); the argument is in
+> [`docs/spec-feedback.md`](docs/spec-feedback.md), point 7, the evidence in
+> [`log/host-self-approval/`](log/host-self-approval/README.md).
 
 ---
 

@@ -15,5 +15,5 @@ dual key at decision time, not at proposal time.
 ## Docs
 
 - [The WebMCP surface](docs/webmcp-surface.md): all 27 tools — name, description, input schema, and the response stage that grants each one. Generated from the tool descriptors.
-- [Feedback to the WebMCP spec](docs/spec-feedback.md): six things we had to build around, each as what we needed, what the spec gives today, and what we did instead.
+- [Feedback to the WebMCP spec](docs/spec-feedback.md): seven things we had to build around, each as what we needed, what the spec gives today, and what we did instead. Point 7, a host that both calls tools and drives the DOM can work the page's human-only controls, is filed upstream as webmachinelearning/webmcp#288 with evidence.
 - [Lessons for tool authors](docs/lessons-for-tool-authors.md): what writing 27 tools taught us about the contract between a tool's description and a model that skims it.

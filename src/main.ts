@@ -2883,6 +2883,8 @@ function foldTimeline(): void {
     // an undecided standalone ask holds itself open until it is decided —
     // that is the system's hold, kept apart from a person's `data-pin`
     if (el.dataset.hold === 'true') continue;
+    // an outcome that explains a no-op keeps its reason on screen
+    if (el.dataset.keep === 'true') continue;
     el.dataset.fold = !planning && el === last ? 'false' : 'true';
   }
 }
@@ -3143,6 +3145,10 @@ function landObservation(step: HTMLElement, changes: FactChange[], outcome?: Act
       // a clamped line must open: the reason IS the title, and folding it
       // to one line must not leave an ellipsis nobody can expand
       row.dataset.leaf = 'false';
+      // and it stays open: a write that did nothing must say why without a
+      // click, or the operator is back to "nothing in the world moved"
+      row.dataset.keep = 'true';
+      row.dataset.fold = 'false';
     } else if (outcome) {
       const why = document.createElement('span');
       why.className = 'plo-reason';

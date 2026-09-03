@@ -1,7 +1,9 @@
 # Release Airlock
 
-**A deploy console where an agent can reach every lever, and not one of them
-moves without you.**
+**Release Airlock asks a WebMCP-specific question: when a browser agent can
+reach production controls, can the page give it enough capability to
+investigate without giving it the authority to act?** It is a deploy console
+where an agent can reach every lever, and not one of them moves without you.
 
 ![Release Airlock: the console, the storefront, and the agent ledger after a seven-step response, checkout restored](log/devpost/6-the-shop-gets-told-then-comes-back.png)
 

@@ -9,7 +9,7 @@
  *
  *   log/stills/   Sid's viewport, 1512x945 at 2x. Six frames, one claim each.
  *   log/devpost/  the curated Devpost set:
- *                   1..6  gallery, 1680x945 at 2x (exact 16:9), named by claim
+ *                   1..7  gallery, 1680x945 at 2x (exact 16:9), named by claim
  *                   thumb-*  five 1200x800 (3:2) crops of ONE moment each,
  *                            shot at 3x so they still read at ~300px wide;
  *                            preview-300/ holds the downscaled check copies.
@@ -34,7 +34,7 @@ const SID = { width: 1512, height: 945 }; // the window Sid reviews in
 const WIDE = { width: 1680, height: 945 }; // 16:9 at the same height: the gallery frame
 const BASE = 'http://localhost:8917';
 
-// ONLY=bare,refusal,plan,stills,thumbs,moment,provenance,counsel  — re-shoot a subset
+// ONLY=bare,refusal,plan,stills,thumbs,moment,provenance,counsel,outcome  — re-shoot a subset
 const ONLY = (process.env.ONLY ?? '').split(',').filter(Boolean);
 const want = (k) => !ONLY.length || ONLY.includes(k);
 
@@ -421,6 +421,97 @@ if (want('counsel')) {
     12 // the card sits at the foot of the console; more padding pulls in the status bar
   );
   await s.close();
+}
+
+// ---------------------------------------------------------------- 7. OUTCOME
+// A WRITE THAT CHANGED NOTHING SAYS SO. The fleet is at its autoscaler
+// ceiling, so the first approved roll-forward stops part-way (`Halted · …`)
+// and the second cannot start at all (`No effect · …`). Both outcomes land as
+// observation rows directly under their own ask, which is the whole claim:
+// approving a write does not mean the world moved, and the ledger says which.
+// Same path as smoke's two outcome gates — a standalone `propose_rollforward`
+// into retry-storm in recovery, approved by clicking the ask's own button.
+if (want('outcome')) {
+  console.log('\n[7] a write that changed nothing says why');
+  const g = await newPage(WIDE, 2);
+  await sceneReady(g, 'bare');
+  // The bare scene stops the clock the moment the incident opens, which is
+  // BEFORE the storm has cost anything: a frame captioned INCIDENT ACTIVE
+  // over `0 users · $0.00` reads as a bug. Run on until the storm is real
+  // (2.4.2 is staged by then too), then hold the world still again.
+  //
+  // Poll the CONSOLE, never `airlock_status`: every status call the harness
+  // makes is a real read that files its own row, and three `Read service
+  // health and impact` rows the shoot invented are not the product's ledger.
+  await g.getByTestId('sim-run').click();
+  await g.waitForFunction(
+    () => {
+      const s = document.querySelector('#sit-state')?.textContent ?? '';
+      const m = /([\d.]+)%\s*\/checkout/.exec(document.querySelector('#sit-fields')?.textContent ?? '');
+      return s.includes('INCIDENT') && m !== null && Number(m[1]) >= 15;
+    },
+    { timeout: 45_000 }
+  );
+  await g.getByTestId('sim-run').click(); // hold the world still again
+  await g.waitForTimeout(400);
+
+  const settle = async (seq) => {
+    await g.getByTestId(`approve-${seq}`).waitFor({ timeout: 10_000 });
+    await g.getByTestId(`approve-${seq}`).click();
+    await g.waitForFunction(
+      (s) => document.querySelector(`[data-testid="ask-${s}"]`)?.nextElementSibling?.dataset.kind === 'state',
+      seq,
+      { timeout: 15_000 }
+    );
+    return g.evaluate((s) => {
+      const obs = document.querySelector(`[data-testid="ask-${s}"]`).nextElementSibling;
+      return { effect: obs.dataset.effect, title: obs.querySelector('.tl-title').textContent.replace(/\s+/g, ' ').trim() };
+    }, seq);
+  };
+
+  const halted = await settle((await invoke(g, 'propose_rollforward', { service: 'api' })).proposalSeq);
+  if (halted.effect !== 'partial' || !/^Halted\b/.test(halted.title))
+    throw new Error(`outcome: expected a Halted row, got ${JSON.stringify(halted)}`);
+  const none = await settle((await invoke(g, 'propose_rollforward', { service: 'api' })).proposalSeq);
+  if (none.effect !== 'none' || !/^No effect\b/.test(none.title))
+    throw new Error(`outcome: expected a No effect row, got ${JSON.stringify(none)}`);
+
+  // THE REASON IS THE POINT, so neither outcome may sit collapsed behind its
+  // own ellipsis: the newest row opens itself, the halted one has to be
+  // opened, and `autoscaler ceiling` is the phrase the frame exists to show.
+  // `data-fold="true"` IS the collapsed row, and clicking its head pins it
+  // open. Clicking blind toggles the open one SHUT — which is how the first
+  // cut of this frame shipped with `cannot start: the…` behind an ellipsis.
+  for (const row of await g.locator('#tool-rail .tl-ev[data-kind="state"][data-effect]').all()) {
+    if ((await row.getAttribute('data-fold')) === 'true') await row.locator('.tl-head').first().click();
+    await g.waitForTimeout(250);
+  }
+  await g.waitForTimeout(500);
+  // the deck scrolled while the storm ran; a gallery frame opens on the top
+  // of the console, not mid-card with the zone title sliced
+  await g.evaluate(() => {
+    document.querySelector('.wb-centre-body')?.scrollTo(0, 0);
+  });
+  await g.waitForTimeout(400);
+  const seen = await g.evaluate(() => {
+    const body = document.querySelector('#tool-rail .dock-body').getBoundingClientRect();
+    return [...document.querySelectorAll('#tool-rail .tl-ev[data-kind="state"]')]
+      .map((n) => ({ el: n, text: n.textContent.replace(/\s+/g, ' ').trim(), r: n.getBoundingClientRect() }))
+      .filter((o) => /^(Halted|No effect)/.test(o.text))
+      .map((o) => ({
+        text: o.text,
+        // the ellipsis is drawn by CSS, so the text never carries it: a
+        // clamped row is one whose content is taller than the box showing it
+        elided: o.el.dataset.fold === 'true' || o.el.scrollHeight > o.el.clientHeight + 1,
+        inView: o.r.top >= body.top - 1 && o.r.bottom <= body.bottom + 1,
+      }));
+  });
+  if (seen.length < 2 || !seen.every((r) => r.inView && !r.elided))
+    throw new Error(`outcome: an outcome row is clipped or elided — ${JSON.stringify(seen, null, 1)}`);
+  if (!seen.some((r) => /autoscaler ceiling/.test(r.text)))
+    throw new Error(`outcome: the ceiling is not the reason on screen — ${JSON.stringify(seen, null, 1)}`);
+  await full(g, `${DEVPOST}/7-no-effect-says-why.png`);
+  await g.close();
 }
 
 await browser.close();

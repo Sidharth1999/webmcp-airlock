@@ -3,6 +3,8 @@
 **A deploy console where an agent can reach every lever, and not one of them
 moves without you.**
 
+![Release Airlock: the console, the storefront, and the agent ledger after a seven-step response, checkout restored](log/devpost/6-the-shop-gets-told-then-comes-back.png)
+
 Web pages are starting to hand agents real tools. Most of the interesting ones
 are not "search this catalogue" — they are the tools that *change something*,
 and the interesting question stops being *can the agent call it* and becomes

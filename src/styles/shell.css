@@ -2217,6 +2217,23 @@ body {
   font-family: var(--font-prose);
   font-size: var(--text-xs);
 }
+/* A standalone ask carries a sentence-length action beside a long risk tag.
+   At filming widths the non-shrinking tag used to consume nearly the whole
+   head, leaving the action in a ~100px column where `overflow-wrap:anywhere`
+   split "investigating" into fragments. Keep both on the head, but make the
+   action primary and let the quieter machine value wrap within its share. */
+.tl-ask > .tl-head > .tl-title {
+  flex: 1 1 62%;
+  overflow-wrap: normal;
+  word-break: normal;
+}
+.tl-ask > .tl-head > .tl-meta {
+  flex: 0 1 38%;
+  max-width: 38%;
+  white-space: normal;
+  text-align: right;
+  line-height: 1.45;
+}
 /* A STEP OF ONE HAS NO ORDINAL. The disc in the step-number slot stays — same
    size, same states, same x on the spine — and carries the agent's diamond,
    the mark this ledger already gives the agent's own claims. */

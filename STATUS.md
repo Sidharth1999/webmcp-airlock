@@ -1,5 +1,44 @@
 # STATUS — live audit log
 
+## 2026-09-02 19:45 EDT — the service chain is a LIVE strip (branch `worktree-agent-a0b393c27e8edc8da`, not merged)
+
+- **What shipped** (`ea31dde`): the three version chips in the Response
+  controls head are now nodes with a second, live line — the health word the
+  reducer emits, then load and error rate summed over the routes that
+  terminate at that service (rps-weighted) from the same `traffic.tick` the
+  masthead plots, then the route the errors come in on (`/checkout` under
+  api, ghost mono). A degraded node's error rate takes `--warn`, a down
+  node's `--bad`; nominal numbers stay ghost. db has no routes and shows its
+  health word only; at boot (no ticks yet) every node is health word only.
+  Values reserve width (`tabular-nums` + `min-width: 8ch`), so ticks move
+  nothing; the health word and the route name change width only on state
+  transitions. Same row, no new pane; masthead and storefront untouched;
+  the plan rings anchor to the control rows and did not move.
+- **The 1512-with-shop constraint is real**: the head's inner width is 494px
+  and the nominal chain alone with health words is ~371px beside a 141px
+  title, so the strip cannot share the title's line there. Under
+  `@container console (max-width: 600px)` the strip takes its own line for
+  the whole run (head 74 → 100px, stable across states, no jump when the
+  incident opens) and the load yields (`.topo-rps` hidden) so the error rate
+  and the route never wrap. At 2400 it sits beside the title with all values.
+- **Frames** `log/strip/` (`tools/capture-strip.mjs`, `AIRLOCK_PORT=8925`):
+  `sid-02-site-t15`, `sid-05-plan-step5-capped`, `sid-06-plan-step7-fixed`,
+  `sid-01-site-t0`, `sid-03/04-run-*`, then the `ultra-*` twins; `*-strip.png`
+  is the head alone at 1:1. Every frame: one line, fits, document does not
+  scroll. `baseline-*` is the chip strip before.
+- **Test-file diff (adds only)** — `tools/smoke.mjs` +67/−0, two `check()`
+  gates immediately before `no page errors`: *service strip at boot: three
+  services, a health word each, no numbers beyond the version* and *service
+  strip under the incident: api reads degraded, its error rate takes the
+  health hue, /checkout is named, one line*. **121 → 123 gates.** Verified:
+  `npm run smoke` ALONE (SMOKE_PORT 8926 / AIRLOCK_PORT 8925) **GREEN 123** ·
+  `npm test` 206 · typecheck · lint:sim. No existing gate edited.
+- **Not done, on purpose:** no tint on the health word itself (the dot and
+  the number already carry the hue; three amber marks in one node is loud);
+  no numbers for web or db (nothing routes to them, and the strip must not
+  invent); no p95 per node (`byRoute` carries rps and errRate only — a p95
+  would be fabricated).
+
 ## CHECKPOINT 2026-09-02 17:40 EDT — standalone proposals on the ledger, Lighthouse 4/4, main at 67c0e8c
 
 - **Merged** `worktree-agent-a7bdf7f3ced930d6e` (clean, no conflicts): a

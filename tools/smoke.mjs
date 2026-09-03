@@ -1340,6 +1340,73 @@ try {
   );
   await cc.close();
 
+  // ---- the service strip is live: health words at rest, numbers under load
+  // Each node in the Response controls head carries its health word from the
+  // world and, once traffic has reported on the routes ending there, load and
+  // error rate. Nothing is invented: at boot there are no ticks, so there are
+  // no numbers; db has no routes, so it never gets any.
+  const st = await browser.newPage({ viewport: { width: 1512, height: 945 } });
+  st.on('pageerror', (e) => pageErrors.push(e.message));
+  await st.goto(URL + '?template=retry-storm', { waitUntil: 'networkidle' });
+  await st.locator('#topology .topo-node').nth(2).waitFor({ timeout: 15_000 });
+  check(
+    'service strip at boot: three services, a health word each, no numbers beyond the version',
+    await st.evaluate(() => {
+      const nodes = [...document.querySelectorAll('#topology .topo-node')];
+      return (
+        nodes.length === 3 &&
+        nodes.every((n) => {
+          const word = n.querySelector('.topo-health').textContent;
+          return (
+            ['ok', 'degraded', 'down'].includes(word) &&
+            n.querySelector('.topo-live').textContent.trim() === word &&
+            /^\d+(\.\d+)*$/.test(n.querySelector('.topo-ver').textContent)
+          );
+        })
+      );
+    })
+  );
+  await st.goto(URL + '?template=retry-storm&run=1', { waitUntil: 'networkidle' });
+  // health flips a tick before the storm's traffic reports, and the dot takes
+  // its 900ms settle to reach the hue — wait for the strip to have caught up
+  // (route named, dot settled), not for the attribute alone
+  await st.waitForFunction(
+    () => {
+      const api = document.querySelector('#topology [data-service="api"]');
+      return (
+        api?.dataset.health === 'degraded' &&
+        api.querySelector('.topo-route').textContent !== '' &&
+        getComputedStyle(api.querySelector('.topo-dot')).backgroundColor ===
+          getComputedStyle(api.querySelector('.topo-err')).color
+      );
+    },
+    { timeout: 40_000 }
+  );
+  check(
+    'service strip under the incident: api reads degraded, its error rate takes the health hue, /checkout is named, one line',
+    await st.evaluate(() => {
+      const api = document.querySelector('#topology [data-service="api"]');
+      const err = api.querySelector('.topo-err');
+      const ok = document.querySelector('#topology [data-service="db"]');
+      const topo = document.querySelector('#topology');
+      const tops = new Set(
+        [...topo.querySelectorAll('.topo-node')].map((n) => Math.round(n.getBoundingClientRect().top))
+      );
+      return (
+        api.querySelector('.topo-health').textContent === 'degraded' &&
+        /^· \d+\.\d\d%$/.test(err.textContent) &&
+        // the same hue the node's own dot turned, not the ghost ink a nominal value keeps
+        getComputedStyle(err).color === getComputedStyle(api.querySelector('.topo-dot')).backgroundColor &&
+        getComputedStyle(err).color !== getComputedStyle(ok.querySelector('.topo-health')).color &&
+        api.querySelector('.topo-route').textContent === '· /checkout' &&
+        ok.querySelector('.topo-live').textContent.trim() === ok.querySelector('.topo-health').textContent &&
+        tops.size === 1 &&
+        topo.scrollWidth <= topo.clientWidth + 1
+      );
+    })
+  );
+  await st.close();
+
   check('no page errors', pageErrors.length === 0);
   if (pageErrors.length) console.error('[smoke] page errors:', pageErrors);
 } finally {

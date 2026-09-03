@@ -1149,15 +1149,34 @@ body {
   font-family: var(--font-instrument);
   font-size: var(--text-2xs);
 }
+/* A node is two lines: what is running (dot, id, build) over what it is
+   carrying this tick (health word, then load and error rate summed over the
+   routes that end here, then the route the errors come in on). The second
+   line is the live one; the first never changes width mid-run. */
 .topo-node {
-  display: flex;
+  /* a grid, not a wrapping flex row: a wrapped flex box sizes itself to the
+     SUM of both lines, which left every node ~40% wider than its text */
+  display: grid;
+  /* the live line spans id+ver; only the LAST track may take its slack, or
+     the id column widens and the build drifts away from its name */
+  grid-template-columns: auto max-content 1fr;
+  grid-template-areas:
+    'dot id ver'
+    '.   live live';
+  column-gap: 6px;
+  row-gap: 2px;
   align-items: center;
-  gap: 6px;
   padding: 3px var(--sp-2);
   border: 1px solid var(--line);
   border-radius: var(--r-sm);
   background: var(--panel-inset);
+  align-self: stretch;
+  align-content: center;
+  flex: none; /* a node is never squeezed into a third line */
 }
+.topo-dot { grid-area: dot; }
+.topo-id { grid-area: id; }
+.topo-ver { grid-area: ver; justify-self: start; }
 .topo-dot {
   width: 7px; height: 7px;
   border-radius: 50%;
@@ -1168,7 +1187,40 @@ body {
 .topo-node[data-health='down'] .topo-dot { background: var(--bad); }
 .topo-id { color: var(--ink); font-weight: 600; }
 .topo-ver { color: var(--ink-ghost); font-variant-numeric: tabular-nums; }
-.topo-link { width: 12px; height: 1px; background: var(--line-strong); }
+.topo-live {
+  grid-area: live;
+  display: flex;
+  gap: 6px;
+  color: var(--ink-ghost);
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+/* Reserved widths, so a value ticking from 999 to 1000 moves nothing: the
+   widest load reads `· 1840/s`, the widest rate `· 31.20%`. Empty spans
+   take no room, so a node with no numbers is its health word alone. */
+.topo-rps { min-width: 8ch; }
+.topo-err { min-width: 8ch; }
+.topo-live > :empty { display: none; }
+/* the error rate takes the node's health hue — the same amber the masthead
+   uses — only while the service is not ok; nominal numbers stay ghost */
+.topo-node[data-health='degraded'] .topo-err { color: var(--warn); }
+.topo-node[data-health='down'] .topo-err { color: var(--bad); }
+.topo-link { width: 12px; height: 1px; background: var(--line-strong); flex: none; }
+/* The strip shares the zone head with the title. Where the card is too
+   narrow for both on one line (the shop open at 1512), the strip takes the
+   next line whole rather than wrapping its own nodes. */
+#zone-controls .zone-head { flex-wrap: wrap; row-gap: var(--sp-2); }
+#zone-controls #topology { flex: 1 1 auto; min-width: 0; }
+/* With the shop open at 1512 the console is ~560px, and a degraded node
+   naming its route does not fit with its load beside it. The error rate is
+   the number that decides anything; the load yields. Verified at 1512. */
+@container console (max-width: 600px) {
+  .topo-rps { display: none; }
+  /* and the strip takes its own line for the whole run — a nominal chain
+     fits beside the title, a degraded one does not, and the deck must not
+     jump 26px at the moment the incident opens */
+  #zone-controls #topology { flex-basis: 100%; }
+}
 
 /* --- agent presence (M3-06): labeled cursor + telestrator -- */
 #agent-cursor {

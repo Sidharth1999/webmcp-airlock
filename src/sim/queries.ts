@@ -93,12 +93,21 @@ function status(events: readonly Event[], world: World): Record<string, unknown>
     asOfSeq: asOf(events),
     // co-presence: the agent always sees what the human is pointing at
     humanSelection: currentSelection(events),
-    services: world.services.map((s) => ({ id: s.id, health: s.health, version: s.version })),
+    services: world.services.map((s) => ({
+      id: s.id,
+      health: s.health,
+      version: s.version,
+      // THE FLEET, where the template models one: instances serving, the
+      // autoscaler's ceiling, and how many more it can add. A rollout is a
+      // rolling replacement, so headroom 0 is the fact that decides whether
+      // one can start — the paid run had to infer it from a log line.
+      ...(s.capacity ? { capacity: s.capacity } : {}),
+    })),
     traffic: {
       rps: world.traffic.rps,
       errRate: world.traffic.errRate,
       p95: world.traffic.p95,
-      byRoute: world.traffic.byRoute,
+      byRoute: admitted(world.traffic.byRoute, capsNow(world)),
     },
     damage: {
       usersErrored: world.damage.usersErrored,
@@ -113,7 +122,88 @@ function status(events: readonly Event[], world: World): Record<string, unknown>
     // verdict — no `mitigated: true` enum to branch on. The reader has to
     // conclude that standing down would be premature.
     standing: standingFacts(world),
+    // WHAT THE LAST WRITES ACTUALLY DID. "executed" is not an outcome: a
+    // roll-forward into a fleet with no headroom executes and is halted, a
+    // scale past the autoscaler ceiling executes and changes nothing. The
+    // effect and its reason are what an agent needs before proposing again.
+    recentOutcomes: recentOutcomes(events),
   };
+}
+
+const OUTCOME_PAGE = 3;
+const OUTCOME_REASON_CHARS = 120;
+
+interface ExecutedData {
+  tool: string;
+  result?: { outcome?: { effect: string; reason: string } };
+}
+
+/** The last few executed writes (human or agent — never scenario setup) with their outcome. */
+function recentOutcomes(events: readonly Event[]): Record<string, unknown>[] {
+  const out: Record<string, unknown>[] = [];
+  for (let i = events.length - 1; i >= 0 && out.length < OUTCOME_PAGE; i--) {
+    const e = events[i]!;
+    if (e.kind !== 'action.executed' || e.actor === 'sim') continue;
+    const d = e.data as unknown as ExecutedData;
+    const o = d.result?.outcome;
+    if (!o) continue;
+    const reason =
+      o.reason.length > OUTCOME_REASON_CHARS ? `${o.reason.slice(0, OUTCOME_REASON_CHARS - 1)}…` : o.reason;
+    out.push({ seq: e.seq, tool: d.tool, effect: o.effect, reason });
+  }
+  return out;
+}
+
+/** Route path → admission cap in force right now. */
+function capsNow(world: World): Record<string, number> {
+  const caps: Record<string, number> = {};
+  for (const r of world.routes) if (r.rateLimitRps !== undefined) caps[r.path] = r.rateLimitRps;
+  return caps;
+}
+
+/**
+ * OFFERED vs ADMITTED. `rps` is what the edge sees — under a retry storm it
+ * keeps climbing after a cap because a cap protects the pool, it does not
+ * stop clients retrying. The paid run read "/checkout capped at 120" beside
+ * "rps 380" and had to guess which one the pool was serving. Where a cap is
+ * in force the route also says what it admits and what the cap is.
+ */
+function admitted(
+  byRoute: Record<string, { rps: number; errRate: number }>,
+  caps: Record<string, number>
+): Record<string, unknown> {
+  const out: Record<string, unknown> = {};
+  for (const [path, r] of Object.entries(byRoute)) {
+    const cap = caps[path];
+    out[path] = cap === undefined ? r : { ...r, admittedRps: Math.min(r.rps, cap), cap };
+  }
+  return out;
+}
+
+/**
+ * Admission caps as they stood at each point in the log: the ratelimit.set
+ * writes that took (an outcome of `none` never touched the world), in order.
+ */
+function capHistory(events: readonly Event[], world: World): { seq: number; path: string; rps: number }[] {
+  const pathOf = new Map(world.routes.map((r) => [r.id, r.path] as const));
+  const out: { seq: number; path: string; rps: number }[] = [];
+  for (const e of events) {
+    if (e.kind !== 'action.executed') continue;
+    const d = e.data as unknown as ExecutedData & { input: { route?: string; rps?: number } };
+    if (d.tool !== 'ratelimit.set' || d.result?.outcome?.effect === 'none') continue;
+    const path = pathOf.get(String(d.input.route));
+    if (path && typeof d.input.rps === 'number') out.push({ seq: e.seq, path, rps: d.input.rps });
+  }
+  return out;
+}
+
+function capsAt(history: { seq: number; path: string; rps: number }[], seq: number): Record<string, number> {
+  const caps: Record<string, number> = {};
+  for (const h of history) {
+    if (h.seq >= seq) break;
+    caps[h.path] = h.rps;
+  }
+  return caps;
 }
 
 /**
@@ -315,8 +405,9 @@ function changes(events: readonly Event[], world: World): Record<string, unknown
   };
 }
 
-function traffic(events: readonly Event[], cursor?: number): Record<string, unknown> {
+function traffic(events: readonly Event[], world: World, cursor?: number): Record<string, unknown> {
   const { page, nextCursor } = pageOf(events, ['traffic.tick'], cursor, TRAFFIC_PAGE);
+  const caps = capHistory(events, world);
   const out: Record<string, unknown> = {
     asOfSeq: asOf(events),
     ticks: page.map((e) => {
@@ -326,7 +417,14 @@ function traffic(events: readonly Event[], cursor?: number): Record<string, unkn
         p95: number;
         byRoute: Record<string, { rps: number; errRate: number }>;
       };
-      return { seq: e.seq, t: e.t, rps: d.rps, errRate: d.errRate, p95: d.p95, byRoute: d.byRoute };
+      return {
+        seq: e.seq,
+        t: e.t,
+        rps: d.rps,
+        errRate: d.errRate,
+        p95: d.p95,
+        byRoute: admitted(d.byRoute, capsAt(caps, e.seq)),
+      };
     }),
   };
   if (nextCursor !== undefined) out.nextCursor = nextCursor;
@@ -349,7 +447,7 @@ export function runQuery(
     case 'changes':
       return changes(events, world);
     case 'traffic':
-      return traffic(events, atPosition(q.cursor));
+      return traffic(events, world, atPosition(q.cursor));
     case 'surface':
       return {
         asOfSeq: asOf(events),

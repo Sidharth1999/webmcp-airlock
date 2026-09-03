@@ -3,9 +3,10 @@ import { EventLog } from './log';
 import { initialWorld, reduce } from './reducer';
 import { mulberry32, type Rng } from './rng';
 import { currentMode, DUAL_KEY_TIER, MODE_ACTIONS } from './modes';
+import { deriveOutcome, serviceOf } from './outcome';
 import { provenanceOf } from './provenance';
 import { getTemplate, type TemplateInstance } from './templates';
-import type { Actor, Event, EventKind, SeedSpec, World } from './types';
+import type { ActionOutcome, Actor, Event, EventKind, SeedSpec, World } from './types';
 import { WRITE_ACTIONS, writeAction } from './vocabulary';
 
 /** Meta kinds external callers may record; the reducer no-ops all of them. */
@@ -160,8 +161,39 @@ export class Engine {
         causedBy
       );
     }
-    const event = ctx.emit('action.executed', actor, { tool, input, result: { ok: true } }, causedBy);
+    // EVERY EXECUTED ACTION CARRIES AN OUTCOME WITH A REASON. The template
+    // judges first, against the world as it stands (a scale past the
+    // autoscaler ceiling, a rollout into a fleet with no headroom); an
+    // `effect: 'none'` verdict rides the event so the reducer leaves the
+    // world alone. Otherwise the outcome is derived after the fact from the
+    // world diff and whatever the template said in reaction.
+    const before = this.worldState;
+    const judged = this.template.outcome?.(this.ctx(), tool, input);
+    const event = ctx.emit(
+      'action.executed',
+      actor,
+      { tool, input, result: { ok: true, ...(judged ? { outcome: judged } : {}) } },
+      causedBy
+    );
+    const reactFrom = this.log.length;
     this.template.onAction?.(this.ctx(), event);
+    let outcome: ActionOutcome | undefined = judged;
+    if (!outcome) {
+      outcome = deriveOutcome(before, this.worldState, this.log.all.slice(reactFrom), spec, tool, input);
+      // the event shell is frozen; its payload is ours to complete
+      (event.data.result as Record<string, unknown>).outcome = outcome;
+    }
+    // A NO-OP IS STILL NEWS. The second roll-forward of the paid run logged
+    // nothing at all, so the agent had no line to read — every action that
+    // changes nothing now says so in the service log, in its own voice.
+    if (outcome.effect === 'none') {
+      ctx.emit(
+        'log.line',
+        'sim',
+        { service: serviceOf(before, input), level: 'warn', msg: outcome.reason },
+        event.seq
+      );
+    }
     return event;
   }
 

@@ -165,3 +165,44 @@ one stated plan" rather than as three unrelated asks.
 **Sid ping (required by the header of src/sim/types.ts):** this amendment
 adds a kind to schema v1 rather than changing any existing one; no existing
 event's shape or meaning moves. Flagged in STATUS.md for review.
+
+---
+
+## Amendment — 2026-09-02 (every executed write carries an outcome)
+
+**`action.executed.data.result.outcome`** (new, optional, always present on
+writes that go through `Engine.act`; absent on scenario-setup executions):
+
+```
+outcome: {
+  effect:    'changed' | 'none' | 'partial'   // the world moved / nothing did / it started and was halted
+  reason:    string                           // a domain sentence in the console's voice
+  changed?:  string[]                         // world keys that moved, or event kinds the sim reacted with
+  converges?: string                          // when the world is expected to settle, if not instantaneous
+}
+```
+
+**Why.** A live host run (ChatGPT in-app browser, retry-storm) approved a
+roll-forward into a fleet at its autoscaler ceiling. The sim halted the
+rollout — correct — but the tool result said "executed", the ledger said
+"nothing in the world moved", and nothing anywhere said why. The agent then
+scaled past the ceiling (no effect, no reason), rolled forward again (no
+effect, not even a log line), rolled back, and restarted. The scenario was
+right; its legibility was wrong.
+
+**Rules.** The template may judge the outcome BEFORE the event is applied
+(`TemplateInstance.outcome`); an `effect: 'none'` verdict on the event tells
+the reducer to leave the world untouched, so the fold and the verdict cannot
+disagree. Otherwise the engine derives the outcome from the world diff and
+whatever the template emitted in reaction. Every `effect: 'none'` also emits
+a `log.line` (actor `sim`, level `warn`, `causedBy` the execution) so a no-op
+is never silent. Read tools surface it as `airlock_status.recentOutcomes`
+(last 3, reason clipped to 120 chars, page still ≤1.2KB).
+
+**`service.health.data.capacity`** (new, optional): `{instances, ceiling,
+headroom}` where a template models a fleet (retry-storm's api). The reducer
+carries it on `Service.capacity`; `airlock_status` reports it per service.
+
+**Sid ping:** additive only — no existing event's shape or meaning moves.
+Metrics (`writesExecuted`, damage) are unaffected; `npm run corpus` is
+byte-identical.

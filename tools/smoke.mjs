@@ -1300,6 +1300,83 @@ try {
   );
   await sa.close();
 
+  // ---- a write that changed nothing says why, on the ledger -------------
+  // The paid run (2026-09-02, ChatGPT in-app browser): a roll-forward into a
+  // fleet at its autoscaler ceiling was approved, the ledger said "nothing
+  // in the world moved", and the agent spent four more writes finding out
+  // why. The observation row now carries the write's own outcome.
+  const ne = await browser.newPage({ viewport: { width: 1512, height: 945 } });
+  ne.on('pageerror', (e) => pageErrors.push(e.message));
+  await ne.goto(URL + '?template=retry-storm&tick=120&run=1&mode=recovery', { waitUntil: 'networkidle' });
+  await ne.getByTestId('mode-recovery').waitFor({ timeout: 15_000 });
+  // the storm has to be open: the fleet is at its ceiling from the start,
+  // but 2.4.2 is only staged once the incident is
+  for (let i = 0; i < 80; i++) {
+    const st = JSON.parse(await ne.evaluate(() => window.__airlock.invoke('airlock_status')));
+    if (st.incidentOpen === true) break;
+    await ne.waitForTimeout(500);
+  }
+  await ne.waitForTimeout(300);
+  // the first roll-forward is halted (a partial outcome); the SECOND is the
+  // no-op the paid run hit with no line to read
+  const neFirst = JSON.parse(await ne.evaluate(() => window.__airlock.invoke('propose_rollforward', { service: 'api' })));
+  await ne.getByTestId(`approve-${neFirst.proposalSeq}`).waitFor({ timeout: 5_000 });
+  await ne.getByTestId(`approve-${neFirst.proposalSeq}`).click();
+  await ne
+    .waitForFunction(
+      (seq) => document.querySelector(`[data-testid="ask-${seq}"]`)?.nextElementSibling?.dataset.kind === 'state',
+      neFirst.proposalSeq,
+      { timeout: 10_000 }
+    )
+    .catch(() => {});
+  check(
+    'a roll-forward into a fleet with no headroom lands as Halted with the ceiling as its reason',
+    await ne.evaluate((seq) => {
+      const obs = document.querySelector(`[data-testid="ask-${seq}"]`)?.nextElementSibling;
+      return (
+        obs?.dataset.kind === 'state' &&
+        obs.dataset.effect === 'partial' &&
+        /^Halted\s*·\s*roll-forward to 2\.4\.2 halted after 2 of 6 instances: api is at its autoscaler ceiling/.test(
+          obs.querySelector('.tl-title').textContent.replace(/\s+/g, ' ').trim()
+        )
+      );
+    }, neFirst.proposalSeq)
+  );
+  const neAgain = JSON.parse(await ne.evaluate(() => window.__airlock.invoke('propose_rollforward', { service: 'api' })));
+  await ne.getByTestId(`approve-${neAgain.proposalSeq}`).waitFor({ timeout: 5_000 });
+  await ne.getByTestId(`approve-${neAgain.proposalSeq}`).click();
+  await ne
+    .waitForFunction(
+      (seq) => document.querySelector(`[data-testid="ask-${seq}"]`)?.nextElementSibling?.dataset.kind === 'state',
+      neAgain.proposalSeq,
+      { timeout: 10_000 }
+    )
+    .catch(() => {});
+  check(
+    'a write that changed nothing reads "No effect · <reason>" beneath its row, and airlock_status carries the same outcome',
+    (await ne.evaluate((seq) => {
+      const obs = document.querySelector(`[data-testid="ask-${seq}"]`)?.nextElementSibling;
+      const text = obs?.querySelector('.tl-title')?.textContent.replace(/\s+/g, ' ').trim() ?? '';
+      return (
+        obs?.dataset.kind === 'state' &&
+        obs.dataset.effect === 'none' &&
+        /^No effect\s*·\s*roll-forward to 2\.4\.2 cannot start: the earlier rollout was halted mid-way/.test(text) &&
+        !/nothing in the world moved/.test(text)
+      );
+    }, neAgain.proposalSeq)) &&
+      (await (async () => {
+        const st = JSON.parse(await ne.evaluate(() => window.__airlock.invoke('airlock_status')));
+        const top = st.recentOutcomes?.[0];
+        return (
+          top?.tool === 'deploy.rollforward' &&
+          top.effect === 'none' &&
+          /cannot start/.test(top.reason) &&
+          st.services.find((s) => s.id === 'api')?.capacity?.headroom === 0
+        );
+      })())
+  );
+  await ne.close();
+
   // ---- the click caution on a deploy row is a row of that grid ----------
   // Inserted beside Roll back inside the deploy's `auto` action cell, the
   // caution stretched the button to its own height (240px) and squeezed the

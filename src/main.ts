@@ -10,7 +10,15 @@ import type { SimRequest, SimResponse } from './sim/worker';
 import type { ActionOutcome, Actor, Deploy, Event, Flag, World } from './sim/types';
 import { hasWebMCP } from './webmcp/shim';
 import { createAirlockTools, type AirlockTools } from './webmcp/tools';
-import { filmScene, play, type PlayState } from './walkthrough';
+import {
+  filmScene,
+  planScene,
+  play,
+  walkthroughScenes,
+  type PlayState,
+  type Scene,
+  type WalkthroughId,
+} from './walkthrough';
 
 type Health = 'ok' | 'degraded' | 'down';
 const HEALTH_STATES: Health[] = ['ok', 'degraded', 'down'];
@@ -39,6 +47,11 @@ const BOOT_MODE = (MODES as readonly string[]).includes(params.get('mode') ?? ''
   ? (params.get('mode') as Mode)
   : null;
 const OPEN_SITE = params.get('site') === '1';
+// ?walk=<film|plan|provenance>: start a walkthrough on load — the same play
+// the dock's own controls start. Applied last, after seed and the other boot
+// params; the scene's own scenario wins over ?template=. Unknown: nothing.
+const BOOT_WALK: WalkthroughId | null =
+  (params.get('walk') ?? '') in walkthroughScenes ? (params.get('walk') as WalkthroughId) : null;
 /**
  * Scenario names as an operator would see them. Deliberately symptom-level:
  * "migration-trap" is internal jargon AND naming the cause would hand over
@@ -541,6 +554,7 @@ app.innerHTML = `
           <p class="te-note">Run sim first — the incident has to be underway.</p>
           <div class="te-walk">
             <button type="button" class="ctl-btn" id="walk-start" data-testid="walk-start">Watch a walkthrough</button>
+            <button type="button" class="ctl-btn" id="walk-full" data-testid="walk-full">Watch the full response</button>
             <span class="te-note">scripted caller, not a model</span>
           </div>
         </div>
@@ -5229,7 +5243,7 @@ document.querySelector('#mode-switch')!.addEventListener('click', (e) => {
   switchMode(btn.dataset.mode as Mode);
 });
 
-// ---- walkthrough: the film scene, played from the product ----------------
+// ---- walkthrough: scenes played from the product ------------------------
 // The agent half of this console cannot be reached by clicking, so a judge
 // with no WebMCP host attached would never see the ledger fill, the refusal,
 // or the plan. `play` drives the page through `airlockTools` — the same
@@ -5263,23 +5277,29 @@ function endWalk(): void {
   setWalk('off');
 }
 
-async function startWalk(): Promise<void> {
+/** The scenes whose work lands on the shop, so the shop is open to see it. */
+const WALK_OPENS_SHOP: ReadonlySet<string> = new Set([planScene.id]);
+
+async function startWalk(scene: Scene): Promise<void> {
   if (walkCtl) return;
   // the scene names its scenario; seed it BEFORE the controller exists, so
   // the re-seed's own endWalk() has nothing to end
-  if (currentTemplate !== filmScene.template) {
-    seed(filmScene.template);
+  if (currentTemplate !== scene.template) {
+    seed(scene.template);
     await new Promise((r) => setTimeout(r, 400));
   }
+  // step 4 of the full response is the status post, quoted on the shop —
+  // the one step whose whole point is the customer has to be watchable
+  if (WALK_OPENS_SHOP.has(scene.id)) setRegion('site', true);
   const ctl = new AbortController();
   walkCtl = ctl;
   setWalk('running', 'preparing');
   try {
-    walkRun = play(filmScene, {
+    walkRun = play(scene, {
       air: airlockTools,
       isRunning: () => running,
       toggleRun: () => runBtn.click(),
-      template: filmScene.template,
+      template: scene.template,
       seedTemplate: (id) => seed(id),
       signal: ctl.signal,
       onState: (state, detail) => {
@@ -5294,7 +5314,8 @@ async function startWalk(): Promise<void> {
   }
 }
 
-document.querySelector<HTMLButtonElement>('#walk-start')!.addEventListener('click', () => void startWalk());
+document.querySelector<HTMLButtonElement>('#walk-start')!.addEventListener('click', () => void startWalk(filmScene));
+document.querySelector<HTMLButtonElement>('#walk-full')!.addEventListener('click', () => void startWalk(planScene));
 walkStopBtn.addEventListener('click', () => {
   const inFlight = walkRun;
   endWalk();
@@ -5367,6 +5388,8 @@ if (BOOT_MODE) switchMode(BOOT_MODE);
 // resets the pacer and the storefront; through the same code the buttons use.
 if (OPEN_SITE) setRegion('site', true);
 if (AUTO_RUN) toggleRun();
+// ?walk=<scene>: last, so it starts on the world the other params made
+if (BOOT_WALK) void startWalk(walkthroughScenes[BOOT_WALK]);
 
 // Test hooks (smoke): in-page determinism probe + live stream counters.
 declare global {

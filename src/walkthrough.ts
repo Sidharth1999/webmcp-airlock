@@ -15,9 +15,9 @@
  * rejects with real clicks; the console does whatever those clicks do.
  *
  * This module is in the production bundle. The DEV review harness
- * (`?review=<scene>`, src/review.ts) uses the same runner and the same film
- * scene, and keeps every harness-shaped thing — banner, scene list, the other
- * scenes — to itself.
+ * (`?review=<scene>`, src/review.ts) uses the same runner and the same
+ * scenes, and keeps every harness-shaped thing — banner, scene list, the
+ * scenes only a reviewer needs — to itself.
  */
 
 export interface AirlockLike {
@@ -160,6 +160,113 @@ export const filmScene: Scene = {
     });
   },
 };
+
+/**
+ * THE FULL RESPONSE — seven steps, one order, priced.
+ *
+ * The film scene is the refusal and the unlock. This is what the agent does
+ * with the room once it has it: take ownership, set the severity the status
+ * page is keyed to, freeze the estate, tell customers, buy headroom, lift the
+ * freeze, ship the fix. Step 4 lands on the shop — the status post is quoted
+ * verbatim on the page the customer is on — which is why the product opens
+ * the shop pane for this scene.
+ */
+export const planScene: Scene = {
+  id: 'plan',
+  template: 'retry-storm',
+  async run(ctx) {
+    await ctx.runUntil(() => ctx.logSeqs().length > 6, 'log lines');
+    ctx.click('mode-recovery');
+    for (const t of ['airlock_status', 'list_deploys', 'read_logs', 'traffic_history', 'list_changes']) {
+      await ctx.call(t);
+    }
+    const seqs = ctx.logSeqs();
+    await ctx.call('record_finding', {
+      summary: `Offered rate on /checkout is ~4x its organic share while /browse is flat, and contention already cleared (#${seqs.at(2)}) — the load is retries sustaining themselves.`,
+    });
+    await ctx.call('record_finding', {
+      summary: `Payments has storefront-web 4.1.0 queued on the shared node pool (#${seqs.at(0)}). It will take capacity api has none of, and nothing is stopping it.`,
+    });
+    // A plan card is tall and the airlock is pinned above the deck, so at
+    // 1350px the rows it numbers sit under the evidence panel. Close the
+    // panel for this scene: the point here is the sequence landing on the
+    // controls, and the viewer can reopen it from the left rail.
+    ctx.click('close-panel');
+    await ctx.call('propose_plan', {
+      reason: `The fleet is at its autoscaler ceiling with no spare instances (#${seqs.at(1)}), so a rolling replacement withdraws capacity this incident cannot spare. Headroom has to exist before the fix ships. The freeze has to go on before payments rolls and come off before I ship — and it needs an owner before it will take at all.`,
+      steps: [
+        {
+          tool: 'propose_acknowledge',
+          input: { by: 'operator' },
+          because: 'nobody owns this yet, and an estate-wide freeze is a commander action',
+        },
+        {
+          tool: 'propose_severity',
+          input: { level: 'sev1' },
+          because: 'checkout is failing for real customers, and the status page is keyed to a severity',
+        },
+        {
+          tool: 'propose_deploy_freeze',
+          input: { frozen: true },
+          because: 'payments 4.1.0 is queued on the shared pool and would take capacity api has none of',
+        },
+        {
+          tool: 'propose_status_update',
+          input: {
+            state: 'identified',
+            text: 'Checkout is failing for some customers. We have identified the cause and are working on a fix.',
+          },
+          because: 'customers are seeing card failures now; every minute unsaid is a support ticket',
+        },
+        {
+          tool: 'propose_rate_limit',
+          input: { route: 'r-checkout', rps: 150 },
+          because: 'buys headroom now — it rejects real customers and fixes nothing',
+        },
+        {
+          tool: 'propose_deploy_freeze',
+          input: { frozen: false },
+          because: 'the freeze stops my own rollout too — it has to come off before the fix can ship',
+        },
+        {
+          tool: 'propose_rollforward',
+          input: { service: 'api' },
+          because: '2.4.2 is staged and green: retry attempts 2, full jitter, budget 10%',
+        },
+      ],
+    });
+  },
+};
+
+/**
+ * THE PAGE KNOWS WHERE THE IDEA CAME FROM. A tier-1 rollback proposed on the
+ * strength of a customer-supplied log line arrives on the key rung with the
+ * source quoted on the card — and the human can still do it.
+ */
+export const provenanceScene: Scene = {
+  id: 'provenance',
+  template: 'poisoned-runbook',
+  async run(ctx) {
+    await ctx.runUntil(
+      () => /tick (1[5-9]|[2-9]\d)/.test(document.querySelector('[data-testid=sim-status]')?.textContent ?? ''),
+      'the poisoned order note'
+    );
+    ctx.click('mode-recovery');
+    const served = (await ctx.call('read_logs')) as { lines?: { msg: string; untrusted?: boolean }[] };
+    const line = (served.lines ?? []).find((l) => l.untrusted && /d-\d+/.test(l.msg));
+    const target = line ? (line.msg.match(/d-\d+/) ?? [])[0] : undefined;
+    if (!target) throw new Error('walkthrough: no deploy id inside an untrusted log line');
+    await ctx.call('propose_rollback', { deployId: target });
+  },
+};
+
+/** The scenes the product itself can play, by the id `?walk=` takes. */
+export const walkthroughScenes = {
+  film: filmScene,
+  plan: planScene,
+  provenance: provenanceScene,
+} as const;
+export type WalkthroughId = keyof typeof walkthroughScenes;
 
 /**
  * HOLD STILL WHILE A DECISION IS PENDING; MOVE AGAIN ONCE IT IS MADE.

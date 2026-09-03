@@ -3791,7 +3791,8 @@ h4.ctl-group-label { margin: 0 0 var(--sp-2); }
 .te-copy[data-done='false'] { color: var(--bad); }
 .te-copy[data-done='false']::after { content: 'not copied'; }
 .te-note { margin: 0; font-family: var(--font-instrument); font-size: var(--text-2xs); color: var(--ink-ghost); line-height: 1.5; }
-.te-walk { display: flex; align-items: center; gap: var(--sp-2); margin-top: var(--sp-2); }
+.te-walk { display: flex; flex-wrap: wrap; align-items: center; gap: var(--sp-2); margin-top: var(--sp-2); }
+.te-walk > .te-note { flex-basis: 100%; }
 
 /* --- the walkthrough line: the caller is a script, said in the chrome ---
    A row of the dock heading, present only while a walkthrough's work is on

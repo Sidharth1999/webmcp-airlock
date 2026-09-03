@@ -79,3 +79,17 @@ would otherwise need.
   [`evidence.md`](evidence.md).
 - What the spec would need for the claim to hold without convention:
   [`spec-feedback.md`](spec-feedback.md).
+
+## Sources
+
+The premise review that settled these is [`evidence.md`](evidence.md),
+written before the build, including what cuts against the project. The
+citations it rests on, with the claim each supports:
+
+- **Agents with production access do destroy things, with permission systems on.** Nine documented incidents in fourteen months, most with a permission system switched on and talked past: https://adversa.ai/blog/ai-coding-agent-incidents/. The Replit case, a production database and its backups gone in nine seconds, whose postmortem names "absent destructive-action gates": https://mondoo.com/blog/5-lessons-from-9-seconds-ai-agent-deleted-production-database
+- **Diagnosis is the cost; the click is not.** The middle of an incident, where someone works out what to do, eats most of the clock: https://rootly.com/incident-response/metrics · https://iwconnect.com/incident-diagnosis-time/
+- **On-call engineers stitch across several surfaces, and coordination dominates duration.** https://incident.io/blog/sre-tools-reliability-practices-2026 · https://arxiv.org/abs/2008.11192
+- **Mitigation happens in a console, and the kill switch beats the rollback.** Flag changes propagate in about 200 ms and "disabling a feature via a flag takes less time than rolling back a deployment": https://launchdarkly.com/blog/using-feature-flags-during-incident-management/ · https://upstat.io/blog/feature-flags-kill-switches. Rollback is a first-class UI action in production tooling: https://vercel.com/docs/instant-rollback · https://www.aviator.co/blog/how-to-manage-rollouts-and-rollbacks-using-argocd/
+- **Stage-gated capability is an established access pattern, not an invention.** Just-in-time access and break-glass: grant the minimum, unlock as the incident escalates, "record every action from request to revocation in a full audit trail": https://www.ibm.com/think/topics/just-in-time-access · https://hoop.dev/blog/incident-response-break-glass-access-the-key-to-fast-secure-emergency-system-recovery
+- **The platform's own security guidance asks for this shape.** Chrome's WebMCP guide: "it's impossible to guarantee safety inside of a large language model"; mark reads `readOnlyHint`, mark external payloads `untrustedContentHint`, keep descriptions within budget: https://developer.chrome.com/docs/ai/webmcp/secure-tools. Chrome's evals guidance and CLI, which this repo runs against the live URL: https://developer.chrome.com/docs/ai/webmcp/evals
+- **The retry-storm scenario is a documented failure class.** Metastable failures, where a trigger clears and the system sustains the outage on its own feedback: see [`sre-mess-research.md`](sre-mess-research.md) for the incident write-ups the four scenarios are modelled on.

@@ -1,5 +1,13 @@
 # STATUS — live audit log
 
+## CHECKPOINT 2026-09-03 ~07:25 EDT — mitigation verified against the real host
+
+Console with `refuseSynthetic` live, ChatGPT desktop, neutral prompt: tried
+to move to Diagnosis, refused, stayed Triage/13 tools, read explain_surface,
+proposed ownership + SEV1, handed back. Evidence `console-2026-09-03-run4-*`
+in log/host-self-approval/. Comment 3 on webmcp#288. Deployed bundle
+`index-C6vPeYvd.js`. Devpost story: "At a glance" block added at the top.
+
 ## CHECKPOINT 2026-09-03 ~07:10 EDT — minimal repro ran; host pressed the plain button; console refuses synthetic activation
 
 - **Minimal page, three conditions** (`public/minimal.html`, live): "Unlock

@@ -2306,7 +2306,11 @@ function humanActionKey(tool: string, input: Record<string, unknown>): string {
   return actionKey(tool, input);
 }
 
+/** the action key the open caution is about — the control may re-render under it */
+let cautionKey: string | null = null;
+
 function clearCaution(): void {
+  cautionKey = null;
   document.querySelectorAll('.agent-caution').forEach((n) => n.remove());
   document.querySelectorAll<HTMLElement>('[data-caution="pending"]').forEach((b) => {
     delete b.dataset.caution;
@@ -2320,8 +2324,21 @@ function clearCaution(): void {
 function cautionFor(btn: HTMLButtonElement, key: string): boolean {
   const advice = advisories.get(key);
   if (!advice) return false;
-  if (btn.dataset.caution === 'pending') return false; // second click: they meant it
+  // SECOND CLICK: THEY MEANT IT. The caution goes with the click — it used to
+  // rely on the row re-rendering under it, which the command row does not do
+  // while a caution is outside it, and a re-render between the two clicks
+  // (a tick) replaced the button and lost its flag, so the second click was
+  // intercepted again. The key survives both.
+  if (btn.dataset.caution === 'pending' || cautionKey === key) {
+    clearCaution();
+    return false;
+  }
   clearCaution();
+  cautionKey = key;
+  // ONE OBJECTION AT A TIME. The hover popover answered the reach; the click
+  // is the next beat, and a hand that clicks without moving leaves the
+  // popover up, layered over this caution with the same sentence in both.
+  clearHoverCounsel();
   btn.dataset.caution = 'pending';
 
   const box = document.createElement('div');
@@ -2345,7 +2362,14 @@ function cautionFor(btn: HTMLButtonElement, key: string): boolean {
   // its own height (240px) and squeezed the deploy's title to one word per
   // line. It files as a row of the grid instead, under the whole deploy row
   // — the same track the Details disclosure already spans.
-  const host = btn.closest('.deploy-card') ? (btn.closest<HTMLElement>('.dc-actions') ?? btn) : btn;
+  // THE COMMAND ROW NEVER WRAPS (`.cmd-row` is nowrap by rule), so a caution
+  // dropped beside Silence was squeezed to one word per line and 900px tall.
+  // It files after the row instead, inside the bar, which does wrap: a full
+  // line under all six commands, the way the deploy caution is a row of its
+  // card.
+  const host = btn.closest('.deploy-card')
+    ? (btn.closest<HTMLElement>('.dc-actions') ?? btn)
+    : (btn.closest<HTMLElement>('.cmd-row') ?? btn);
   host.parentElement?.insertBefore(box, host.nextSibling);
   // A warning below the fold is not a warning. `nearest` keeps this inside
   // the console's own scroller — `center` drags the whole shell (the bug the

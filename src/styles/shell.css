@@ -2962,6 +2962,18 @@ body {
   max-width: none;
   margin-top: 0;
 }
+/* Under the command bar it is its own line beneath all six commands. Capped
+   at 46ch it fitted BESIDE the row at 2400, and the bar centred the buttons
+   on it: Silence dropped 56px out from under the pointer that had just
+   clicked it, so the second click landed on nothing. The box takes the
+   line; the sentence keeps its measure. */
+.cmdbar > .agent-caution { max-width: none; margin-top: 0; }
+.cmdbar > .agent-caution .caution-why { max-width: 70ch; }
+/* ONE VOICE ON A CONTROL. While the agent is speaking about a lever — the
+   hover objection, or the caution after the click — the lever's own cost
+   note yields; the two overlapped, and neither could be read. */
+#console .ctl-btn.lever[data-counselled='true'] .lever-cost,
+#console .ctl-btn.lever[data-caution='pending'] .lever-cost { display: none; }
 @media (prefers-reduced-motion: reduce) { .agent-caution { animation: none; } }
 
 /* --- the capability ladder ----------------------------------------------

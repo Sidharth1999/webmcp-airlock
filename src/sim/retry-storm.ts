@@ -82,6 +82,15 @@ const SHED_CEILING = 150;
 const FLEET_FULL: ServiceCapacity = { instances: 6, ceiling: 6, headroom: 0 };
 /** After a halted rollout: two instances withdrawn, and they do not come back. */
 const FLEET_WEDGED: ServiceCapacity = { instances: 4, ceiling: 6, headroom: 0 };
+/**
+ * THE WAY OUT OF A WEDGE. Four instances cannot spare one while the offered
+ * load is 4x organic; once /checkout is capped at or under the shed ceiling
+ * they can — the admitted load fits on three, so one can be replaced. This
+ * is what makes the halted state recoverable rather than terminal: the real
+ * ChatGPT run capped after its halted ship and was refused forever.
+ */
+const FLEET_WEDGED_SHED: ServiceCapacity = { instances: 4, ceiling: 6, headroom: 1 };
+const WAY_OUT = 'cap /checkout to ≤150 req/s, then roll again';
 
 /** Steady state before the storm. Deliberately unhelpful. */
 const CALM_LOGS = [
@@ -527,16 +536,18 @@ export const retryStorm: TemplateFactory = {
             ? { effect: 'none', reason: 'roll-forward has no effect: no build is staged for api' }
             : undefined;
         }
-        if (deployLatched) {
+        if (deployLatched && !(wedged && shed)) {
           return {
             effect: 'none',
-            reason: `${verb} cannot start: the earlier rollout was halted mid-way and api is still a mixed fleet (${fleet} live) — one rolling replacement at a time`,
+            reason: `${verb} cannot start: the earlier rollout was halted mid-way and api is still a mixed fleet (${fleet} live, headroom 0) — ${WAY_OUT}`,
           };
         }
         if (shed) {
           return {
             effect: 'changed',
-            reason: `${verb} is rolling on the shed load: instances cycle cleanly and the amplifier stops serving`,
+            reason: wedged
+              ? `${verb} is rolling on the shed load: the admitted load fits on 3 of the 4 live instances, so the replacement completes and the mixed fleet clears`
+              : `${verb} is rolling on the shed load: instances cycle cleanly and the amplifier stops serving`,
             changed: ['deploys', 'services'],
             converges: 'error rate returns to baseline within ~2 ticks',
           };
@@ -550,7 +561,7 @@ export const retryStorm: TemplateFactory = {
         }
         return {
           effect: 'partial',
-          reason: `${verb} halted after 2 of 6 instances: api is at its autoscaler ceiling (${fleet} live, headroom 0) with no spare instance to replace, so ROLLOUT_AUTO_ABORT stopped it — 4 of 6 now carry the load. Free headroom first (cap /checkout)`,
+          reason: `${verb} halted after 2 of 6 instances: api is at its autoscaler ceiling (${fleet} live, headroom 0) with no spare instance to replace, so ROLLOUT_AUTO_ABORT stopped it — 4 of 6 now carry the load; ${WAY_OUT}`,
           changed: ['services'],
         };
       },
@@ -569,6 +580,22 @@ export const retryStorm: TemplateFactory = {
               level: 'warn',
               msg: `admission control: /checkout capped at ${rps}/s. Queue draining, pool utilisation falling; excess requests are rejected`,
             }, event.seq);
+            // A WEDGED FLEET UNDER A CAP CAN ROLL AGAIN. The admitted load
+            // fits on three of the four live instances, so one can be
+            // replaced — the headroom the halted rollout never had.
+            if (wedged && !fixed) {
+              ctx.emit('service.health', 'sim', {
+                service: 'api',
+                status: 'degraded',
+                reason: 'mixed fleet under an admission cap: the admitted load fits on 3 of 4 instances, one can be replaced',
+                capacity: FLEET_WEDGED_SHED,
+              }, event.seq);
+              ctx.emit('log.line', 'sim', {
+                service: 'api',
+                level: 'info',
+                msg: 'admitted load fits on 3 of the 4 live instances: headroom 1, a rolling replacement can proceed',
+              }, event.seq);
+            }
           } else if (rps > SHED_CEILING && shed) {
             shed = false;
             ctx.emit('log.line', 'sim', {
@@ -578,6 +605,14 @@ export const retryStorm: TemplateFactory = {
                 ? 'admission cap lifted; offered load is organic again'
                 : 'admission cap lifted while the amplifier is still serving: the queue is refilling',
             }, event.seq);
+            if (wedged && !fixed) {
+              ctx.emit('service.health', 'sim', {
+                service: 'api',
+                status: 'degraded',
+                reason: 'mixed fleet, cap lifted: offered load no longer fits, no instance to spare',
+                capacity: FLEET_WEDGED,
+              }, event.seq);
+            }
           }
           return;
         }
@@ -593,7 +628,9 @@ export const retryStorm: TemplateFactory = {
           ctx.world.deploys.find((d) => d.id === CAUSE_DEPLOY_ID)?.status === 'rolled_back';
 
         if (rollingForward || rollingBack) {
-          if (deployLatched) return; // a double act ships one rollout, not two
+          // a double act ships one rollout, not two — unless the first was
+          // halted and the fleet has since been given headroom by the cap
+          if (deployLatched && !(wedged && shed)) return;
           deployLatched = true;
 
           if (shed) {
@@ -615,6 +652,7 @@ export const retryStorm: TemplateFactory = {
               }, startSeq);
             }
             fixed = true;
+            const wasWedged = wedged;
             wedged = false;
             fixTick = ctx.tick;
             ctx.emit('log.line', 'sim', {
@@ -624,6 +662,16 @@ export const retryStorm: TemplateFactory = {
                 ? '2.4.2 rolled out on the shed load; retry amplification stopped at the client'
                 : `${CAUSE_DEPLOY_ID} rolled back to 2.3.9 on the shed load; retry amplification stopped at the client`,
             }, event.seq);
+            if (wasWedged) {
+              // the replacement completed: the two withdrawn instances are
+              // back and the fleet is whole again
+              ctx.emit('service.health', 'sim', {
+                service: 'api',
+                status: 'degraded',
+                reason: 'rolling replacement completed on the shed load; fleet back to 6 of 6, draining',
+                capacity: FLEET_FULL,
+              }, event.seq);
+            }
             return;
           }
 

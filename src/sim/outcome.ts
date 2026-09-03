@@ -68,7 +68,14 @@ function noopReason(world: World, tool: string, input: Record<string, unknown>, 
       if (target.status !== 'live') {
         return `rollback has no effect: ${id} is ${target.status.replace('_', ' ')}, not the live build of ${target.service}`;
       }
-      return `rollback has no effect: ${id} has no superseded predecessor to restore`;
+      return `rollback has no effect: no earlier build to roll back to — ${id} is the first build of ${target.service} on record`;
+    }
+    case 'deploy.rollforward': {
+      // the reducer has nothing to apply and the template did not react: the
+      // precondition a roll-forward needs is a staged build, and there is none
+      const svc = String(input.service ?? '?');
+      if (!world.services.some((x) => x.id === svc)) return `roll forward has no effect: no service ${svc} on this console`;
+      return `roll forward has no effect: no build is staged for ${svc} to roll forward to`;
     }
     case 'flag.set': {
       const f = world.flags.find((x) => x.id === String(input.id));

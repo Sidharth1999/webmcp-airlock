@@ -184,3 +184,97 @@ describe('airlock_status reads the fleet, admitted traffic and recent outcomes',
     }
   });
 });
+
+describe('retry-storm: the wedge is recoverable the way an SRE would expect', () => {
+  const capacityOf = (e: Engine) => e.world.services.find((s) => s.id === 'api')!.capacity;
+
+  it('wedged + cap at or under the shed ceiling gives the fleet headroom', () => {
+    const e = stormOpen();
+    e.act('deploy.rollforward', { service: 'api' }, 'agent');
+    e.step(1);
+    expect(capacityOf(e)).toEqual({ instances: 4, ceiling: 6, headroom: 0 });
+    e.act('ratelimit.set', { route: 'r-checkout', rps: 150 }, 'agent');
+    expect(capacityOf(e)).toEqual({ instances: 4, ceiling: 6, headroom: 1 });
+    // and lifting the cap takes it back
+    e.act('ratelimit.set', { route: 'r-checkout', rps: 400 }, 'agent');
+    expect(capacityOf(e)).toEqual({ instances: 4, ceiling: 6, headroom: 0 });
+  });
+
+  it('wedged + cap + roll-forward completes: api on 2.4.2, fleet whole, incident resolves', () => {
+    const e = stormOpen();
+    e.act('deploy.rollforward', { service: 'api' }, 'agent');
+    e.step(2);
+    e.act('ratelimit.set', { route: 'r-checkout', rps: 150 }, 'agent');
+    e.step(1);
+    const ship = e.act('deploy.rollforward', { service: 'api' }, 'agent');
+    expect(outcomeOf(ship).effect).toBe('changed');
+    expect(outcomeOf(ship).reason).toMatch(/mixed fleet clears/);
+    expect(e.world.services.find((s) => s.id === 'api')!.version).toBe('2.4.2');
+    expect(capacityOf(e)).toEqual({ instances: 6, ceiling: 6, headroom: 0 });
+    e.step(6);
+    expect(e.world.services.every((s) => s.health === 'ok')).toBe(true);
+  });
+
+  it('wedged + cap + rollback of d-511 completes too', () => {
+    const e = stormOpen();
+    e.act('deploy.rollforward', { service: 'api' }, 'agent');
+    e.step(2);
+    e.act('ratelimit.set', { route: 'r-checkout', rps: 120 }, 'agent');
+    const rb = e.act('deploy.rollback', { deployId: 'd-511' }, 'agent');
+    expect(outcomeOf(rb).effect).toBe('changed');
+    expect(e.world.services.find((s) => s.id === 'api')!.version).toBe('2.3.9');
+    e.step(6);
+    expect(e.world.services.every((s) => s.health === 'ok')).toBe(true);
+  });
+
+  it('wedged + no cap + roll-forward is still refused, and the reason ends with the way out', () => {
+    const e = stormOpen();
+    e.act('deploy.rollforward', { service: 'api' }, 'agent');
+    e.step(2);
+    const again = e.act('deploy.rollforward', { service: 'api' }, 'agent');
+    expect(outcomeOf(again).effect).toBe('none');
+    expect(outcomeOf(again).reason).toMatch(/cap \/checkout to ≤150 req\/s, then roll again$/);
+    expect(e.world.services.find((s) => s.id === 'api')!.version).toBe('2.4.0');
+    // a cap ABOVE the shed ceiling does not free headroom either
+    e.act('ratelimit.set', { route: 'r-checkout', rps: 300 }, 'agent');
+    expect(capacityOf(e)!.headroom).toBe(0);
+    expect(outcomeOf(e.act('deploy.rollforward', { service: 'api' }, 'agent')).effect).toBe('none');
+  });
+});
+
+describe('generic deploy no-ops state the precondition the reducer checked, not "nothing responds"', () => {
+  for (const templateId of ['poisoned-runbook', 'innocent-deploy', 'migration-trap']) {
+    it(`${templateId}: a roll-forward with nothing staged says so, after a wrong rollback too`, () => {
+      const e = new Engine({ templateId, seed: 5 });
+      e.step(30);
+      const live = e.world.deploys.filter((d) => d.status === 'live');
+      const last = live[live.length - 1];
+      if (last) e.act('deploy.rollback', { deployId: last.id }, 'agent');
+      const svc = e.world.services[0]!.id;
+      const ev = e.act('deploy.rollforward', { service: svc }, 'agent');
+      if (ev.kind !== 'action.executed') return; // a freeze or gate refused it: its own reason
+      const o = outcomeOf(ev);
+      if (o.effect !== 'none') return; // this template reacts to a roll-forward; the generic floor is not in play
+      expect(o.reason).toBe(`roll forward has no effect: no build is staged for ${svc} to roll forward to`);
+      expect(o.reason).not.toMatch(/nothing in this incident responds/);
+    });
+  }
+
+  it('a rollback with no earlier build says there is nothing to roll back to', () => {
+    const e = new Engine({ templateId: 'retry-storm', seed: 5 });
+    e.step(30);
+    // d-510 is the first api build on record: a rollback of it has nowhere to land
+    const rolledBack = e.act('deploy.rollback', { deployId: 'd-511' }, 'agent');
+    expect(outcomeOf(rolledBack).effect).not.toBe('none');
+    const ev = e.act('deploy.rollback', { deployId: 'd-510' }, 'agent');
+    expect(outcomeOf(ev).effect).toBe('none');
+    expect(outcomeOf(ev).reason).toMatch(/^rollback has no effect: no earlier build to roll back to/);
+  });
+
+  it('a roll-forward of an unknown service names the service, not a staging state', () => {
+    const e = new Engine({ templateId: 'innocent-deploy', seed: 5 });
+    e.step(5);
+    const ev = e.act('deploy.rollforward', { service: 'ghost' }, 'agent');
+    expect(outcomeOf(ev).reason).toBe('roll forward has no effect: no service ghost on this console');
+  });
+});

@@ -2154,7 +2154,12 @@ body {
 .plan-anchor::before {
   content: attr(data-plan-step);
   position: absolute;
-  left: calc(var(--sp-2) * -1 - 9px);
+  /* IN THE GUTTER, NOT ON THE ROW. Centred on the card's seam, the ring's
+     right edge (16px disc + 3px knockout) reached 2px past the row's left
+     edge, and the row starts with its kind label: it read `⑦vc` and
+     `⑤oute` at 1512 and 1680. The disc now ends 3px short of the row, in
+     the 16px of ground between the pane's edge and the card. */
+  left: calc(var(--sp-2) * -1 - 14px);
   top: 50%;
   transform: translateY(-50%);
   width: 16px;

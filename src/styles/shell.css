@@ -1596,6 +1596,35 @@ body {
   cursor: pointer;
 }
 .ap-key input { accent-color: var(--warn); }
+/* THE HELD GESTURE (main.ts armHold). With a host attached, Approve and the
+   second key are press-and-hold: the agent's own hue fills the control
+   left-to-right over the hold, and a release before the end empties it.
+   Without a host none of these rules match. */
+.ap-approve { position: relative; overflow: hidden; }
+.ap-approve .ap-label, .ap-approve .ap-kbd { position: relative; z-index: 1; }
+.ap-fill {
+  position: absolute; inset: 0;
+  transform: scaleX(0); transform-origin: left center;
+  background: var(--actor-agent); opacity: 0.9;
+  pointer-events: none;
+}
+.ap-approve[data-hold='1'] { border-color: var(--actor-agent-dim); }
+.ap-approve[data-hold='1']:hover:not(:disabled) { border-color: var(--actor-agent); }
+[data-holding='1'] > .ap-fill { transform: scaleX(1); transition: transform 700ms linear; }
+[data-nudge='1'] { border-color: var(--actor-agent); box-shadow: 0 0 0 1.5px var(--actor-agent-dim); }
+.ap-key[data-hold='1'] {
+  position: relative; overflow: hidden;
+  padding: 2px var(--sp-2); margin-inline: calc(-1 * var(--sp-2));
+  border: 1.5px solid transparent; border-radius: var(--r-sm);
+  user-select: none;
+}
+.ap-key[data-hold='1']:hover { border-color: var(--actor-agent-dim); }
+.ap-key[data-hold='1'] .ap-fill { opacity: 0.3; }
+.ap-key[data-hold='1'] > input, .ap-key[data-hold='1'] > .ap-key-text { position: relative; z-index: 1; }
+/* inside a step the trailing note names the gesture the chord needs */
+.pl-slot .ap-actions:has(.ap-approve[data-hold='1'])::after {
+  content: 'hold ⌘ enter to approve · ⌘ del to reject';
+}
 .approval-card[data-tier='4'] { border-color: var(--warn-dim); border-left-color: var(--warn); }
 
 /* --- agent rail: presence and capability first, raw names underneath ------

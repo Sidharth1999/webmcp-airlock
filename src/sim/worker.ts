@@ -13,7 +13,13 @@ export type SimRequest =
   | { type: 'query'; id: number; query: QueryRequest; viaTool?: string }
   | { type: 'record'; kind: EventKind; actor: Actor; data: Record<string, unknown> }
   | { type: 'propose'; id: number; tool: string; input: Record<string, unknown> }
-  | { type: 'decide'; proposalSeq: number; decision: 'approve' | 'reject'; keyHolder?: string }
+  | {
+      type: 'decide';
+      proposalSeq: number;
+      decision: 'approve' | 'reject';
+      keyHolder?: string;
+      via?: string;
+    }
   | { type: 'snapshot' };
 
 export type SimResponse =
@@ -105,7 +111,7 @@ self.onmessage = (e: MessageEvent<SimRequest>) => {
       }
       case 'decide': {
         if (!engine) throw new Error('decide before seed');
-        const events = engine.decide(msg.proposalSeq, msg.decision, msg.keyHolder);
+        const events = engine.decide(msg.proposalSeq, msg.decision, msg.keyHolder, msg.via);
         self.postMessage({
           type: 'events',
           origin: 'act',

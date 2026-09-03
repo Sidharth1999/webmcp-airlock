@@ -244,7 +244,12 @@ export class Engine {
    * as the AGENT's action (causedBy: approval) — the full thread of agency:
    * proposed → approved → executed. reject → action.rejected, world untouched.
    */
-  decide(proposalSeq: number, decision: 'approve' | 'reject', keyHolder?: string): Event[] {
+  decide(
+    proposalSeq: number,
+    decision: 'approve' | 'reject',
+    keyHolder?: string,
+    via?: string
+  ): Event[] {
     const proposal = this.log.all.find((e) => e.seq === proposalSeq);
     if (!proposal || proposal.kind !== 'action.proposed') {
       throw new Error(`no proposal at seq ${proposalSeq}`);
@@ -301,7 +306,9 @@ export class Engine {
       const approved = ctx.emit(
         'action.approved',
         'human',
-        { by: 'human', proposalSeq, ...(keyHolder ? { keyHolder } : {}) },
+        // `via` is the GESTURE the page saw — hold, click, key — recorded so
+        // the receipt can say how an approval arrived rather than assume
+        { by: 'human', proposalSeq, ...(keyHolder ? { keyHolder } : {}), ...(via ? { via } : {}) },
         proposalSeq
       );
       this.act(tool, input, 'agent', approved.seq);

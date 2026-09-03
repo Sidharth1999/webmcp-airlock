@@ -1407,6 +1407,115 @@ try {
   );
   await st.close();
 
+  // ---- with a host attached, approval is a HELD gesture -----------------
+  // ChatGPT's in-app browser proposed a change through propose_* and then
+  // clicked the page's own Approve button; the receipt said "approved by
+  // you". While a host is attached, Approve is press-and-hold (700ms), the
+  // chord is held the same way, and the second key is engaged by a hold.
+  // `?host=1` is the dev-build switch; this is the production bundle, so
+  // the host is installed the way a browser installs it — a modelContext on
+  // the document — which is the flag the page actually reads.
+  const hh = await browser.newPage({ viewport: { width: 1512, height: 945 } });
+  hh.on('pageerror', (e) => pageErrors.push(e.message));
+  await hh.addInitScript(() => {
+    document.modelContext = { registerTool() {}, unregisterTool() {} };
+  });
+  await hh.goto(URL, { waitUntil: 'networkidle' });
+  await hh.getByTestId('flag-toggle-new-checkout').waitFor({ timeout: 15_000 });
+  await hh.getByTestId('mode-recovery').click();
+  await hh.waitForTimeout(300);
+  const hhPropose = async () => {
+    const state = (await hh.locator('[data-flag-id="new-checkout"]').getAttribute('data-flag-state')) === 'on' ? 'off' : 'on';
+    const r = JSON.parse(
+      await hh.evaluate((st) => window.__airlock.invoke('propose_flag_change', { id: 'new-checkout', state: st }), state)
+    );
+    await hh.getByTestId(`approval-${r.proposalSeq}`).waitFor({ timeout: 5_000 });
+    return r.proposalSeq;
+  };
+  const hhPending = (seq) => hh.locator(`[data-testid="approval-${seq}"]`).count();
+  const hhLanded = (seq) =>
+    hh.waitForFunction((sq) => document.querySelector(`[data-testid="ask-${sq}"]`)?.dataset.state === 'done', seq, { timeout: 10_000 })
+      .then(() => true, () => false);
+  const hhVia = (seq) =>
+    hh.evaluate((sq) => {
+      const row = [...document.querySelectorAll('#event-stream li[data-kind="action.approved"]')]
+        .find((r) => r.textContent.includes(`#${sq} `));
+      return row ? row.querySelector('.ev-summary').textContent : null;
+    }, seq);
+  const hhHold = async (loc, ms) => {
+    const box = await loc.boundingBox();
+    await hh.mouse.move(box.x + box.width / 2, box.y + box.height / 2);
+    await hh.mouse.down();
+    await hh.waitForTimeout(ms);
+    await hh.mouse.up();
+  };
+  const hh1 = await hhPropose();
+  check(
+    'with a host attached the status bar says so, the button reads Hold to approve, and the dock line says approvals are held',
+    /host attached/.test(await hh.locator('#wbs-webmcp').textContent()) &&
+      (await hh.getByTestId(`approve-${hh1}`).locator('.ap-label').textContent()) === 'Hold to approve' &&
+      (await hh.getByTestId('held-note').textContent()) === 'Approvals are a held gesture while an agent is attached.' &&
+      /don't click anything in the console — I decide\.$/.test(await hh.locator('#findings-empty .te-q').nth(2).textContent())
+  );
+  await hh.getByTestId(`approve-${hh1}`).click();
+  await hh.evaluate((sq) => document.querySelector(`[data-testid="approve-${sq}"]`).click(), hh1);
+  await hh.waitForTimeout(500);
+  check(
+    'a plain click on Approve — pointer or element.click() — does not approve while a host is attached',
+    (await hhPending(hh1)) === 1 &&
+      (await hh.locator(`[data-testid="ask-${hh1}"]`).getAttribute('data-state')) === 'live'
+  );
+  await hhHold(hh.getByTestId(`approve-${hh1}`), 350);
+  await hh.waitForTimeout(500);
+  check('a hold released at 350ms does not approve', (await hhPending(hh1)) === 1);
+  await hhHold(hh.getByTestId(`approve-${hh1}`), 850);
+  const hh1Landed = await hhLanded(hh1);
+  await hh.waitForTimeout(600);
+  check(
+    'a 700ms hold approves, and the log records the gesture as hold',
+    hh1Landed && /· hold$/.test((await hhVia(hh1)) ?? '')
+  );
+  const hh2 = await hhPropose();
+  await hh.keyboard.down('Meta');
+  await hh.keyboard.down('Enter');
+  await hh.waitForTimeout(250);
+  const hh2Holding = (await hh.getByTestId(`approve-${hh2}`).getAttribute('data-holding')) === '1';
+  await hh.keyboard.up('Enter');
+  await hh.keyboard.up('Meta');
+  await hh.waitForTimeout(600);
+  const hh2StillPending = (await hhPending(hh2)) === 1;
+  await hh.keyboard.down('Meta');
+  await hh.keyboard.down('Enter');
+  await hh.waitForTimeout(850);
+  await hh.keyboard.up('Enter');
+  await hh.keyboard.up('Meta');
+  const hh2Landed = await hhLanded(hh2);
+  await hh.waitForTimeout(600);
+  check(
+    '⌘ enter tapped does not approve while a host is attached; held for 700ms it does, recorded as key-hold',
+    hh2Holding && hh2StillPending && hh2Landed && /· key-hold$/.test((await hhVia(hh2)) ?? '')
+  );
+  const hh3 = JSON.parse(
+    await hh.evaluate(() => window.__airlock.invoke('propose_route_change', { id: 'checkout', target: 'web' }))
+  ).proposalSeq;
+  await hh.getByTestId(`approval-${hh3}`).waitFor({ timeout: 5_000 });
+  await hh.getByTestId(`key-${hh3}`).click();
+  await hh.waitForTimeout(300);
+  const hh3ClickRefused =
+    !(await hh.getByTestId(`key-${hh3}`).isChecked()) && (await hh.getByTestId(`approve-${hh3}`).isDisabled());
+  await hhHold(hh.locator(`[data-testid="approval-${hh3}"] .ap-key`), 850);
+  await hh.waitForTimeout(300);
+  const hh3Engaged =
+    (await hh.getByTestId(`key-${hh3}`).isChecked()) && !(await hh.getByTestId(`approve-${hh3}`).isDisabled());
+  await hhHold(hh.getByTestId(`approve-${hh3}`), 850);
+  const hh3Landed = await hhLanded(hh3);
+  await hh.waitForTimeout(600);
+  check(
+    'the second key: a click does not engage it, a hold does, and the write lands under key: operator · hold',
+    hh3ClickRefused && hh3Engaged && hh3Landed && /key: operator · hold$/.test((await hhVia(hh3)) ?? '')
+  );
+  await hh.close();
+
   check('no page errors', pageErrors.length === 0);
   if (pageErrors.length) console.error('[smoke] page errors:', pageErrors);
 } finally {

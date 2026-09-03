@@ -25,6 +25,14 @@ const DEFAULT_TEMPLATE = 'migration-trap';
 const params = new URLSearchParams(location.search);
 const requestedTemplate = params.get('template') ?? DEFAULT_TEMPLATE;
 const AUTO_RUN = params.get('run') === '1';
+// ?host=1 (DEV ONLY): stand in for an attached WebMCP host so the held
+// approval can be driven by Playwright on a build with no host. Production
+// detects the host itself (`hasWebMCP`) and ignores the param.
+const HOST_FORCED = import.meta.env.DEV && params.get('host') === '1';
+/** A client is on the other end of the tool surface — the same test the status bar prints. */
+function hostAttached(): boolean {
+  return HOST_FORCED || hasWebMCP();
+}
 // ?mode=<stage>: boot with the response stage already moved. Composes with
 // every other boot param; an unknown or absent value leaves the default.
 const BOOT_MODE = (MODES as readonly string[]).includes(params.get('mode') ?? '')
@@ -527,8 +535,9 @@ app.innerHTML = `
           <ul class="te-list te-asks">
             <li class="te-row"><span class="te-q">What can you do on this page, and what can't you?</span>${COPY_BTN('copy-ask-1')}</li>
             <li class="te-row"><span class="te-q">Work out what is wrong here, but don't change anything yet.</span>${COPY_BTN('copy-ask-2')}</li>
-            <li class="te-row"><span class="te-q">Move the stage to Recovery and fix it.</span>${COPY_BTN('copy-ask-3')}</li>
+            <li class="te-row"><span class="te-q">Move the stage to Recovery, propose the fix, and don't click anything in the console — I decide.</span>${COPY_BTN('copy-ask-3')}</li>
           </ul>
+          <p class="te-note te-held" data-testid="held-note">Approvals are a held gesture while an agent is attached.</p>
           <p class="te-note">Run sim first — the incident has to be underway.</p>
           <div class="te-walk">
             <button type="button" class="ctl-btn" id="walk-start" data-testid="walk-start">Watch a walkthrough</button>
@@ -601,10 +610,11 @@ document.querySelector('#health-demo')?.addEventListener('click', (e) => {
 function renderWebMCPStatus(active: number): void {
   const el = document.querySelector<HTMLElement>('#wbs-webmcp');
   if (!el) return;
-  el.dataset.host = hasWebMCP() ? 'on' : 'off';
-  el.textContent = hasWebMCP()
+  el.dataset.host = hostAttached() ? 'on' : 'off';
+  el.textContent = hostAttached()
     ? `WebMCP · ${active} published · host attached`
     : `WebMCP · ${active} published`;
+  syncHoldMode();
 }
 
 // ---- sim worker wiring (M2-02) ------------------------------------------
@@ -829,7 +839,7 @@ function summarize(e: Event): string {
     case 'action.proposed':
       return `[tier ${d.tier}] ${d.diffSummary}`;
     case 'action.approved':
-      return `proposal #${d.proposalSeq} approved by human${d.keyHolder ? ` · key: ${d.keyHolder}` : ''}`;
+      return `proposal #${d.proposalSeq} approved by human${d.keyHolder ? ` · key: ${d.keyHolder}` : ''}${d.via ? ` · ${d.via}` : ''}`;
     case 'action.rejected':
       return `proposal #${d.proposalSeq} REJECTED by human`;
     case 'action.blocked':
@@ -1644,8 +1654,16 @@ function showReceipt(plan: LivePlan): void {
   if (!foot) return;
   const n = plan.steps.length;
   foot.hidden = false;
+  // ONLY THE GESTURE THAT HAPPENED. A held gesture, or any gesture with no
+  // host attached, is yours. A plain click or chord while a host was on the
+  // line is reported as what it was, because the page cannot tell whose.
+  const tally = { you: 0, click: 0, keyboard: 0 };
+  for (const [seq, id] of planForProposal) if (id === plan.id) tally[approvedBy(seq)]++;
+  const parts = (['you', 'click', 'keyboard'] as const).filter((k) => tally[k] > 0);
   foot.querySelector<HTMLElement>('.plr-count')!.textContent =
-    `${n} of ${n} approved by you`;
+    parts.length <= 1
+      ? `${n} of ${n} approved by ${parts[0] ?? 'you'}`
+      : `${n} of ${n} approved · ${parts.map((k) => `${tally[k]} by ${k}`).join(' · ')}`;
   foot.querySelector<HTMLElement>('.plr-bypass')!.textContent = '0 writes went round you';
 }
 
@@ -1855,6 +1873,107 @@ const WHAT_IT_TOUCHES: Record<string, string> = {
   comms: 'what customers are told',
 };
 
+/**
+ * THE HELD GESTURE.
+ *
+ * A host that can call the page's tools can usually operate the page too —
+ * ChatGPT's in-app browser did exactly that: proposed a change through
+ * `propose_*`, then clicked Approve itself, and the receipt said "approved
+ * by you" because a synthetic click is indistinguishable from a person's.
+ * The page cannot make a computer-use host impossible to bypass. It can make
+ * approval a gesture that a one-shot click does not satisfy, and say so.
+ *
+ * So while a host is attached, Approve is press-and-hold: `pointerdown`
+ * starts a 700ms hold with a visible fill, any release, leave or cancel
+ * before that ends it, and only completion approves. A plain click — real
+ * or synthesised — starts a hold and ends it a few milliseconds later. The
+ * keyboard chord holds the same way (⌘ enter down for 700ms, auto-repeat
+ * ignored, any keyup cancels): a synthesised keypress is exactly as cheap
+ * as a synthesised click, so the two paths cost the same. With no host on
+ * the line nothing changes — a click is a click.
+ */
+const HOLD_MS = 700;
+type Hold = { start: (kind: 'pointer' | 'key') => void; cancel: () => void };
+const holds = new WeakMap<HTMLElement, Hold>();
+
+function armHold(el: HTMLElement, done: (via: 'hold' | 'key-hold') => void): Hold {
+  let timer: number | null = null;
+  const cancel = (): void => {
+    if (timer !== null) {
+      clearTimeout(timer);
+      timer = null;
+    }
+    delete el.dataset.holding;
+  };
+  const start = (kind: 'pointer' | 'key'): void => {
+    if (timer !== null || el.dataset.hold !== '1') return;
+    if ((el as HTMLButtonElement).disabled) return;
+    el.dataset.holding = '1';
+    timer = window.setTimeout(() => {
+      timer = null;
+      delete el.dataset.holding;
+      done(kind === 'pointer' ? 'hold' : 'key-hold');
+    }, HOLD_MS);
+  };
+  el.addEventListener('pointerdown', (ev) => {
+    if (ev.button !== 0) return;
+    start('pointer');
+  });
+  const release = (): void => {
+    cancel();
+    // the click that follows a completed hold's release is not a second
+    // gesture; the flag that says so lives exactly as long as that click
+    if (el.dataset.held === '1') window.setTimeout(() => delete el.dataset.held, 0);
+  };
+  for (const t of ['pointerup', 'pointerleave', 'pointercancel']) el.addEventListener(t, release);
+  const h = { start, cancel };
+  holds.set(el, h);
+  return h;
+}
+
+/** A click where a hold was needed: the control says so for a beat. */
+function nudgeHold(el: HTMLElement): void {
+  el.dataset.nudge = '1';
+  window.setTimeout(() => delete el.dataset.nudge, 700);
+}
+
+/**
+ * The host can attach after a card is on screen; the card follows. Called
+ * from every status-bar render, which is every capability render.
+ */
+function syncHoldMode(): void {
+  const hold = hostAttached();
+  for (const { card } of pendingCards.values()) {
+    const btn = card.querySelector<HTMLButtonElement>('.ap-approve');
+    if (!btn) continue;
+    if (hold) btn.dataset.hold = '1';
+    else delete btn.dataset.hold;
+    const label = btn.querySelector<HTMLElement>('.ap-label');
+    if (label) label.textContent = hold ? 'Hold to approve' : 'Approve';
+    const key = card.querySelector<HTMLElement>('.ap-key');
+    if (key) {
+      if (hold) key.dataset.hold = '1';
+      else delete key.dataset.hold;
+    }
+  }
+}
+
+/**
+ * How each approval arrived, kept on the page so the receipt can say it.
+ * `hosted` is whether a host was attached at the moment of the gesture —
+ * the only moment the distinction means anything.
+ */
+const decisionGesture = new Map<number, { via: string; hosted: boolean }>();
+
+/** Who or what an approval is credited to. Held gestures, and every gesture with no host attached, are yours. */
+function approvedBy(proposalSeq: number): 'you' | 'click' | 'keyboard' {
+  const g = decisionGesture.get(proposalSeq);
+  if (!g || !g.hosted) return 'you';
+  if (g.via === 'click') return 'click';
+  if (g.via === 'key') return 'keyboard';
+  return 'you';
+}
+
 function addApprovalCard(e: Event): void {
   const d = e.data as {
     tool: string;
@@ -1877,6 +1996,8 @@ function addApprovalCard(e: Event): void {
   // A proposal is on the key rung either because of its tier, or because the
   // page knows where the idea came from (src/sim/provenance.ts).
   const dualKey = d.tier === 4 || d.requiresKey === true;
+  // with a host on the line, approval is a HELD gesture (see armHold)
+  const hold = hostAttached();
   card.innerHTML = `
     <div class="ap-head">
       <span class="ap-actor">agent proposes</span>
@@ -1894,11 +2015,11 @@ function addApprovalCard(e: Event): void {
     }
     ${
       dualKey
-        ? `<label class="ap-key"><input type="checkbox" class="ap-key-toggle" data-testid="key-${e.seq}"><span>engage key — held while the agent executes${d.provenance ? ' (required: untrusted evidence)' : ''}</span></label>`
+        ? `<label class="ap-key"${hold ? ' data-hold="1"' : ''}><span class="ap-fill" aria-hidden="true"></span><input type="checkbox" class="ap-key-toggle" data-testid="key-${e.seq}"><span class="ap-key-text">${hold ? 'hold to engage key' : 'engage key'} — held while the agent executes${d.provenance ? ' (required: untrusted evidence)' : ''}</span></label>`
         : ''
     }
     <div class="ap-actions">
-      <button type="button" class="ctl-btn primary ap-approve" data-act="approve" data-seq="${e.seq}" data-testid="approve-${e.seq}" ${dualKey ? 'disabled' : ''}>Approve<kbd class="ap-kbd">⌘ enter</kbd></button>
+      <button type="button" class="ctl-btn primary ap-approve" data-act="approve" data-seq="${e.seq}" data-testid="approve-${e.seq}"${hold ? ' data-hold="1"' : ''} ${dualKey ? 'disabled' : ''}><span class="ap-fill" aria-hidden="true"></span><span class="ap-label">${hold ? 'Hold to approve' : 'Approve'}</span><kbd class="ap-kbd">⌘ enter</kbd></button>
       <button type="button" class="ctl-btn ap-reject" data-act="reject" data-seq="${e.seq}" data-testid="reject-${e.seq}">Reject<kbd class="ap-kbd">⌘ del</kbd></button>
     </div>
   `;
@@ -1913,6 +2034,42 @@ function addApprovalCard(e: Event): void {
     const engaged = (ev.target as HTMLInputElement).checked;
     card.querySelector<HTMLButtonElement>('.ap-approve')!.disabled = !engaged;
   });
+  const approveBtn = card.querySelector<HTMLButtonElement>('.ap-approve')!;
+  armHold(approveBtn, (via) => {
+    approveBtn.dataset.held = '1';
+    approveBtn.dataset.via = via;
+    approveBtn.click(); // the one path every decision takes (below, data-act)
+    approveBtn.disabled = true; // the pointer's own trailing click lands on nothing
+  });
+  const keyToggle = card.querySelector<HTMLInputElement>('.ap-key-toggle');
+  const keyLabel = card.querySelector<HTMLElement>('.ap-key');
+  if (keyToggle && keyLabel) {
+    // The second key is the same gesture as the first: with a host attached,
+    // engaging it is a hold on the label, and a click — which a host can
+    // synthesise — only ever RELEASES it.
+    const keyHold = armHold(keyLabel, () => {
+      keyLabel.dataset.held = '1';
+      keyToggle.checked = true;
+      keyToggle.dispatchEvent(new window.Event('change'));
+    });
+    keyToggle.addEventListener('click', (ev) => {
+      if (keyLabel.dataset.hold !== '1') return;
+      // the pointer's trailing click after a completed hold, or a click
+      // trying to engage: neither is the gesture
+      if (keyLabel.dataset.held === '1' || keyToggle.checked) {
+        ev.preventDefault();
+        if (keyLabel.dataset.held !== '1') nudgeHold(keyLabel);
+      }
+    });
+    keyToggle.addEventListener('keydown', (ev) => {
+      if (ev.key !== ' ' || keyLabel.dataset.hold !== '1' || keyToggle.checked) return;
+      ev.preventDefault();
+      if (!ev.repeat) keyHold.start('key');
+    });
+    keyToggle.addEventListener('keyup', (ev) => {
+      if (ev.key === ' ') keyHold.cancel();
+    });
+  }
   // The card lives in the AIRLOCK — a pinned region of the centre pane. It
   // used to be inserted after the row it would mutate, which reads well until
   // that row is below the fold or on an inactive evidence tab, and then the
@@ -2046,7 +2203,9 @@ function askExecuted(proposalSeq: number): void {
     standaloneStateReport();
     return;
   }
-  el.querySelector<HTMLElement>('.pl-note')!.textContent = 'executed';
+  const by = approvedBy(proposalSeq);
+  el.querySelector<HTMLElement>('.pl-note')!.textContent =
+    by === 'you' ? 'executed' : `executed · approved by ${by}`;
   landObservation(el, diffFacts(prevFacts, snapshotFacts(world ?? undefined)));
 }
 
@@ -3317,11 +3476,22 @@ document.addEventListener('click', (e) => {
     case 'reject': {
       const card = btn.closest<HTMLElement>('.approval-card, .ap-ask');
       const keyEngaged = card?.querySelector<HTMLInputElement>('.ap-key-toggle')?.checked ?? false;
+      const approve = btn.dataset.act === 'approve';
+      // with a host attached, a click that was not the end of a hold is not
+      // an approval — it is the thing the hold exists to refuse
+      if (approve && btn.dataset.hold === '1' && btn.dataset.held !== '1') {
+        nudgeHold(btn);
+        return;
+      }
+      const via = approve ? (btn.dataset.via ?? 'click') : undefined;
+      delete btn.dataset.via;
+      if (approve && via) decisionGesture.set(Number(btn.dataset.seq), { via, hosted: hostAttached() });
       send({
         type: 'decide',
         proposalSeq: Number(btn.dataset.seq),
-        decision: btn.dataset.act === 'approve' ? 'approve' : 'reject',
-        ...(btn.dataset.act === 'approve' && keyEngaged ? { keyHolder: 'operator' } : {}),
+        decision: approve ? 'approve' : 'reject',
+        ...(approve && keyEngaged ? { keyHolder: 'operator' } : {}),
+        ...(via ? { via } : {}),
       });
       return;
     }
@@ -4213,7 +4383,7 @@ function renderEvents(events: Event[], w: World): void {
       // names only its approval. Keep the join.
       if (e.kind === 'action.approved') {
         approvalToProposal.set(e.seq, ps);
-        askDecided(ps, 'done', 'approved');
+        askDecided(ps, 'done', approvedBy(ps) === 'you' ? 'approved' : `approved by ${approvedBy(ps)}`);
       } else {
         planDecided(ps, false);
         askDecided(ps, 'skipped', 'you rejected this');
@@ -4769,6 +4939,12 @@ document.addEventListener('keydown', (e) => {
       entry.card.querySelector<HTMLElement>('.ap-key-toggle')?.focus();
       return;
     }
+    if (btn.dataset.hold === '1') {
+      // a host is attached: the chord is held, like the button (see armHold)
+      if (!e.repeat) holds.get(btn)?.start('key');
+      return;
+    }
+    btn.dataset.via = 'key';
     btn.click();
     return;
   }
@@ -4783,6 +4959,13 @@ document.addEventListener('keydown', (e) => {
   else if (e.key === 'ArrowDown') { e.preventDefault(); paletteActive++; renderPalette(); }
   else if (e.key === 'ArrowUp') { e.preventDefault(); paletteActive = Math.max(0, paletteActive - 1); renderPalette(); }
   else if (e.key === 'Enter') { e.preventDefault(); runPalette(paletteActive); }
+});
+// any key coming up ends a held chord — on macOS the Enter keyup is not
+// always delivered while ⌘ is down, so the modifier's own keyup counts too
+document.addEventListener('keyup', (e) => {
+  if (e.key !== 'Enter' && e.key !== 'Meta' && e.key !== 'Control') return;
+  const btn = liveDecision()?.card.querySelector<HTMLButtonElement>('.ap-approve');
+  if (btn) holds.get(btn)?.cancel();
 });
 paletteInput.addEventListener('input', () => { paletteActive = 0; renderPalette(); });
 paletteList.addEventListener('click', (e) => {

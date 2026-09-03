@@ -1,3 +1,9 @@
+> **What this is.** The raw working log of the build, newest entry first,
+> kept as the record of what was verified when and by what. It is written in
+> the voice of the people building it, not for a reader, and it includes the
+> dead ends. The judge-facing summaries are `docs/thesis.md` and
+> `docs/evals.md`; this file is the audit trail behind them.
+
 # STATUS — live audit log
 
 ## CHECKPOINT 2026-09-03 ~07:25 EDT — mitigation verified against the real host

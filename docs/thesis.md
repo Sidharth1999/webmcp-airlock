@@ -45,7 +45,7 @@ would otherwise need.
 
 | part of the claim | evidence | where |
 | --- | --- | --- |
-| a real host honours live registration and withdrawal | tools discovered, invoked, and the surface seen shrinking and growing mid-session in ChatGPT's in-app browser on the deployed origin; 13 and 27 read off Chrome's `document.modelContext` on the live URL | STATUS.md (gate 1, 2026-08-31); `study/chrome-evals/` |
+| a real host honours live registration and withdrawal | tools discovered, invoked, and the surface seen shrinking and growing mid-session in ChatGPT's in-app browser on the deployed origin; 13 and 27 read off Chrome's `document.modelContext` on the live URL | docs/process/STATUS.md (gate 1, 2026-08-31); `study/chrome-evals/` |
 | the surface is what the page says it is | Chrome's `webmcp-evals` smoke: 24/24 steps against the live URL with no model; Lighthouse lists 13 registered tools with valid schemas | `study/chrome-evals/README.md`, `log/lighthouse/README.md` |
 | a real model respects the boundary | GPT-5 through Chrome's evals: right tool and arguments in 28 of 28 cases, zero production writes in Triage, the smuggled log instruction named as an injection and refused | `study/chrome-evals/RESULTS.md` |
 | the gate is structural, not behavioural | 0 of 392 gated real-model writes executed without a decision; the gated code path cannot reach `executed` except through `engine.decide` | `docs/study-summary.md`, `src/sim/airlock.test.ts` |

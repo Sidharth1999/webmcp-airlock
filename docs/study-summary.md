@@ -155,7 +155,7 @@ accrues. In the ordering family it saves, but see the confound.
 
 ### The turn-cap confound
 The analyzer (`tools/analyze-campaign.ts`) filters to `status === 'done'`
-silently. The confound is stated in STATUS.md (2026-09-01), verbatim:
+silently. The confound is stated in docs/process/STATUS.md (2026-09-01), verbatim:
 
 > **THE CONFOUND, and it is not small.** The analyzer counts only `done` runs,
 > and capping is NOT arm-neutral: **gated capped 13 of 24 (54%), ungated capped 7

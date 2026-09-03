@@ -164,7 +164,7 @@ one stated plan" rather than as three unrelated asks.
 
 **Sid ping (required by the header of src/sim/types.ts):** this amendment
 adds a kind to schema v1 rather than changing any existing one; no existing
-event's shape or meaning moves. Flagged in STATUS.md for review.
+event's shape or meaning moves. Flagged in docs/process/STATUS.md for review.
 
 ---
 

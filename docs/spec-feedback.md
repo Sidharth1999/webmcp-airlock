@@ -1,6 +1,6 @@
 # Feedback to the WebMCP spec, from building Release Airlock
 
-Six things we had to build around. Each is stated as what we needed, what
+Seven things we had to build around. Each is stated as what we needed, what
 the spec gives today, and what we did instead. Written 2026-09-02 against the
 Chrome 149–156 origin-trial surface and ChatGPT's in-app browser.
 

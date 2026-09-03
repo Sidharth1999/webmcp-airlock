@@ -70,6 +70,12 @@ location is the whole point:
   same rendered state the human is looking at, because the operator may have
   moved the stage between the ask and the answer.
 
+One honest limit: a host that both calls the page's tools and automates its
+DOM, as ChatGPT's in-app browser does, can click Approve itself. The page
+makes approval a held gesture while a host is attached and tells the agent
+not to click in the console, which raises the bar; only a host-side rule
+closes it (feedback to the spec, point 7, in the repo).
+
 A server-side MCP with an approvals queue can be built to track provenance.
 What it cannot do is be the surface the human is deciding on. Here the
 capability boundary, the evidence, and the decision are one object, and the

@@ -95,6 +95,24 @@ page-side decision; do not double-confirm" and to hand the host a short,
 structured summary of that decision for its own audit, would let the two
 layers cooperate instead of stack.
 
+## 7. A host that both calls tools and drives the DOM can approve its own proposals
+
+**Needed.** Our writes are proposals; a human approves them on the page.
+
+**Today.** ChatGPT's in-app browser is both the WebMCP caller and a
+browser-automation agent. Tonight, on a real run, it proposed a change through
+`propose_rollforward` and then clicked the page's own Approve button. From the
+page's side a host's synthetic click is indistinguishable from the operator's,
+so the receipt read "approved by you".
+
+**What we did.** When a host is attached, approval became a held gesture
+rather than a click, and the dock tells the agent not to click in the console.
+That raises the bar; it does not close the hole. What would close it is a
+host-side rule (a host acting as the tool caller must not activate controls the
+page marks as human-only) and a way for the page to mark them: an attribute a
+host honours, or user-activation that automation cannot mint. Without it,
+"human in the loop" on a computer-use host is a convention, not a guarantee.
+
 ---
 
 Everything above is implemented and tested in this repository; the surface

@@ -848,8 +848,11 @@ function summarize(e: Event): string {
     }
     case 'migration.applied':
       return `${d.id} by ${d.appliedByDeploy} · ${d.reversible ? 'reversible' : 'IRREVERSIBLE'}`;
-    case 'mode.changed':
-      return `${d.from} → ${d.to}${(d.toolsAdded as string[]).length ? ` · +${(d.toolsAdded as string[]).join(', +')}` : ''}${(d.toolsRemoved as string[]).length ? ` · −${(d.toolsRemoved as string[]).join(', −')}` : ''}`;
+    case 'mode.changed': {
+      const inp = d.input as { trusted?: boolean; pointerType?: string; hosted?: boolean } | undefined;
+      const via = inp ? ` · ${inp.trusted ? 'trusted' : 'synthetic'} ${inp.pointerType ?? 'click'}${inp.hosted ? ', host attached' : ''}` : '';
+      return `${d.from} → ${d.to}${via}${(d.toolsAdded as string[]).length ? ` · +${(d.toolsAdded as string[]).join(', +')}` : ''}${(d.toolsRemoved as string[]).length ? ` · −${(d.toolsRemoved as string[]).join(', −')}` : ''}`;
+    }
     case 'action.proposed':
       return `[tier ${d.tier}] ${d.diffSummary}`;
     case 'action.approved':
@@ -5225,14 +5228,23 @@ renderToolRail(airlockTools);
 // mode.changed event (with the registration diff) into the same log.
 // One function, so the click and the `?mode=` boot param cannot drift: both
 // go through `setMode` and both put `mode.changed` on the record.
-function switchMode(to: Mode): void {
+// `input` is the provenance of the gesture that asked for the switch: whether
+// the browser marked the event trusted and what pointer produced it. A host
+// that automates the page produces a click here that the operator never
+// made (see docs/spec-feedback.md, point 7); the record says so.
+type SwitchInput = { trusted: boolean; pointerType: string; hosted: boolean };
+function switchMode(to: Mode, input?: SwitchInput): void {
   const { from, added, removed } = airlockTools.setMode(to);
   if (from === to) return;
   send({
     type: 'record',
     kind: 'mode.changed',
     actor: 'human',
-    data: { from, to, toolsAdded: added, toolsRemoved: removed, reason: 'operator switched mode in console' },
+    data: {
+      from, to, toolsAdded: added, toolsRemoved: removed,
+      reason: input ? 'switched in console' : 'set by boot param',
+      ...(input ? { input } : {}),
+    },
   });
   renderToolRail(airlockTools);
 }
@@ -5240,7 +5252,12 @@ function switchMode(to: Mode): void {
 document.querySelector('#mode-switch')!.addEventListener('click', (e) => {
   const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-mode]');
   if (!btn) return;
-  switchMode(btn.dataset.mode as Mode);
+  const pe = e as PointerEvent;
+  switchMode(btn.dataset.mode as Mode, {
+    trusted: e.isTrusted,
+    pointerType: typeof pe.pointerType === 'string' && pe.pointerType ? pe.pointerType : 'unknown',
+    hosted: hostAttached(),
+  });
 });
 
 // ---- walkthrough: scenes played from the product ------------------------

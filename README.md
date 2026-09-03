@@ -56,6 +56,60 @@ before you let it act.**
 
 ---
 
+## Why this was built: the evidence
+
+This is not a hypothetical. The console exists because of what is already on
+the record, and the design follows it point for point.
+
+- **Agents with production access have destroyed data nine times in fourteen
+  months, mostly with a permission system switched on.** The survey:
+  [adversa.ai](https://adversa.ai/blog/ai-coding-agent-incidents/). The
+  Replit case, a production database and its backups gone in nine seconds,
+  whose postmortem names "absent destructive-action gates":
+  [mondoo.com](https://mondoo.com/blog/5-lessons-from-9-seconds-ai-agent-deleted-production-database).
+  *So every write here is a proposal, and the gate is in the page, not in
+  the model.*
+- **The cost of an incident is deciding, not clicking.** Detection and the
+  fix are fast; the middle, where someone works out what to do, eats most of
+  the clock: [rootly.com](https://rootly.com/incident-response/metrics) ·
+  [iwconnect.com](https://iwconnect.com/incident-diagnosis-time/). *So the
+  agent's job is the stitching, and the console makes the stitching
+  auditable.*
+- **On-call engineers work across several surfaces at once, and coordination
+  dominates duration:**
+  [incident.io, 2026](https://incident.io/blog/sre-tools-reliability-practices-2026)
+  · [arXiv 2008.11192](https://arxiv.org/abs/2008.11192). *So the evidence
+  the agent used lands beside the decision, not in a chat window.*
+- **Mitigation happens in a console, and the kill switch beats the rollback.**
+  Flag changes propagate in about 200 ms and "disabling a feature via a flag
+  takes less time than rolling back a deployment":
+  [launchdarkly.com](https://launchdarkly.com/blog/using-feature-flags-during-incident-management/)
+  · [upstat.io](https://upstat.io/blog/feature-flags-kill-switches). Rollback
+  is a first-class UI action in [Vercel](https://vercel.com/docs/instant-rollback)
+  and [ArgoCD](https://www.aviator.co/blog/how-to-manage-rollouts-and-rollbacks-using-argocd/).
+  *So the levers here are the real ones, priced, and the wrong order costs
+  more than doing nothing.*
+- **Stage-gated capability is an established access pattern.** Just-in-time
+  access and break-glass grant the minimum, unlock as the incident escalates,
+  and "record every action from request to revocation in a full audit trail":
+  [IBM](https://www.ibm.com/think/topics/just-in-time-access) ·
+  [hoop.dev](https://hoop.dev/blog/incident-response-break-glass-access-the-key-to-fast-secure-emergency-system-recovery).
+  *So Triage grants 13 tools and Recovery 27, and every change to the surface
+  is an event the agent can ask about.*
+- **The platform's own security guidance asks for this shape.** Chrome's
+  WebMCP guide: "it's impossible to guarantee safety inside of a large
+  language model"; mark reads `readOnlyHint`, mark external payloads
+  `untrustedContentHint`, keep descriptions within budget:
+  [developer.chrome.com](https://developer.chrome.com/docs/ai/webmcp/secure-tools).
+  *So the airlock is the mechanism the guide describes, and it is checked
+  with the guide's own [evals CLI](https://developer.chrome.com/docs/ai/webmcp/evals).*
+
+The full review, including what cuts against the project, is
+[`docs/evidence.md`](docs/evidence.md); the claim and how far it is defended
+is [`docs/thesis.md`](docs/thesis.md).
+
+---
+
 ## What is different
 
 Approval gates for agents are becoming table stakes, and several entries in

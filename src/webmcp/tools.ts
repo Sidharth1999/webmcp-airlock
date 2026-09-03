@@ -63,7 +63,7 @@ export const READ_TOOLS: ReadToolSpec[] = [
   {
     name: 'airlock_status',
     description:
-      'Console overview: per-service health, live traffic (rps, error rate, p95, by route), mechanically-derived damage counters, and whether an incident is open. Start here. asOfSeq marks the log position this answer reflects.',
+      'Console overview: per-service health and fleet capacity (instances, ceiling, headroom) where modelled; live traffic by route, where rps is OFFERED load and a capped route also reports admittedRps and cap; damage counters; whether an incident is open; and recentOutcomes — what the last executed writes actually did (effect: changed, none or partial, with the reason). Start here. asOfSeq marks the log position this answer reflects.',
     inputSchema: NO_INPUT_SCHEMA,
     toQuery: () => ({ kind: 'status' }),
   },
@@ -92,7 +92,7 @@ export const READ_TOOLS: ReadToolSpec[] = [
   {
     name: 'traffic_history',
     description:
-      'Recent traffic ticks, newest first, with per-route rps and error rate. Use to localize which route is failing and when it started. Paginated via cursor.',
+      'Recent traffic ticks, newest first, with per-route rps and error rate. rps is OFFERED load at the edge (retries included); where an admission cap was in force at that tick the route also carries admittedRps and cap. Use to localize which route is failing and when it started. Paginated via cursor.',
     inputSchema: CURSOR_SCHEMA,
     toQuery: (i) => ({ kind: 'traffic', cursor: i.cursor }),
   },
@@ -114,6 +114,16 @@ export interface WriteToolSpec {
 }
 
 const prop = (desc: string) => ({ type: 'string', description: desc });
+
+/**
+ * WHAT HAPPENS AFTER APPROVAL, on every proposal tool. A paid run (2026-09-02)
+ * approved a roll-forward into a fleet with no headroom, read "executed", and
+ * had no way to learn it had been halted — so it proposed four more writes
+ * that could not help. The outcome is now on the record, and the tool says
+ * where to read it.
+ */
+const OUTCOME_NOTE =
+  ' After the operator decides, the executed outcome (effect: changed, none or partial, with its reason) appears in airlock_status.recentOutcomes and the console feed.';
 
 export const WRITE_TOOLS: WriteToolSpec[] = [
   // ---- incident command: granted EARLY -------------------------------
@@ -613,13 +623,13 @@ export function createAirlockTools(
     return JSON.stringify({
       status: 'proposed',
       proposalSeq: res.seq,
-      note: 'Awaiting human approval in the console. Nothing has changed yet.',
+      note: 'Awaiting human approval in the console. Nothing has changed yet. Once the operator decides, the executed outcome (effect: changed, none or partial, with its reason) is in airlock_status.recentOutcomes and the console feed.',
     });
   };
 
   const writeDescriptor = (spec: WriteToolSpec): ToolDescriptor => ({
     name: spec.name,
-    description: spec.description,
+    description: spec.description + OUTCOME_NOTE,
     inputSchema: spec.inputSchema,
     annotations: { readOnlyHint: false },
     execute: async (input) => ({

@@ -2983,6 +2983,11 @@ body {
 .plo-from { color: var(--ink-ghost); text-decoration: line-through; flex: none; }
 .plo-arrow { color: var(--ink-ghost); flex: none; }
 .plo-to { color: var(--good); font-weight: 600; min-width: 0; overflow-wrap: anywhere; }
+/* the write's own verdict when no fact moved: `No effect · <why>` — the
+   reason is the observation, so it wraps rather than clamps */
+.plo-reason { color: var(--ink-dim); min-width: 0; overflow-wrap: anywhere; }
+.tl-ev[data-kind='state'][data-effect='none'] > .tl-head > .tl-title > .plo-k,
+.tl-ev[data-kind='state'][data-effect='partial'] > .tl-head > .tl-title > .plo-k { color: var(--warn); }
 @media (prefers-reduced-motion: no-preference) {
   .tl-ev[data-landed='true'] > .tl-head .plo-to { animation: obs-land var(--dur-agent) var(--ease-settle) both; }
 }

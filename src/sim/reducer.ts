@@ -41,14 +41,17 @@ export function reduce(world: World, event: Event): World {
         name?: string;
         deps?: string[];
         version?: string;
+        capacity?: Service['capacity'];
       };
       const existing = world.services.find((s) => s.id === d.service);
+      const capacity = d.capacity ?? existing?.capacity;
       const next: Service = {
         id: d.service,
         name: d.name ?? existing?.name ?? d.service,
         deps: d.deps ?? existing?.deps ?? [],
         health: d.status,
         version: d.version ?? existing?.version ?? '1.0.0',
+        ...(capacity ? { capacity } : {}),
       };
       return {
         ...world,
@@ -118,7 +121,16 @@ export function reduce(world: World, event: Event): World {
     // 'sim' (scenario setup), 'human' (console UI), or 'agent' (WebMCP tools,
     // M3 — where the proposed/approved gate precedes it). Decision 2026-08-28.
     case 'action.executed': {
-      const { tool, input } = event.data as { tool: string; input: Record<string, unknown> };
+      const { tool, input, result } = event.data as {
+        tool: string;
+        input: Record<string, unknown>;
+        result?: { outcome?: { effect?: string } };
+      };
+      // An action the sim judged to have NO effect (a scale past the
+      // autoscaler ceiling, a second rollout while one is halted) leaves the
+      // world exactly as it was. The event is still in the log — the attempt
+      // happened — but the fold does not pretend it took.
+      if (result?.outcome?.effect === 'none') return world;
       switch (tool) {
         case 'flag.set': {
           const i = input as { id: string; state: Flag['state']; name?: string };

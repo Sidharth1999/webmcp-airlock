@@ -7,7 +7,7 @@ import { MODES, MODE_WRITE_TOOLS, type Mode } from './sim/modes';
 import type { EntityRef, QueryRequest } from './sim/queries';
 import { templateIds } from './sim/templates';
 import type { SimRequest, SimResponse } from './sim/worker';
-import type { Actor, Deploy, Event, Flag, World } from './sim/types';
+import type { ActionOutcome, Actor, Deploy, Event, Flag, World } from './sim/types';
 import { hasWebMCP } from './webmcp/shim';
 import { createAirlockTools, type AirlockTools } from './webmcp/tools';
 import { filmScene, play, type PlayState } from './walkthrough';
@@ -1677,7 +1677,7 @@ function planHostFor(proposalSeq: number): HTMLElement | null {
 }
 
 /** A decision landed on a plan's live step: advance, or abandon the rest. */
-function planDecided(proposalSeq: number, executed: boolean): void {
+function planDecided(proposalSeq: number, executed: boolean, outcome?: ActionOutcome): void {
   const id = planForProposal.get(proposalSeq);
   if (!id) return;
   const plan = plans.get(id);
@@ -1695,7 +1695,7 @@ function planDecided(proposalSeq: number, executed: boolean): void {
     // as the action that caused it. This is the alternation, and putting it
     // anywhere else is what made it unreadable before.
     const host = plan.stepEls[plan.index];
-    if (host) landObservation(host, diffFacts(prevFacts, snapshotFacts(world ?? undefined)));
+    if (host) landObservation(host, diffFacts(prevFacts, snapshotFacts(world ?? undefined)), outcome);
     plan.index += 1;
     advancePlan(plan);
     return;
@@ -2197,7 +2197,7 @@ function askDecided(proposalSeq: number, state: 'done' | 'skipped', note: string
  * world, as a row directly beneath it. Without a row to file against
  * (a proposal from before a reset) the observation files on its own line.
  */
-function askExecuted(proposalSeq: number): void {
+function askExecuted(proposalSeq: number, outcome?: ActionOutcome): void {
   const el = askRows.get(proposalSeq);
   if (!el) {
     standaloneStateReport();
@@ -2206,7 +2206,13 @@ function askExecuted(proposalSeq: number): void {
   const by = approvedBy(proposalSeq);
   el.querySelector<HTMLElement>('.pl-note')!.textContent =
     by === 'you' ? 'executed' : `executed · approved by ${by}`;
-  landObservation(el, diffFacts(prevFacts, snapshotFacts(world ?? undefined)));
+  landObservation(el, diffFacts(prevFacts, snapshotFacts(world ?? undefined)), outcome);
+}
+
+/** The outcome an executed write carries (schema amendment 2026-09-02). */
+function outcomeOf(e: Event): ActionOutcome | undefined {
+  const r = (e.data as { result?: { outcome?: ActionOutcome } }).result;
+  return r?.outcome && typeof r.outcome.reason === 'string' ? r.outcome : undefined;
 }
 
 const airlockEl = document.querySelector<HTMLElement>('#airlock')!;
@@ -3107,17 +3113,46 @@ const pctText = (n: number): string => `${(n * 100).toFixed(1)}%`;
  * it cannot drift from what actually happened, and why a lever added later
  * reports itself for free.
  */
-function landObservation(step: HTMLElement, changes: FactChange[]): void {
+function landObservation(step: HTMLElement, changes: FactChange[], outcome?: ActionOutcome): void {
   if (!world) return;
   const row = tlRow('state', '');
   row.dataset.leaf = String(changes.length < 2);
   row.dataset.obsFor = step.dataset.testid ?? '';
+  if (outcome) row.dataset.effect = outcome.effect;
 
   const title = tlTitle(row);
   title.classList.add('tl-fact');
   if (!changes.length) {
-    title.textContent = 'nothing in the world moved';
-    row.dataset.empty = 'true';
+    // NO FACT MOVED — WHICH IS NOT THE SAME AS NOTHING HAPPENED. A rollout
+    // halted by the autoscaler ceiling leaves every fact where it was, and
+    // "nothing in the world moved" beside a climbing error rate is what sent
+    // a live agent scaling past the ceiling. The write's own outcome says
+    // what did happen and why, in the same face as any other observation.
+    if (outcome && outcome.effect !== 'changed') {
+      const k = document.createElement('span');
+      k.className = 'plo-k';
+      k.textContent = outcome.effect === 'none' ? 'No effect' : 'Halted';
+      const sep = document.createElement('span');
+      sep.className = 'plo-arrow';
+      sep.textContent = '·';
+      sep.setAttribute('aria-hidden', 'true');
+      const why = document.createElement('span');
+      why.className = 'plo-reason';
+      why.textContent = outcome.reason;
+      title.append(k, sep, why);
+      // a clamped line must open: the reason IS the title, and folding it
+      // to one line must not leave an ellipsis nobody can expand
+      row.dataset.leaf = 'false';
+    } else if (outcome) {
+      const why = document.createElement('span');
+      why.className = 'plo-reason';
+      why.textContent = outcome.reason;
+      title.append(why);
+      row.dataset.leaf = 'false';
+    } else {
+      title.textContent = 'nothing in the world moved';
+      row.dataset.empty = 'true';
+    }
   } else {
     // ONE CHANGE LEADS. A step that moved three things says so on the right
     // and opens onto all of them — an operator scanning the column wants the
@@ -4391,8 +4426,8 @@ function renderEvents(events: Event[], w: World): void {
     } else if (e.kind === 'action.executed' && typeof e.causedBy === 'number') {
       const ps = approvalToProposal.get(e.causedBy);
       if (ps !== undefined) {
-        if (planForProposal.has(ps)) planDecided(ps, true);
-        else askExecuted(ps);
+        if (planForProposal.has(ps)) planDecided(ps, true, outcomeOf(e));
+        else askExecuted(ps, outcomeOf(e));
       }
     } else if (e.kind === 'annotation.added' && e.actor === 'agent') {
       telestrate((e.data as { target: EntityRef }).target);

@@ -4,13 +4,21 @@ import { migrationTrap } from './migration-trap';
 import { poisonedRunbook } from './poisoned-runbook';
 import { retryStorm } from './retry-storm';
 import { jitter, pickInt } from './rng';
-import type { Deploy, Event } from './types';
+import type { ActionOutcome, Deploy, Event } from './types';
 
 export interface TemplateInstance {
   setup(ctx: SimCtx): void;
   tick(ctx: SimCtx): void;
   /** React to an external action.executed (already folded into world). */
   onAction?(ctx: SimCtx, event: Event): void;
+  /**
+   * What an external action WOULD do, judged against the world BEFORE it is
+   * applied — so the outcome can ride the action.executed event itself.
+   * Return undefined to let the engine derive a generic outcome from the
+   * world diff and whatever onAction emitted. Must agree with onAction: an
+   * `effect: 'none'` here tells the reducer to leave the world alone.
+   */
+  outcome?(ctx: SimCtx, tool: string, input: Record<string, unknown>): ActionOutcome | undefined;
 }
 
 export interface TemplateMeta {

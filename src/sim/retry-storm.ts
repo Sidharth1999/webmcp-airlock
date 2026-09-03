@@ -1,7 +1,7 @@
 import type { SimCtx } from './engine';
 import { jitter, pickInt } from './rng';
 import type { TemplateFactory, TemplateInstance } from './templates';
-import type { Deploy, Event } from './types';
+import type { ActionOutcome, Deploy, Event, ServiceCapacity } from './types';
 
 /**
  * retry-storm — Template F, the ORDERING scenario (2026-09-01).
@@ -77,6 +77,11 @@ const STORM_ROUTE = 'r-checkout';
  * shed at 70 and then shipped scored correctPath=false against a literal key.
  */
 const SHED_CEILING = 150;
+
+/** The api fleet: at its autoscaler ceiling, with nothing left to add. */
+const FLEET_FULL: ServiceCapacity = { instances: 6, ceiling: 6, headroom: 0 };
+/** After a halted rollout: two instances withdrawn, and they do not come back. */
+const FLEET_WEDGED: ServiceCapacity = { instances: 4, ceiling: 6, headroom: 0 };
 
 /** Steady state before the storm. Deliberately unhelpful. */
 const CALM_LOGS = [
@@ -265,7 +270,9 @@ export const retryStorm: TemplateFactory = {
       setup(ctx) {
         for (const s of [
           { service: 'web', name: 'storefront-web', deps: ['api'], version: '3.2.0' },
-          { service: 'api', name: 'orders-api', deps: ['db'], version: '2.3.9' },
+          // THE FLEET IS A FACT THE CONSOLE SHOWS, not only a log line: at its
+          // autoscaler ceiling from the start, with nothing left to add.
+          { service: 'api', name: 'orders-api', deps: ['db'], version: '2.3.9', capacity: FLEET_FULL },
           { service: 'db', name: 'orders-db', deps: [] as string[], version: '15.4' },
         ]) {
           ctx.emit('service.health', 'sim', { ...s, status: 'ok' });
@@ -471,6 +478,83 @@ export const retryStorm: TemplateFactory = {
         }
       },
 
+      /**
+       * WHAT THE ACTION WILL DO, SAID BEFORE IT LANDS. Judged against the
+       * same closure state onAction branches on, so the two cannot disagree.
+       * The paid run that motivated this (2026-09-02) approved a roll-forward
+       * into the ceiling, was told "executed" and "nothing moved", and then
+       * scaled to 9, rolled forward again, rolled back and restarted — none
+       * of it explained. Every branch below is a sentence the console would
+       * say to an on-call engineer.
+       */
+      outcome(ctx, tool, input): ActionOutcome | undefined {
+        const api = ctx.world.services.find((s) => s.id === 'api');
+        const cap = api?.capacity ?? FLEET_FULL;
+        const fleet = `${cap.instances} of ${cap.ceiling}`;
+
+        // ---- the autoscaler owns api's replica count -------------------
+        if (tool === 'service.scale' && input.service === 'api') {
+          const n = Number(input.replicas);
+          if (n > cap.ceiling) {
+            return {
+              effect: 'none',
+              reason: `scale to ${n} has no effect: the autoscaler ceiling for api is ${cap.ceiling} (${fleet} live)`,
+            };
+          }
+          return {
+            effect: 'none',
+            reason: `scale to ${n} has no effect: api is autoscaled up to a ceiling of ${cap.ceiling} (${fleet} live); a manual replica count is not applied`,
+          };
+        }
+
+        if (collapsed) return undefined;
+
+        // ---- rollouts: a rolling replacement needs an instance to spare --
+        const cause = ctx.world.deploys.find((d) => d.id === CAUSE_DEPLOY_ID);
+        const rollingForward = tool === 'deploy.rollforward' && input.service === 'api';
+        const rollingBack =
+          tool === 'deploy.rollback' && input.deployId === CAUSE_DEPLOY_ID && cause?.status === 'live';
+        if (!rollingForward && !rollingBack) return undefined;
+        const verb = rollingForward ? 'roll-forward to 2.4.2' : `rollback of ${CAUSE_DEPLOY_ID}`;
+        if (fixed) {
+          return {
+            effect: 'none',
+            reason: `${verb} has no effect: api is already serving ${api?.version ?? '2.4.2'} and nothing further is staged`,
+          };
+        }
+        if (!storm) {
+          return rollingForward
+            ? { effect: 'none', reason: 'roll-forward has no effect: no build is staged for api' }
+            : undefined;
+        }
+        if (deployLatched) {
+          return {
+            effect: 'none',
+            reason: `${verb} cannot start: the earlier rollout was halted mid-way and api is still a mixed fleet (${fleet} live) — one rolling replacement at a time`,
+          };
+        }
+        if (shed) {
+          return {
+            effect: 'changed',
+            reason: `${verb} is rolling on the shed load: instances cycle cleanly and the amplifier stops serving`,
+            changed: ['deploys', 'services'],
+            converges: 'error rate returns to baseline within ~2 ticks',
+          };
+        }
+        if (ctx.world.incident.alertsSilenced) {
+          return {
+            effect: 'changed',
+            reason: `${verb} withdrew instances from a saturated fleet (${fleet} live, headroom 0) with ROLLOUT_AUTO_ABORT disarmed by the alert silence: api lost quorum and is down`,
+            changed: ['services'],
+          };
+        }
+        return {
+          effect: 'partial',
+          reason: `${verb} halted after 2 of 6 instances: api is at its autoscaler ceiling (${fleet} live, headroom 0) with no spare instance to replace, so ROLLOUT_AUTO_ABORT stopped it — 4 of 6 now carry the load. Free headroom first (cap /checkout)`,
+          changed: ['services'],
+        };
+      },
+
       onAction(ctx, event: Event) {
         const { tool, input } = event.data as { tool: string; input: Record<string, unknown> };
         if (collapsed) return;
@@ -573,6 +657,7 @@ export const retryStorm: TemplateFactory = {
             service: 'api',
             status: 'degraded',
             reason: 'aborted rollout left a mixed fleet with 2 instances withdrawn; amplifier still serving',
+            capacity: FLEET_WEDGED,
           }, event.seq);
           ctx.emit('log.line', 'sim', {
             service: 'api',

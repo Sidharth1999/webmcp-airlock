@@ -54,6 +54,38 @@ export interface Service {
   replicas?: number;
   /** tick of the last restart — in-flight requests were dropped */
   restartedAtTick?: number;
+  /**
+   * Fleet capacity where a template models one (retry-storm's api fleet).
+   * `instances` are serving now, `ceiling` is the autoscaler's maximum and
+   * `headroom` is how many more the autoscaler can still add. A rolling
+   * replacement needs either headroom or shed load — with neither, it
+   * withdraws capacity the incident cannot spare.
+   */
+  capacity?: ServiceCapacity;
+}
+
+export interface ServiceCapacity {
+  instances: number;
+  ceiling: number;
+  headroom: number;
+}
+
+/**
+ * What an executed action actually did — recorded on `action.executed` as
+ * `result.outcome` (amendment 2026-09-02 in docs/schema.md). Every write
+ * carries one, so an approval never lands as a bare "executed": an agent
+ * that shipped into a fleet with no headroom is told the rollout was halted
+ * and why, instead of inferring it from a counter that did not move.
+ */
+export interface ActionOutcome {
+  /** changed = the world moved; none = nothing did; partial = it started and was halted */
+  effect: 'changed' | 'none' | 'partial';
+  /** a domain sentence in the console's voice: what happened and why */
+  reason: string;
+  /** which parts of the world moved (top-level world keys, or event kinds the sim reacted with) */
+  changed?: string[];
+  /** when the world is expected to settle, if the effect is not instantaneous */
+  converges?: string;
 }
 
 export interface Deploy {

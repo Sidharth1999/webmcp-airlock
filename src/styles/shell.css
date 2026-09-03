@@ -3240,6 +3240,13 @@ body {
    readout, so a cost opening UPWARD there covers the state of the world with
    the price of a button. In that strip it opens down. */
 .cmd-row .lever-cost { bottom: auto; top: calc(100% + 7px); }
+/* Keep command-strip tooltips inside the console's clipped viewport. The
+   first controls sit too close to its left edge for the default right anchor,
+   which put most of their copy underneath the activity bar. */
+.cmd-row > .ctl-btn.lever:nth-child(-n + 3) .lever-cost {
+  left: 0;
+  right: auto;
+}
 
 .ctl-row[data-drained='true'] .ctl-state { color: var(--warn); }
 

@@ -10,7 +10,7 @@ dual key at decision time, not at proposal time.
 ## The console
 
 - [Live console](https://release-airlock.vercel.app): the console itself, seeded and running. No install, and it works with no agent attached.
-- [Repository](<REPO-URL>): source, tests, the simulation, and the study.
+- [Repository](https://github.com/Sidharth1999/webmcp-airlock): source, tests, the simulation, and the study.
 
 ## Docs
 

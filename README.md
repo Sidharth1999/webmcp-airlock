@@ -136,12 +136,12 @@ rebuilding the console, at which point it is a WebMCP page.
 
 ## Try it
 
-**Live:** `<LIVE-URL>` — no install, no agent needed.
+**Live:** `https://release-airlock.vercel.app` — no install, no agent needed.
 
 **Local:**
 
 ```bash
-git clone <REPO-URL> && cd webmcp-airlock
+git clone https://github.com/Sidharth1999/webmcp-airlock && cd webmcp-airlock
 npm install
 npx playwright install chromium     # only needed for the test suites
 npm run dev                          # http://localhost:8917

@@ -1,0 +1,1832 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>WebMCP Evals Results 6:50:32 PM</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+      tailwind.config = {
+        theme: {
+          extend: {
+            fontFamily: {
+              sans: ['Inter', 'sans-serif'],
+            }
+          }
+        }
+      }
+    </script>
+</head>
+<body class="bg-slate-50 text-slate-900 font-sans p-8 antialiased">
+    <div class="max-w-5xl mx-auto space-y-8">
+        <header class="border-b border-slate-200 pb-6 mb-8">
+            <h1 class="text-3xl font-bold tracking-tight text-slate-900">Evaluation Results</h1>
+            <p class="text-sm text-slate-500 mt-1">Generated on Sep 2, 2026, 06:50:32 PM EDT</p>
+        </header>
+        
+        <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+            <h2 class="text-xl font-semibold mb-4 text-slate-800">Configuration</h2>
+            
+<ul class="grid grid-cols-1 md:grid-cols-2 gap-x-6 gap-y-3 text-sm text-slate-600">
+    <li class="flex flex-col"><strong class="text-slate-900 font-medium">URL</strong> <code class="mt-1 px-2 py-1 bg-slate-100 rounded text-xs text-slate-800 font-mono break-all">https://release-airlock.vercel.app/?template=retry-storm</code></li>
+    <li class="flex flex-col"><strong class="text-slate-900 font-medium">Evals</strong> <code class="mt-1 px-2 py-1 bg-slate-100 rounded text-xs text-slate-800 font-mono break-all">study/chrome-evals/airlock-triage.evals.json</code></li>
+    <li class="flex flex-col"><strong class="text-slate-900 font-medium">Backend</strong> <span class="mt-1 text-slate-800">vercel</span></li>
+    <li class="flex flex-col"><strong class="text-slate-900 font-medium">Model</strong> <span class="mt-1 text-slate-800">openai:gpt-5.6-terra</span></li>
+    <li class="flex flex-col"><strong class="text-slate-900 font-medium">Chrome channel</strong> <span class="mt-1 text-slate-800">chrome</span></li>
+</ul>
+        </section>
+
+        <section class="bg-white rounded-xl shadow-sm border border-slate-200 p-6">
+            <h2 class="text-xl font-semibold mb-4 text-slate-800">Summary</h2>
+            
+        <p class="text-sm text-slate-500 mb-4 font-medium">
+          Evaluated <strong class="font-semibold text-slate-700">13 test cases</strong> across <strong class="font-semibold text-slate-700">1 run</strong>.
+        </p>
+        <div class="grid grid-cols-2 md:grid-cols-5 gap-4">
+            <div class="bg-slate-50 p-4 rounded-lg border border-slate-100 flex flex-col">
+                <span class="text-sm text-slate-500 font-medium">Total Evals</span>
+                <span class="text-2xl font-bold text-slate-900">13</span>
+            </div>
+            <div class="bg-emerald-50 p-4 rounded-lg border border-emerald-100 flex flex-col">
+                <span class="text-sm text-emerald-600 font-medium">Passed</span>
+                <span class="text-2xl font-bold text-emerald-700">0</span>
+            </div>
+            <div class="bg-rose-50 p-4 rounded-lg border border-rose-100 flex flex-col">
+                <span class="text-sm text-rose-600 font-medium">Failed</span>
+                <span class="text-2xl font-bold text-rose-700">0</span>
+            </div>
+            <div class="bg-amber-50 p-4 rounded-lg border border-amber-100 flex flex-col">
+                <span class="text-sm text-amber-600 font-medium">Errors</span>
+                <span class="text-2xl font-bold text-amber-700">13</span>
+            </div>
+            <div class="bg-blue-50 p-4 rounded-lg border border-blue-100 flex flex-col">
+                <span class="text-sm text-blue-600 font-medium">Pass Rate</span>
+                <span class="text-2xl font-bold text-blue-700">0.0%</span>
+            </div>            
+        </div>
+        </section>
+
+        <section class="space-y-6">
+            <h2 class="text-xl font-semibold text-slate-800 pb-2 border-b border-slate-200">Details</h2>
+            
+    <div class="space-y-6">
+      
+    <div class="border border-rose-200 rounded-xl bg-white shadow-sm overflow-hidden">
+      <details class="group/case" open>
+        <summary class="flex items-center justify-between p-5 cursor-pointer bg-rose-50/40 hover:bg-rose-50/70 transition-all duration-200 select-none">
+          <div class="flex items-center space-x-3 flex-1 min-w-0 mr-4">
+            <svg class="w-5 h-5 text-slate-400 group-open/case:rotate-90 transition-transform duration-200 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
+            </svg>
+            <div class="truncate">
+              <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block mb-0.5">Test case #1/13</span>
+              <h3 class="text-base font-semibold text-rose-900 truncate font-sans">
+                Incident status on arrival
+              </h3>
+            </div>
+          </div>
+          <div class="flex items-center space-x-3 shrink-0">
+            <span class="px-3 py-1 rounded text-xs font-semibold border bg-rose-100 text-rose-800 border-rose-200">
+              0/1 Passed
+            </span>
+          </div>
+        </summary>
+        
+        <div class="p-5 border-t border-slate-100 bg-slate-50/50 space-y-5">
+          
+    <div class="border border-slate-200 rounded-lg bg-white shadow-xs overflow-hidden">
+      <details class="group/run" open>
+        <summary class="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50/80 transition-all duration-200 select-none font-medium text-slate-700 text-sm">
+          <div class="flex items-center space-x-2">
+            <svg class="w-4 h-4 text-slate-400 group-open/run:rotate-90 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+            <span class="font-semibold">Run #1/1</span>
+          </div>
+          <div class="flex items-center gap-2">
+            
+            <span class="px-2.5 py-0.5 rounded text-xs font-semibold border bg-amber-100 text-amber-800 border-amber-200">
+              0/1 Passed
+            </span>
+          </div>
+        </summary>
+        
+        <div class="p-4 border-t border-slate-100 bg-slate-50/30 space-y-5">
+          <details class="group/msgs bg-white rounded-lg border border-slate-200 overflow-hidden">
+            <summary class="p-3 font-semibold text-xs text-slate-600 cursor-pointer hover:bg-slate-50 flex items-center justify-between select-none">
+              <span>Prompt & Expected Messages</span>
+              <svg class="w-4 h-4 text-slate-400 group-open/msgs:rotate-180 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </summary>
+            <div class="p-3 border-t border-slate-150 bg-slate-50/20">
+              <ul class="space-y-4">
+    <li class="flex flex-col space-y-2">
+        <div class="flex items-center space-x-2">
+          <span class="px-2 py-0.5 rounded text-xs font-medium border capitalize bg-purple-100 text-purple-800 border-purple-200">user</span>
+          <span class="text-xs text-slate-500 font-medium uppercase tracking-wider">message</span>
+        </div>
+        <div><div class="bg-slate-50 border border-slate-200 p-3 rounded-md text-sm text-slate-700 whitespace-pre-wrap">What&#039;s the current incident status?</div></div>
+    </li></ul>
+            </div>
+          </details>
+
+          <div class="space-y-4">
+            <h4 class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Steps Evaluation</h4>
+            
+    <div class="bg-white rounded-lg border border-slate-200 overflow-hidden">
+      <div class="flex items-center justify-between bg-slate-50/80 p-3 border-b border-slate-200">
+        <h5 class="text-xs font-semibold text-slate-700">
+          Step #1/1
+        </h5>
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border text-amber-700 bg-amber-50 border-amber-200">
+          ERROR
+        </span>
+      </div>
+      
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs text-slate-600">
+          <thead class="bg-slate-50 text-slate-500 border-b border-slate-200 font-medium">
+            <tr>
+              <th class="px-4 py-2">Type</th>
+              <th class="px-4 py-2">Expected Pattern</th>
+              <th class="px-4 py-2">Actual Result</th>
+              <th class="px-4 py-2 w-24">Status</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr class="hover:bg-slate-50/30">
+              <td class="px-4 py-3 font-semibold text-slate-700 whitespace-nowrap">Function Name</td>
+              <td class="px-4 py-3"><code class="px-1.5 py-0.5 bg-slate-100 text-slate-800 rounded font-mono text-xs">airlock_status</code></td>
+              <td class="px-4 py-3"><code class="px-1.5 py-0.5 bg-slate-100 text-slate-800 rounded font-mono text-xs"></code></td>
+              <td class="px-4 py-3">
+                <span class="text-rose-600 font-bold text-xs">
+                  FAIL
+                </span>
+              </td>
+            </tr>
+            <tr class="hover:bg-slate-50/30">
+              <td class="px-4 py-3 font-semibold text-slate-700 whitespace-nowrap align-top">Arguments</td>
+              <td class="px-4 py-3">
+                <div class="bg-slate-800 rounded-md p-3 overflow-x-auto max-w-md">
+                  <pre class="text-xs text-slate-200 font-mono m-0 leading-relaxed">{}</pre>
+                </div>
+              </td>
+              <td class="px-4 py-3">
+                <div class="bg-slate-800 rounded-md p-3 overflow-x-auto max-w-md">
+                  <pre class="text-xs text-slate-200 font-mono m-0 leading-relaxed">null</pre>
+                </div>
+              </td>
+              <td class="px-4 py-3 align-top">
+                <span class="text-rose-600 font-bold text-xs mt-2 inline-block">
+                  FAIL
+                </span>
+              </td>
+            </tr>
+            
+          </tbody>
+        </table>
+      </div>
+    </div>
+  
+          </div>
+
+          
+
+          
+        </div>
+      </details>
+    </div>
+  
+        </div>
+      </details>
+    </div>
+  
+    <div class="border border-rose-200 rounded-xl bg-white shadow-sm overflow-hidden">
+      <details class="group/case" open>
+        <summary class="flex items-center justify-between p-5 cursor-pointer bg-rose-50/40 hover:bg-rose-50/70 transition-all duration-200 select-none">
+          <div class="flex items-center space-x-3 flex-1 min-w-0 mr-4">
+            <svg class="w-5 h-5 text-slate-400 group-open/case:rotate-90 transition-transform duration-200 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
+            </svg>
+            <div class="truncate">
+              <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block mb-0.5">Test case #2/13</span>
+              <h3 class="text-base font-semibold text-rose-900 truncate font-sans">
+                Recent deploys
+              </h3>
+            </div>
+          </div>
+          <div class="flex items-center space-x-3 shrink-0">
+            <span class="px-3 py-1 rounded text-xs font-semibold border bg-rose-100 text-rose-800 border-rose-200">
+              0/1 Passed
+            </span>
+          </div>
+        </summary>
+        
+        <div class="p-5 border-t border-slate-100 bg-slate-50/50 space-y-5">
+          
+    <div class="border border-slate-200 rounded-lg bg-white shadow-xs overflow-hidden">
+      <details class="group/run" open>
+        <summary class="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50/80 transition-all duration-200 select-none font-medium text-slate-700 text-sm">
+          <div class="flex items-center space-x-2">
+            <svg class="w-4 h-4 text-slate-400 group-open/run:rotate-90 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+            <span class="font-semibold">Run #1/1</span>
+          </div>
+          <div class="flex items-center gap-2">
+            
+            <span class="px-2.5 py-0.5 rounded text-xs font-semibold border bg-amber-100 text-amber-800 border-amber-200">
+              0/1 Passed
+            </span>
+          </div>
+        </summary>
+        
+        <div class="p-4 border-t border-slate-100 bg-slate-50/30 space-y-5">
+          <details class="group/msgs bg-white rounded-lg border border-slate-200 overflow-hidden">
+            <summary class="p-3 font-semibold text-xs text-slate-600 cursor-pointer hover:bg-slate-50 flex items-center justify-between select-none">
+              <span>Prompt & Expected Messages</span>
+              <svg class="w-4 h-4 text-slate-400 group-open/msgs:rotate-180 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </summary>
+            <div class="p-3 border-t border-slate-150 bg-slate-50/20">
+              <ul class="space-y-4">
+    <li class="flex flex-col space-y-2">
+        <div class="flex items-center space-x-2">
+          <span class="px-2 py-0.5 rounded text-xs font-medium border capitalize bg-purple-100 text-purple-800 border-purple-200">user</span>
+          <span class="text-xs text-slate-500 font-medium uppercase tracking-wider">message</span>
+        </div>
+        <div><div class="bg-slate-50 border border-slate-200 p-3 rounded-md text-sm text-slate-700 whitespace-pre-wrap">Show me the recent deploys.</div></div>
+    </li></ul>
+            </div>
+          </details>
+
+          <div class="space-y-4">
+            <h4 class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Steps Evaluation</h4>
+            
+    <div class="bg-white rounded-lg border border-slate-200 overflow-hidden">
+      <div class="flex items-center justify-between bg-slate-50/80 p-3 border-b border-slate-200">
+        <h5 class="text-xs font-semibold text-slate-700">
+          Step #1/1
+        </h5>
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border text-amber-700 bg-amber-50 border-amber-200">
+          ERROR
+        </span>
+      </div>
+      
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs text-slate-600">
+          <thead class="bg-slate-50 text-slate-500 border-b border-slate-200 font-medium">
+            <tr>
+              <th class="px-4 py-2">Type</th>
+              <th class="px-4 py-2">Expected Pattern</th>
+              <th class="px-4 py-2">Actual Result</th>
+              <th class="px-4 py-2 w-24">Status</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr class="hover:bg-slate-50/30">
+              <td class="px-4 py-3 font-semibold text-slate-700 whitespace-nowrap">Function Name</td>
+              <td class="px-4 py-3"><code class="px-1.5 py-0.5 bg-slate-100 text-slate-800 rounded font-mono text-xs">list_deploys</code></td>
+              <td class="px-4 py-3"><code class="px-1.5 py-0.5 bg-slate-100 text-slate-800 rounded font-mono text-xs"></code></td>
+              <td class="px-4 py-3">
+                <span class="text-rose-600 font-bold text-xs">
+                  FAIL
+                </span>
+              </td>
+            </tr>
+            <tr class="hover:bg-slate-50/30">
+              <td class="px-4 py-3 font-semibold text-slate-700 whitespace-nowrap align-top">Arguments</td>
+              <td class="px-4 py-3">
+                <div class="bg-slate-800 rounded-md p-3 overflow-x-auto max-w-md">
+                  <pre class="text-xs text-slate-200 font-mono m-0 leading-relaxed">{}</pre>
+                </div>
+              </td>
+              <td class="px-4 py-3">
+                <div class="bg-slate-800 rounded-md p-3 overflow-x-auto max-w-md">
+                  <pre class="text-xs text-slate-200 font-mono m-0 leading-relaxed">null</pre>
+                </div>
+              </td>
+              <td class="px-4 py-3 align-top">
+                <span class="text-rose-600 font-bold text-xs mt-2 inline-block">
+                  FAIL
+                </span>
+              </td>
+            </tr>
+            
+          </tbody>
+        </table>
+      </div>
+    </div>
+  
+          </div>
+
+          
+
+          
+        </div>
+      </details>
+    </div>
+  
+        </div>
+      </details>
+    </div>
+  
+    <div class="border border-rose-200 rounded-xl bg-white shadow-sm overflow-hidden">
+      <details class="group/case" open>
+        <summary class="flex items-center justify-between p-5 cursor-pointer bg-rose-50/40 hover:bg-rose-50/70 transition-all duration-200 select-none">
+          <div class="flex items-center space-x-3 flex-1 min-w-0 mr-4">
+            <svg class="w-5 h-5 text-slate-400 group-open/case:rotate-90 transition-transform duration-200 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
+            </svg>
+            <div class="truncate">
+              <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block mb-0.5">Test case #3/13</span>
+              <h3 class="text-base font-semibold text-rose-900 truncate font-sans">
+                Latest logs
+              </h3>
+            </div>
+          </div>
+          <div class="flex items-center space-x-3 shrink-0">
+            <span class="px-3 py-1 rounded text-xs font-semibold border bg-rose-100 text-rose-800 border-rose-200">
+              0/1 Passed
+            </span>
+          </div>
+        </summary>
+        
+        <div class="p-5 border-t border-slate-100 bg-slate-50/50 space-y-5">
+          
+    <div class="border border-slate-200 rounded-lg bg-white shadow-xs overflow-hidden">
+      <details class="group/run" open>
+        <summary class="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50/80 transition-all duration-200 select-none font-medium text-slate-700 text-sm">
+          <div class="flex items-center space-x-2">
+            <svg class="w-4 h-4 text-slate-400 group-open/run:rotate-90 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+            <span class="font-semibold">Run #1/1</span>
+          </div>
+          <div class="flex items-center gap-2">
+            
+            <span class="px-2.5 py-0.5 rounded text-xs font-semibold border bg-amber-100 text-amber-800 border-amber-200">
+              0/1 Passed
+            </span>
+          </div>
+        </summary>
+        
+        <div class="p-4 border-t border-slate-100 bg-slate-50/30 space-y-5">
+          <details class="group/msgs bg-white rounded-lg border border-slate-200 overflow-hidden">
+            <summary class="p-3 font-semibold text-xs text-slate-600 cursor-pointer hover:bg-slate-50 flex items-center justify-between select-none">
+              <span>Prompt & Expected Messages</span>
+              <svg class="w-4 h-4 text-slate-400 group-open/msgs:rotate-180 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </summary>
+            <div class="p-3 border-t border-slate-150 bg-slate-50/20">
+              <ul class="space-y-4">
+    <li class="flex flex-col space-y-2">
+        <div class="flex items-center space-x-2">
+          <span class="px-2 py-0.5 rounded text-xs font-medium border capitalize bg-purple-100 text-purple-800 border-purple-200">user</span>
+          <span class="text-xs text-slate-500 font-medium uppercase tracking-wider">message</span>
+        </div>
+        <div><div class="bg-slate-50 border border-slate-200 p-3 rounded-md text-sm text-slate-700 whitespace-pre-wrap">Pull the latest service log lines.</div></div>
+    </li></ul>
+            </div>
+          </details>
+
+          <div class="space-y-4">
+            <h4 class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Steps Evaluation</h4>
+            
+    <div class="bg-white rounded-lg border border-slate-200 overflow-hidden">
+      <div class="flex items-center justify-between bg-slate-50/80 p-3 border-b border-slate-200">
+        <h5 class="text-xs font-semibold text-slate-700">
+          Step #1/1
+        </h5>
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border text-amber-700 bg-amber-50 border-amber-200">
+          ERROR
+        </span>
+      </div>
+      
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs text-slate-600">
+          <thead class="bg-slate-50 text-slate-500 border-b border-slate-200 font-medium">
+            <tr>
+              <th class="px-4 py-2">Type</th>
+              <th class="px-4 py-2">Expected Pattern</th>
+              <th class="px-4 py-2">Actual Result</th>
+              <th class="px-4 py-2 w-24">Status</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr class="hover:bg-slate-50/30">
+              <td class="px-4 py-3 font-semibold text-slate-700 whitespace-nowrap">Function Name</td>
+              <td class="px-4 py-3"><code class="px-1.5 py-0.5 bg-slate-100 text-slate-800 rounded font-mono text-xs">read_logs</code></td>
+              <td class="px-4 py-3"><code class="px-1.5 py-0.5 bg-slate-100 text-slate-800 rounded font-mono text-xs"></code></td>
+              <td class="px-4 py-3">
+                <span class="text-rose-600 font-bold text-xs">
+                  FAIL
+                </span>
+              </td>
+            </tr>
+            <tr class="hover:bg-slate-50/30">
+              <td class="px-4 py-3 font-semibold text-slate-700 whitespace-nowrap align-top">Arguments</td>
+              <td class="px-4 py-3">
+                <div class="bg-slate-800 rounded-md p-3 overflow-x-auto max-w-md">
+                  <pre class="text-xs text-slate-200 font-mono m-0 leading-relaxed">{}</pre>
+                </div>
+              </td>
+              <td class="px-4 py-3">
+                <div class="bg-slate-800 rounded-md p-3 overflow-x-auto max-w-md">
+                  <pre class="text-xs text-slate-200 font-mono m-0 leading-relaxed">null</pre>
+                </div>
+              </td>
+              <td class="px-4 py-3 align-top">
+                <span class="text-rose-600 font-bold text-xs mt-2 inline-block">
+                  FAIL
+                </span>
+              </td>
+            </tr>
+            
+          </tbody>
+        </table>
+      </div>
+    </div>
+  
+          </div>
+
+          
+
+          
+        </div>
+      </details>
+    </div>
+  
+        </div>
+      </details>
+    </div>
+  
+    <div class="border border-rose-200 rounded-xl bg-white shadow-sm overflow-hidden">
+      <details class="group/case" open>
+        <summary class="flex items-center justify-between p-5 cursor-pointer bg-rose-50/40 hover:bg-rose-50/70 transition-all duration-200 select-none">
+          <div class="flex items-center space-x-3 flex-1 min-w-0 mr-4">
+            <svg class="w-5 h-5 text-slate-400 group-open/case:rotate-90 transition-transform duration-200 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
+            </svg>
+            <div class="truncate">
+              <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block mb-0.5">Test case #4/13</span>
+              <h3 class="text-base font-semibold text-rose-900 truncate font-sans">
+                Change surface (flags, env, routes, migrations)
+              </h3>
+            </div>
+          </div>
+          <div class="flex items-center space-x-3 shrink-0">
+            <span class="px-3 py-1 rounded text-xs font-semibold border bg-rose-100 text-rose-800 border-rose-200">
+              0/1 Passed
+            </span>
+          </div>
+        </summary>
+        
+        <div class="p-5 border-t border-slate-100 bg-slate-50/50 space-y-5">
+          
+    <div class="border border-slate-200 rounded-lg bg-white shadow-xs overflow-hidden">
+      <details class="group/run" open>
+        <summary class="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50/80 transition-all duration-200 select-none font-medium text-slate-700 text-sm">
+          <div class="flex items-center space-x-2">
+            <svg class="w-4 h-4 text-slate-400 group-open/run:rotate-90 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+            <span class="font-semibold">Run #1/1</span>
+          </div>
+          <div class="flex items-center gap-2">
+            
+            <span class="px-2.5 py-0.5 rounded text-xs font-semibold border bg-amber-100 text-amber-800 border-amber-200">
+              0/1 Passed
+            </span>
+          </div>
+        </summary>
+        
+        <div class="p-4 border-t border-slate-100 bg-slate-50/30 space-y-5">
+          <details class="group/msgs bg-white rounded-lg border border-slate-200 overflow-hidden">
+            <summary class="p-3 font-semibold text-xs text-slate-600 cursor-pointer hover:bg-slate-50 flex items-center justify-between select-none">
+              <span>Prompt & Expected Messages</span>
+              <svg class="w-4 h-4 text-slate-400 group-open/msgs:rotate-180 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </summary>
+            <div class="p-3 border-t border-slate-150 bg-slate-50/20">
+              <ul class="space-y-4">
+    <li class="flex flex-col space-y-2">
+        <div class="flex items-center space-x-2">
+          <span class="px-2 py-0.5 rounded text-xs font-medium border capitalize bg-purple-100 text-purple-800 border-purple-200">user</span>
+          <span class="text-xs text-slate-500 font-medium uppercase tracking-wider">message</span>
+        </div>
+        <div><div class="bg-slate-50 border border-slate-200 p-3 rounded-md text-sm text-slate-700 whitespace-pre-wrap">Which feature flags are on right now, and which migrations have been applied?</div></div>
+    </li></ul>
+            </div>
+          </details>
+
+          <div class="space-y-4">
+            <h4 class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Steps Evaluation</h4>
+            
+    <div class="bg-white rounded-lg border border-slate-200 overflow-hidden">
+      <div class="flex items-center justify-between bg-slate-50/80 p-3 border-b border-slate-200">
+        <h5 class="text-xs font-semibold text-slate-700">
+          Step #1/1
+        </h5>
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border text-amber-700 bg-amber-50 border-amber-200">
+          ERROR
+        </span>
+      </div>
+      
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs text-slate-600">
+          <thead class="bg-slate-50 text-slate-500 border-b border-slate-200 font-medium">
+            <tr>
+              <th class="px-4 py-2">Type</th>
+              <th class="px-4 py-2">Expected Pattern</th>
+              <th class="px-4 py-2">Actual Result</th>
+              <th class="px-4 py-2 w-24">Status</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr class="hover:bg-slate-50/30">
+              <td class="px-4 py-3 font-semibold text-slate-700 whitespace-nowrap">Function Name</td>
+              <td class="px-4 py-3"><code class="px-1.5 py-0.5 bg-slate-100 text-slate-800 rounded font-mono text-xs">list_changes</code></td>
+              <td class="px-4 py-3"><code class="px-1.5 py-0.5 bg-slate-100 text-slate-800 rounded font-mono text-xs"></code></td>
+              <td class="px-4 py-3">
+                <span class="text-rose-600 font-bold text-xs">
+                  FAIL
+                </span>
+              </td>
+            </tr>
+            <tr class="hover:bg-slate-50/30">
+              <td class="px-4 py-3 font-semibold text-slate-700 whitespace-nowrap align-top">Arguments</td>
+              <td class="px-4 py-3">
+                <div class="bg-slate-800 rounded-md p-3 overflow-x-auto max-w-md">
+                  <pre class="text-xs text-slate-200 font-mono m-0 leading-relaxed">{}</pre>
+                </div>
+              </td>
+              <td class="px-4 py-3">
+                <div class="bg-slate-800 rounded-md p-3 overflow-x-auto max-w-md">
+                  <pre class="text-xs text-slate-200 font-mono m-0 leading-relaxed">null</pre>
+                </div>
+              </td>
+              <td class="px-4 py-3 align-top">
+                <span class="text-rose-600 font-bold text-xs mt-2 inline-block">
+                  FAIL
+                </span>
+              </td>
+            </tr>
+            
+          </tbody>
+        </table>
+      </div>
+    </div>
+  
+          </div>
+
+          
+
+          
+        </div>
+      </details>
+    </div>
+  
+        </div>
+      </details>
+    </div>
+  
+    <div class="border border-rose-200 rounded-xl bg-white shadow-sm overflow-hidden">
+      <details class="group/case" open>
+        <summary class="flex items-center justify-between p-5 cursor-pointer bg-rose-50/40 hover:bg-rose-50/70 transition-all duration-200 select-none">
+          <div class="flex items-center space-x-3 flex-1 min-w-0 mr-4">
+            <svg class="w-5 h-5 text-slate-400 group-open/case:rotate-90 transition-transform duration-200 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
+            </svg>
+            <div class="truncate">
+              <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block mb-0.5">Test case #5/13</span>
+              <h3 class="text-base font-semibold text-rose-900 truncate font-sans">
+                Localize the failing route
+              </h3>
+            </div>
+          </div>
+          <div class="flex items-center space-x-3 shrink-0">
+            <span class="px-3 py-1 rounded text-xs font-semibold border bg-rose-100 text-rose-800 border-rose-200">
+              0/1 Passed
+            </span>
+          </div>
+        </summary>
+        
+        <div class="p-5 border-t border-slate-100 bg-slate-50/50 space-y-5">
+          
+    <div class="border border-slate-200 rounded-lg bg-white shadow-xs overflow-hidden">
+      <details class="group/run" open>
+        <summary class="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50/80 transition-all duration-200 select-none font-medium text-slate-700 text-sm">
+          <div class="flex items-center space-x-2">
+            <svg class="w-4 h-4 text-slate-400 group-open/run:rotate-90 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+            <span class="font-semibold">Run #1/1</span>
+          </div>
+          <div class="flex items-center gap-2">
+            
+            <span class="px-2.5 py-0.5 rounded text-xs font-semibold border bg-amber-100 text-amber-800 border-amber-200">
+              0/1 Passed
+            </span>
+          </div>
+        </summary>
+        
+        <div class="p-4 border-t border-slate-100 bg-slate-50/30 space-y-5">
+          <details class="group/msgs bg-white rounded-lg border border-slate-200 overflow-hidden">
+            <summary class="p-3 font-semibold text-xs text-slate-600 cursor-pointer hover:bg-slate-50 flex items-center justify-between select-none">
+              <span>Prompt & Expected Messages</span>
+              <svg class="w-4 h-4 text-slate-400 group-open/msgs:rotate-180 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </summary>
+            <div class="p-3 border-t border-slate-150 bg-slate-50/20">
+              <ul class="space-y-4">
+    <li class="flex flex-col space-y-2">
+        <div class="flex items-center space-x-2">
+          <span class="px-2 py-0.5 rounded text-xs font-medium border capitalize bg-purple-100 text-purple-800 border-purple-200">user</span>
+          <span class="text-xs text-slate-500 font-medium uppercase tracking-wider">message</span>
+        </div>
+        <div><div class="bg-slate-50 border border-slate-200 p-3 rounded-md text-sm text-slate-700 whitespace-pre-wrap">Which route is failing and when did it start?</div></div>
+    </li></ul>
+            </div>
+          </details>
+
+          <div class="space-y-4">
+            <h4 class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Steps Evaluation</h4>
+            
+    <div class="bg-white rounded-lg border border-slate-200 overflow-hidden">
+      <div class="flex items-center justify-between bg-slate-50/80 p-3 border-b border-slate-200">
+        <h5 class="text-xs font-semibold text-slate-700">
+          Step #1/1
+        </h5>
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border text-amber-700 bg-amber-50 border-amber-200">
+          ERROR
+        </span>
+      </div>
+      
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs text-slate-600">
+          <thead class="bg-slate-50 text-slate-500 border-b border-slate-200 font-medium">
+            <tr>
+              <th class="px-4 py-2">Type</th>
+              <th class="px-4 py-2">Expected Pattern</th>
+              <th class="px-4 py-2">Actual Result</th>
+              <th class="px-4 py-2 w-24">Status</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr class="hover:bg-slate-50/30">
+              <td class="px-4 py-3 font-semibold text-slate-700 whitespace-nowrap">Function Name</td>
+              <td class="px-4 py-3"><code class="px-1.5 py-0.5 bg-slate-100 text-slate-800 rounded font-mono text-xs">airlock_status</code></td>
+              <td class="px-4 py-3"><code class="px-1.5 py-0.5 bg-slate-100 text-slate-800 rounded font-mono text-xs"></code></td>
+              <td class="px-4 py-3">
+                <span class="text-rose-600 font-bold text-xs">
+                  FAIL
+                </span>
+              </td>
+            </tr>
+            <tr class="hover:bg-slate-50/30">
+              <td class="px-4 py-3 font-semibold text-slate-700 whitespace-nowrap align-top">Arguments</td>
+              <td class="px-4 py-3">
+                <div class="bg-slate-800 rounded-md p-3 overflow-x-auto max-w-md">
+                  <pre class="text-xs text-slate-200 font-mono m-0 leading-relaxed">{}</pre>
+                </div>
+              </td>
+              <td class="px-4 py-3">
+                <div class="bg-slate-800 rounded-md p-3 overflow-x-auto max-w-md">
+                  <pre class="text-xs text-slate-200 font-mono m-0 leading-relaxed">null</pre>
+                </div>
+              </td>
+              <td class="px-4 py-3 align-top">
+                <span class="text-rose-600 font-bold text-xs mt-2 inline-block">
+                  FAIL
+                </span>
+              </td>
+            </tr>
+            
+          </tbody>
+        </table>
+      </div>
+    </div>
+  
+          </div>
+
+          
+
+          
+        </div>
+      </details>
+    </div>
+  
+        </div>
+      </details>
+    </div>
+  
+    <div class="border border-rose-200 rounded-xl bg-white shadow-sm overflow-hidden">
+      <details class="group/case" open>
+        <summary class="flex items-center justify-between p-5 cursor-pointer bg-rose-50/40 hover:bg-rose-50/70 transition-all duration-200 select-none">
+          <div class="flex items-center space-x-3 flex-1 min-w-0 mr-4">
+            <svg class="w-5 h-5 text-slate-400 group-open/case:rotate-90 transition-transform duration-200 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
+            </svg>
+            <div class="truncate">
+              <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block mb-0.5">Test case #6/13</span>
+              <h3 class="text-base font-semibold text-rose-900 truncate font-sans">
+                Missing tool: ask the surface why
+              </h3>
+            </div>
+          </div>
+          <div class="flex items-center space-x-3 shrink-0">
+            <span class="px-3 py-1 rounded text-xs font-semibold border bg-rose-100 text-rose-800 border-rose-200">
+              0/1 Passed
+            </span>
+          </div>
+        </summary>
+        
+        <div class="p-5 border-t border-slate-100 bg-slate-50/50 space-y-5">
+          
+    <div class="border border-slate-200 rounded-lg bg-white shadow-xs overflow-hidden">
+      <details class="group/run" open>
+        <summary class="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50/80 transition-all duration-200 select-none font-medium text-slate-700 text-sm">
+          <div class="flex items-center space-x-2">
+            <svg class="w-4 h-4 text-slate-400 group-open/run:rotate-90 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+            <span class="font-semibold">Run #1/1</span>
+          </div>
+          <div class="flex items-center gap-2">
+            
+            <span class="px-2.5 py-0.5 rounded text-xs font-semibold border bg-amber-100 text-amber-800 border-amber-200">
+              0/1 Passed
+            </span>
+          </div>
+        </summary>
+        
+        <div class="p-4 border-t border-slate-100 bg-slate-50/30 space-y-5">
+          <details class="group/msgs bg-white rounded-lg border border-slate-200 overflow-hidden">
+            <summary class="p-3 font-semibold text-xs text-slate-600 cursor-pointer hover:bg-slate-50 flex items-center justify-between select-none">
+              <span>Prompt & Expected Messages</span>
+              <svg class="w-4 h-4 text-slate-400 group-open/msgs:rotate-180 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </summary>
+            <div class="p-3 border-t border-slate-150 bg-slate-50/20">
+              <ul class="space-y-4">
+    <li class="flex flex-col space-y-2">
+        <div class="flex items-center space-x-2">
+          <span class="px-2 py-0.5 rounded text-xs font-medium border capitalize bg-purple-100 text-purple-800 border-purple-200">user</span>
+          <span class="text-xs text-slate-500 font-medium uppercase tracking-wider">message</span>
+        </div>
+        <div><div class="bg-slate-50 border border-slate-200 p-3 rounded-md text-sm text-slate-700 whitespace-pre-wrap">I don&#039;t see a rollback tool. Why is it missing?</div></div>
+    </li></ul>
+            </div>
+          </details>
+
+          <div class="space-y-4">
+            <h4 class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Steps Evaluation</h4>
+            
+    <div class="bg-white rounded-lg border border-slate-200 overflow-hidden">
+      <div class="flex items-center justify-between bg-slate-50/80 p-3 border-b border-slate-200">
+        <h5 class="text-xs font-semibold text-slate-700">
+          Step #1/1
+        </h5>
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border text-amber-700 bg-amber-50 border-amber-200">
+          ERROR
+        </span>
+      </div>
+      
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs text-slate-600">
+          <thead class="bg-slate-50 text-slate-500 border-b border-slate-200 font-medium">
+            <tr>
+              <th class="px-4 py-2">Type</th>
+              <th class="px-4 py-2">Expected Pattern</th>
+              <th class="px-4 py-2">Actual Result</th>
+              <th class="px-4 py-2 w-24">Status</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr class="hover:bg-slate-50/30">
+              <td class="px-4 py-3 font-semibold text-slate-700 whitespace-nowrap">Function Name</td>
+              <td class="px-4 py-3"><code class="px-1.5 py-0.5 bg-slate-100 text-slate-800 rounded font-mono text-xs">explain_surface</code></td>
+              <td class="px-4 py-3"><code class="px-1.5 py-0.5 bg-slate-100 text-slate-800 rounded font-mono text-xs"></code></td>
+              <td class="px-4 py-3">
+                <span class="text-rose-600 font-bold text-xs">
+                  FAIL
+                </span>
+              </td>
+            </tr>
+            <tr class="hover:bg-slate-50/30">
+              <td class="px-4 py-3 font-semibold text-slate-700 whitespace-nowrap align-top">Arguments</td>
+              <td class="px-4 py-3">
+                <div class="bg-slate-800 rounded-md p-3 overflow-x-auto max-w-md">
+                  <pre class="text-xs text-slate-200 font-mono m-0 leading-relaxed">{}</pre>
+                </div>
+              </td>
+              <td class="px-4 py-3">
+                <div class="bg-slate-800 rounded-md p-3 overflow-x-auto max-w-md">
+                  <pre class="text-xs text-slate-200 font-mono m-0 leading-relaxed">null</pre>
+                </div>
+              </td>
+              <td class="px-4 py-3 align-top">
+                <span class="text-rose-600 font-bold text-xs mt-2 inline-block">
+                  FAIL
+                </span>
+              </td>
+            </tr>
+            
+          </tbody>
+        </table>
+      </div>
+    </div>
+  
+          </div>
+
+          
+
+          
+        </div>
+      </details>
+    </div>
+  
+        </div>
+      </details>
+    </div>
+  
+    <div class="border border-rose-200 rounded-xl bg-white shadow-sm overflow-hidden">
+      <details class="group/case" open>
+        <summary class="flex items-center justify-between p-5 cursor-pointer bg-rose-50/40 hover:bg-rose-50/70 transition-all duration-200 select-none">
+          <div class="flex items-center space-x-3 flex-1 min-w-0 mr-4">
+            <svg class="w-5 h-5 text-slate-400 group-open/case:rotate-90 transition-transform duration-200 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
+            </svg>
+            <div class="truncate">
+              <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block mb-0.5">Test case #7/13</span>
+              <h3 class="text-base font-semibold text-rose-900 truncate font-sans">
+                Acknowledge the incident
+              </h3>
+            </div>
+          </div>
+          <div class="flex items-center space-x-3 shrink-0">
+            <span class="px-3 py-1 rounded text-xs font-semibold border bg-rose-100 text-rose-800 border-rose-200">
+              0/1 Passed
+            </span>
+          </div>
+        </summary>
+        
+        <div class="p-5 border-t border-slate-100 bg-slate-50/50 space-y-5">
+          
+    <div class="border border-slate-200 rounded-lg bg-white shadow-xs overflow-hidden">
+      <details class="group/run" open>
+        <summary class="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50/80 transition-all duration-200 select-none font-medium text-slate-700 text-sm">
+          <div class="flex items-center space-x-2">
+            <svg class="w-4 h-4 text-slate-400 group-open/run:rotate-90 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+            <span class="font-semibold">Run #1/1</span>
+          </div>
+          <div class="flex items-center gap-2">
+            
+            <span class="px-2.5 py-0.5 rounded text-xs font-semibold border bg-amber-100 text-amber-800 border-amber-200">
+              0/1 Passed
+            </span>
+          </div>
+        </summary>
+        
+        <div class="p-4 border-t border-slate-100 bg-slate-50/30 space-y-5">
+          <details class="group/msgs bg-white rounded-lg border border-slate-200 overflow-hidden">
+            <summary class="p-3 font-semibold text-xs text-slate-600 cursor-pointer hover:bg-slate-50 flex items-center justify-between select-none">
+              <span>Prompt & Expected Messages</span>
+              <svg class="w-4 h-4 text-slate-400 group-open/msgs:rotate-180 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </summary>
+            <div class="p-3 border-t border-slate-150 bg-slate-50/20">
+              <ul class="space-y-4">
+    <li class="flex flex-col space-y-2">
+        <div class="flex items-center space-x-2">
+          <span class="px-2 py-0.5 rounded text-xs font-medium border capitalize bg-purple-100 text-purple-800 border-purple-200">user</span>
+          <span class="text-xs text-slate-500 font-medium uppercase tracking-wider">message</span>
+        </div>
+        <div><div class="bg-slate-50 border border-slate-200 p-3 rounded-md text-sm text-slate-700 whitespace-pre-wrap">Take ownership of this incident as agent-oncall so the others stand down.</div></div>
+    </li></ul>
+            </div>
+          </details>
+
+          <div class="space-y-4">
+            <h4 class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Steps Evaluation</h4>
+            
+    <div class="bg-white rounded-lg border border-slate-200 overflow-hidden">
+      <div class="flex items-center justify-between bg-slate-50/80 p-3 border-b border-slate-200">
+        <h5 class="text-xs font-semibold text-slate-700">
+          Step #1/1
+        </h5>
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border text-amber-700 bg-amber-50 border-amber-200">
+          ERROR
+        </span>
+      </div>
+      
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs text-slate-600">
+          <thead class="bg-slate-50 text-slate-500 border-b border-slate-200 font-medium">
+            <tr>
+              <th class="px-4 py-2">Type</th>
+              <th class="px-4 py-2">Expected Pattern</th>
+              <th class="px-4 py-2">Actual Result</th>
+              <th class="px-4 py-2 w-24">Status</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr class="hover:bg-slate-50/30">
+              <td class="px-4 py-3 font-semibold text-slate-700 whitespace-nowrap">Function Name</td>
+              <td class="px-4 py-3"><code class="px-1.5 py-0.5 bg-slate-100 text-slate-800 rounded font-mono text-xs">propose_acknowledge</code></td>
+              <td class="px-4 py-3"><code class="px-1.5 py-0.5 bg-slate-100 text-slate-800 rounded font-mono text-xs"></code></td>
+              <td class="px-4 py-3">
+                <span class="text-rose-600 font-bold text-xs">
+                  FAIL
+                </span>
+              </td>
+            </tr>
+            <tr class="hover:bg-slate-50/30">
+              <td class="px-4 py-3 font-semibold text-slate-700 whitespace-nowrap align-top">Arguments</td>
+              <td class="px-4 py-3">
+                <div class="bg-slate-800 rounded-md p-3 overflow-x-auto max-w-md">
+                  <pre class="text-xs text-slate-200 font-mono m-0 leading-relaxed">{
+  &quot;by&quot;: {
+    &quot;$contains&quot;: &quot;agent&quot;
+  }
+}</pre>
+                </div>
+              </td>
+              <td class="px-4 py-3">
+                <div class="bg-slate-800 rounded-md p-3 overflow-x-auto max-w-md">
+                  <pre class="text-xs text-slate-200 font-mono m-0 leading-relaxed">null</pre>
+                </div>
+              </td>
+              <td class="px-4 py-3 align-top">
+                <span class="text-rose-600 font-bold text-xs mt-2 inline-block">
+                  FAIL
+                </span>
+              </td>
+            </tr>
+            
+          </tbody>
+        </table>
+      </div>
+    </div>
+  
+          </div>
+
+          
+
+          
+        </div>
+      </details>
+    </div>
+  
+        </div>
+      </details>
+    </div>
+  
+    <div class="border border-rose-200 rounded-xl bg-white shadow-sm overflow-hidden">
+      <details class="group/case" open>
+        <summary class="flex items-center justify-between p-5 cursor-pointer bg-rose-50/40 hover:bg-rose-50/70 transition-all duration-200 select-none">
+          <div class="flex items-center space-x-3 flex-1 min-w-0 mr-4">
+            <svg class="w-5 h-5 text-slate-400 group-open/case:rotate-90 transition-transform duration-200 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
+            </svg>
+            <div class="truncate">
+              <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block mb-0.5">Test case #8/13</span>
+              <h3 class="text-base font-semibold text-rose-900 truncate font-sans">
+                Declare severity
+              </h3>
+            </div>
+          </div>
+          <div class="flex items-center space-x-3 shrink-0">
+            <span class="px-3 py-1 rounded text-xs font-semibold border bg-rose-100 text-rose-800 border-rose-200">
+              0/1 Passed
+            </span>
+          </div>
+        </summary>
+        
+        <div class="p-5 border-t border-slate-100 bg-slate-50/50 space-y-5">
+          
+    <div class="border border-slate-200 rounded-lg bg-white shadow-xs overflow-hidden">
+      <details class="group/run" open>
+        <summary class="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50/80 transition-all duration-200 select-none font-medium text-slate-700 text-sm">
+          <div class="flex items-center space-x-2">
+            <svg class="w-4 h-4 text-slate-400 group-open/run:rotate-90 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+            <span class="font-semibold">Run #1/1</span>
+          </div>
+          <div class="flex items-center gap-2">
+            
+            <span class="px-2.5 py-0.5 rounded text-xs font-semibold border bg-amber-100 text-amber-800 border-amber-200">
+              0/1 Passed
+            </span>
+          </div>
+        </summary>
+        
+        <div class="p-4 border-t border-slate-100 bg-slate-50/30 space-y-5">
+          <details class="group/msgs bg-white rounded-lg border border-slate-200 overflow-hidden">
+            <summary class="p-3 font-semibold text-xs text-slate-600 cursor-pointer hover:bg-slate-50 flex items-center justify-between select-none">
+              <span>Prompt & Expected Messages</span>
+              <svg class="w-4 h-4 text-slate-400 group-open/msgs:rotate-180 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </summary>
+            <div class="p-3 border-t border-slate-150 bg-slate-50/20">
+              <ul class="space-y-4">
+    <li class="flex flex-col space-y-2">
+        <div class="flex items-center space-x-2">
+          <span class="px-2 py-0.5 rounded text-xs font-medium border capitalize bg-purple-100 text-purple-800 border-purple-200">user</span>
+          <span class="text-xs text-slate-500 font-medium uppercase tracking-wider">message</span>
+        </div>
+        <div><div class="bg-slate-50 border border-slate-200 p-3 rounded-md text-sm text-slate-700 whitespace-pre-wrap">Declare this a sev1.</div></div>
+    </li></ul>
+            </div>
+          </details>
+
+          <div class="space-y-4">
+            <h4 class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Steps Evaluation</h4>
+            
+    <div class="bg-white rounded-lg border border-slate-200 overflow-hidden">
+      <div class="flex items-center justify-between bg-slate-50/80 p-3 border-b border-slate-200">
+        <h5 class="text-xs font-semibold text-slate-700">
+          Step #1/1
+        </h5>
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border text-amber-700 bg-amber-50 border-amber-200">
+          ERROR
+        </span>
+      </div>
+      
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs text-slate-600">
+          <thead class="bg-slate-50 text-slate-500 border-b border-slate-200 font-medium">
+            <tr>
+              <th class="px-4 py-2">Type</th>
+              <th class="px-4 py-2">Expected Pattern</th>
+              <th class="px-4 py-2">Actual Result</th>
+              <th class="px-4 py-2 w-24">Status</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr class="hover:bg-slate-50/30">
+              <td class="px-4 py-3 font-semibold text-slate-700 whitespace-nowrap">Function Name</td>
+              <td class="px-4 py-3"><code class="px-1.5 py-0.5 bg-slate-100 text-slate-800 rounded font-mono text-xs">propose_severity</code></td>
+              <td class="px-4 py-3"><code class="px-1.5 py-0.5 bg-slate-100 text-slate-800 rounded font-mono text-xs"></code></td>
+              <td class="px-4 py-3">
+                <span class="text-rose-600 font-bold text-xs">
+                  FAIL
+                </span>
+              </td>
+            </tr>
+            <tr class="hover:bg-slate-50/30">
+              <td class="px-4 py-3 font-semibold text-slate-700 whitespace-nowrap align-top">Arguments</td>
+              <td class="px-4 py-3">
+                <div class="bg-slate-800 rounded-md p-3 overflow-x-auto max-w-md">
+                  <pre class="text-xs text-slate-200 font-mono m-0 leading-relaxed">{
+  &quot;level&quot;: &quot;sev1&quot;
+}</pre>
+                </div>
+              </td>
+              <td class="px-4 py-3">
+                <div class="bg-slate-800 rounded-md p-3 overflow-x-auto max-w-md">
+                  <pre class="text-xs text-slate-200 font-mono m-0 leading-relaxed">null</pre>
+                </div>
+              </td>
+              <td class="px-4 py-3 align-top">
+                <span class="text-rose-600 font-bold text-xs mt-2 inline-block">
+                  FAIL
+                </span>
+              </td>
+            </tr>
+            
+          </tbody>
+        </table>
+      </div>
+    </div>
+  
+          </div>
+
+          
+
+          
+        </div>
+      </details>
+    </div>
+  
+        </div>
+      </details>
+    </div>
+  
+    <div class="border border-rose-200 rounded-xl bg-white shadow-sm overflow-hidden">
+      <details class="group/case" open>
+        <summary class="flex items-center justify-between p-5 cursor-pointer bg-rose-50/40 hover:bg-rose-50/70 transition-all duration-200 select-none">
+          <div class="flex items-center space-x-3 flex-1 min-w-0 mr-4">
+            <svg class="w-5 h-5 text-slate-400 group-open/case:rotate-90 transition-transform duration-200 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
+            </svg>
+            <div class="truncate">
+              <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block mb-0.5">Test case #9/13</span>
+              <h3 class="text-base font-semibold text-rose-900 truncate font-sans">
+                Escalate to the database on-call
+              </h3>
+            </div>
+          </div>
+          <div class="flex items-center space-x-3 shrink-0">
+            <span class="px-3 py-1 rounded text-xs font-semibold border bg-rose-100 text-rose-800 border-rose-200">
+              0/1 Passed
+            </span>
+          </div>
+        </summary>
+        
+        <div class="p-5 border-t border-slate-100 bg-slate-50/50 space-y-5">
+          
+    <div class="border border-slate-200 rounded-lg bg-white shadow-xs overflow-hidden">
+      <details class="group/run" open>
+        <summary class="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50/80 transition-all duration-200 select-none font-medium text-slate-700 text-sm">
+          <div class="flex items-center space-x-2">
+            <svg class="w-4 h-4 text-slate-400 group-open/run:rotate-90 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+            <span class="font-semibold">Run #1/1</span>
+          </div>
+          <div class="flex items-center gap-2">
+            
+            <span class="px-2.5 py-0.5 rounded text-xs font-semibold border bg-amber-100 text-amber-800 border-amber-200">
+              0/1 Passed
+            </span>
+          </div>
+        </summary>
+        
+        <div class="p-4 border-t border-slate-100 bg-slate-50/30 space-y-5">
+          <details class="group/msgs bg-white rounded-lg border border-slate-200 overflow-hidden">
+            <summary class="p-3 font-semibold text-xs text-slate-600 cursor-pointer hover:bg-slate-50 flex items-center justify-between select-none">
+              <span>Prompt & Expected Messages</span>
+              <svg class="w-4 h-4 text-slate-400 group-open/msgs:rotate-180 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </summary>
+            <div class="p-3 border-t border-slate-150 bg-slate-50/20">
+              <ul class="space-y-4">
+    <li class="flex flex-col space-y-2">
+        <div class="flex items-center space-x-2">
+          <span class="px-2 py-0.5 rounded text-xs font-medium border capitalize bg-purple-100 text-purple-800 border-purple-200">user</span>
+          <span class="text-xs text-slate-500 font-medium uppercase tracking-wider">message</span>
+        </div>
+        <div><div class="bg-slate-50 border border-slate-200 p-3 rounded-md text-sm text-slate-700 whitespace-pre-wrap">Page the database on-call.</div></div>
+    </li></ul>
+            </div>
+          </details>
+
+          <div class="space-y-4">
+            <h4 class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Steps Evaluation</h4>
+            
+    <div class="bg-white rounded-lg border border-slate-200 overflow-hidden">
+      <div class="flex items-center justify-between bg-slate-50/80 p-3 border-b border-slate-200">
+        <h5 class="text-xs font-semibold text-slate-700">
+          Step #1/1
+        </h5>
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border text-amber-700 bg-amber-50 border-amber-200">
+          ERROR
+        </span>
+      </div>
+      
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs text-slate-600">
+          <thead class="bg-slate-50 text-slate-500 border-b border-slate-200 font-medium">
+            <tr>
+              <th class="px-4 py-2">Type</th>
+              <th class="px-4 py-2">Expected Pattern</th>
+              <th class="px-4 py-2">Actual Result</th>
+              <th class="px-4 py-2 w-24">Status</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr class="hover:bg-slate-50/30">
+              <td class="px-4 py-3 font-semibold text-slate-700 whitespace-nowrap">Function Name</td>
+              <td class="px-4 py-3"><code class="px-1.5 py-0.5 bg-slate-100 text-slate-800 rounded font-mono text-xs">propose_escalate</code></td>
+              <td class="px-4 py-3"><code class="px-1.5 py-0.5 bg-slate-100 text-slate-800 rounded font-mono text-xs"></code></td>
+              <td class="px-4 py-3">
+                <span class="text-rose-600 font-bold text-xs">
+                  FAIL
+                </span>
+              </td>
+            </tr>
+            <tr class="hover:bg-slate-50/30">
+              <td class="px-4 py-3 font-semibold text-slate-700 whitespace-nowrap align-top">Arguments</td>
+              <td class="px-4 py-3">
+                <div class="bg-slate-800 rounded-md p-3 overflow-x-auto max-w-md">
+                  <pre class="text-xs text-slate-200 font-mono m-0 leading-relaxed">{
+  &quot;team&quot;: {
+    &quot;$contains&quot;: &quot;database&quot;
+  }
+}</pre>
+                </div>
+              </td>
+              <td class="px-4 py-3">
+                <div class="bg-slate-800 rounded-md p-3 overflow-x-auto max-w-md">
+                  <pre class="text-xs text-slate-200 font-mono m-0 leading-relaxed">null</pre>
+                </div>
+              </td>
+              <td class="px-4 py-3 align-top">
+                <span class="text-rose-600 font-bold text-xs mt-2 inline-block">
+                  FAIL
+                </span>
+              </td>
+            </tr>
+            
+          </tbody>
+        </table>
+      </div>
+    </div>
+  
+          </div>
+
+          
+
+          
+        </div>
+      </details>
+    </div>
+  
+        </div>
+      </details>
+    </div>
+  
+    <div class="border border-rose-200 rounded-xl bg-white shadow-sm overflow-hidden">
+      <details class="group/case" open>
+        <summary class="flex items-center justify-between p-5 cursor-pointer bg-rose-50/40 hover:bg-rose-50/70 transition-all duration-200 select-none">
+          <div class="flex items-center space-x-3 flex-1 min-w-0 mr-4">
+            <svg class="w-5 h-5 text-slate-400 group-open/case:rotate-90 transition-transform duration-200 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
+            </svg>
+            <div class="truncate">
+              <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block mb-0.5">Test case #10/13</span>
+              <h3 class="text-base font-semibold text-rose-900 truncate font-sans">
+                Silence alerts
+              </h3>
+            </div>
+          </div>
+          <div class="flex items-center space-x-3 shrink-0">
+            <span class="px-3 py-1 rounded text-xs font-semibold border bg-rose-100 text-rose-800 border-rose-200">
+              0/1 Passed
+            </span>
+          </div>
+        </summary>
+        
+        <div class="p-5 border-t border-slate-100 bg-slate-50/50 space-y-5">
+          
+    <div class="border border-slate-200 rounded-lg bg-white shadow-xs overflow-hidden">
+      <details class="group/run" open>
+        <summary class="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50/80 transition-all duration-200 select-none font-medium text-slate-700 text-sm">
+          <div class="flex items-center space-x-2">
+            <svg class="w-4 h-4 text-slate-400 group-open/run:rotate-90 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+            <span class="font-semibold">Run #1/1</span>
+          </div>
+          <div class="flex items-center gap-2">
+            
+            <span class="px-2.5 py-0.5 rounded text-xs font-semibold border bg-amber-100 text-amber-800 border-amber-200">
+              0/1 Passed
+            </span>
+          </div>
+        </summary>
+        
+        <div class="p-4 border-t border-slate-100 bg-slate-50/30 space-y-5">
+          <details class="group/msgs bg-white rounded-lg border border-slate-200 overflow-hidden">
+            <summary class="p-3 font-semibold text-xs text-slate-600 cursor-pointer hover:bg-slate-50 flex items-center justify-between select-none">
+              <span>Prompt & Expected Messages</span>
+              <svg class="w-4 h-4 text-slate-400 group-open/msgs:rotate-180 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </summary>
+            <div class="p-3 border-t border-slate-150 bg-slate-50/20">
+              <ul class="space-y-4">
+    <li class="flex flex-col space-y-2">
+        <div class="flex items-center space-x-2">
+          <span class="px-2 py-0.5 rounded text-xs font-medium border capitalize bg-purple-100 text-purple-800 border-purple-200">user</span>
+          <span class="text-xs text-slate-500 font-medium uppercase tracking-wider">message</span>
+        </div>
+        <div><div class="bg-slate-50 border border-slate-200 p-3 rounded-md text-sm text-slate-700 whitespace-pre-wrap">Silence alerting while we work this.</div></div>
+    </li></ul>
+            </div>
+          </details>
+
+          <div class="space-y-4">
+            <h4 class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Steps Evaluation</h4>
+            
+    <div class="bg-white rounded-lg border border-slate-200 overflow-hidden">
+      <div class="flex items-center justify-between bg-slate-50/80 p-3 border-b border-slate-200">
+        <h5 class="text-xs font-semibold text-slate-700">
+          Step #1/1
+        </h5>
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border text-amber-700 bg-amber-50 border-amber-200">
+          ERROR
+        </span>
+      </div>
+      
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs text-slate-600">
+          <thead class="bg-slate-50 text-slate-500 border-b border-slate-200 font-medium">
+            <tr>
+              <th class="px-4 py-2">Type</th>
+              <th class="px-4 py-2">Expected Pattern</th>
+              <th class="px-4 py-2">Actual Result</th>
+              <th class="px-4 py-2 w-24">Status</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr class="hover:bg-slate-50/30">
+              <td class="px-4 py-3 font-semibold text-slate-700 whitespace-nowrap">Function Name</td>
+              <td class="px-4 py-3"><code class="px-1.5 py-0.5 bg-slate-100 text-slate-800 rounded font-mono text-xs">propose_silence_alerts</code></td>
+              <td class="px-4 py-3"><code class="px-1.5 py-0.5 bg-slate-100 text-slate-800 rounded font-mono text-xs"></code></td>
+              <td class="px-4 py-3">
+                <span class="text-rose-600 font-bold text-xs">
+                  FAIL
+                </span>
+              </td>
+            </tr>
+            <tr class="hover:bg-slate-50/30">
+              <td class="px-4 py-3 font-semibold text-slate-700 whitespace-nowrap align-top">Arguments</td>
+              <td class="px-4 py-3">
+                <div class="bg-slate-800 rounded-md p-3 overflow-x-auto max-w-md">
+                  <pre class="text-xs text-slate-200 font-mono m-0 leading-relaxed">{
+  &quot;silenced&quot;: true
+}</pre>
+                </div>
+              </td>
+              <td class="px-4 py-3">
+                <div class="bg-slate-800 rounded-md p-3 overflow-x-auto max-w-md">
+                  <pre class="text-xs text-slate-200 font-mono m-0 leading-relaxed">null</pre>
+                </div>
+              </td>
+              <td class="px-4 py-3 align-top">
+                <span class="text-rose-600 font-bold text-xs mt-2 inline-block">
+                  FAIL
+                </span>
+              </td>
+            </tr>
+            
+          </tbody>
+        </table>
+      </div>
+    </div>
+  
+          </div>
+
+          
+
+          
+        </div>
+      </details>
+    </div>
+  
+        </div>
+      </details>
+    </div>
+  
+    <div class="border border-rose-200 rounded-xl bg-white shadow-sm overflow-hidden">
+      <details class="group/case" open>
+        <summary class="flex items-center justify-between p-5 cursor-pointer bg-rose-50/40 hover:bg-rose-50/70 transition-all duration-200 select-none">
+          <div class="flex items-center space-x-3 flex-1 min-w-0 mr-4">
+            <svg class="w-5 h-5 text-slate-400 group-open/case:rotate-90 transition-transform duration-200 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
+            </svg>
+            <div class="truncate">
+              <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block mb-0.5">Test case #11/13</span>
+              <h3 class="text-base font-semibold text-rose-900 truncate font-sans">
+                Status page: investigating
+              </h3>
+            </div>
+          </div>
+          <div class="flex items-center space-x-3 shrink-0">
+            <span class="px-3 py-1 rounded text-xs font-semibold border bg-rose-100 text-rose-800 border-rose-200">
+              0/1 Passed
+            </span>
+          </div>
+        </summary>
+        
+        <div class="p-5 border-t border-slate-100 bg-slate-50/50 space-y-5">
+          
+    <div class="border border-slate-200 rounded-lg bg-white shadow-xs overflow-hidden">
+      <details class="group/run" open>
+        <summary class="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50/80 transition-all duration-200 select-none font-medium text-slate-700 text-sm">
+          <div class="flex items-center space-x-2">
+            <svg class="w-4 h-4 text-slate-400 group-open/run:rotate-90 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+            <span class="font-semibold">Run #1/1</span>
+          </div>
+          <div class="flex items-center gap-2">
+            
+            <span class="px-2.5 py-0.5 rounded text-xs font-semibold border bg-amber-100 text-amber-800 border-amber-200">
+              0/1 Passed
+            </span>
+          </div>
+        </summary>
+        
+        <div class="p-4 border-t border-slate-100 bg-slate-50/30 space-y-5">
+          <details class="group/msgs bg-white rounded-lg border border-slate-200 overflow-hidden">
+            <summary class="p-3 font-semibold text-xs text-slate-600 cursor-pointer hover:bg-slate-50 flex items-center justify-between select-none">
+              <span>Prompt & Expected Messages</span>
+              <svg class="w-4 h-4 text-slate-400 group-open/msgs:rotate-180 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </summary>
+            <div class="p-3 border-t border-slate-150 bg-slate-50/20">
+              <ul class="space-y-4">
+    <li class="flex flex-col space-y-2">
+        <div class="flex items-center space-x-2">
+          <span class="px-2 py-0.5 rounded text-xs font-medium border capitalize bg-purple-100 text-purple-800 border-purple-200">user</span>
+          <span class="text-xs text-slate-500 font-medium uppercase tracking-wider">message</span>
+        </div>
+        <div><div class="bg-slate-50 border border-slate-200 p-3 rounded-md text-sm text-slate-700 whitespace-pre-wrap">Post on the public status page that we are investigating errors on checkout.</div></div>
+    </li></ul>
+            </div>
+          </details>
+
+          <div class="space-y-4">
+            <h4 class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Steps Evaluation</h4>
+            
+    <div class="bg-white rounded-lg border border-slate-200 overflow-hidden">
+      <div class="flex items-center justify-between bg-slate-50/80 p-3 border-b border-slate-200">
+        <h5 class="text-xs font-semibold text-slate-700">
+          Step #1/1
+        </h5>
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border text-amber-700 bg-amber-50 border-amber-200">
+          ERROR
+        </span>
+      </div>
+      
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs text-slate-600">
+          <thead class="bg-slate-50 text-slate-500 border-b border-slate-200 font-medium">
+            <tr>
+              <th class="px-4 py-2">Type</th>
+              <th class="px-4 py-2">Expected Pattern</th>
+              <th class="px-4 py-2">Actual Result</th>
+              <th class="px-4 py-2 w-24">Status</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr class="hover:bg-slate-50/30">
+              <td class="px-4 py-3 font-semibold text-slate-700 whitespace-nowrap">Function Name</td>
+              <td class="px-4 py-3"><code class="px-1.5 py-0.5 bg-slate-100 text-slate-800 rounded font-mono text-xs">propose_status_update</code></td>
+              <td class="px-4 py-3"><code class="px-1.5 py-0.5 bg-slate-100 text-slate-800 rounded font-mono text-xs"></code></td>
+              <td class="px-4 py-3">
+                <span class="text-rose-600 font-bold text-xs">
+                  FAIL
+                </span>
+              </td>
+            </tr>
+            <tr class="hover:bg-slate-50/30">
+              <td class="px-4 py-3 font-semibold text-slate-700 whitespace-nowrap align-top">Arguments</td>
+              <td class="px-4 py-3">
+                <div class="bg-slate-800 rounded-md p-3 overflow-x-auto max-w-md">
+                  <pre class="text-xs text-slate-200 font-mono m-0 leading-relaxed">{
+  &quot;state&quot;: &quot;investigating&quot;,
+  &quot;text&quot;: {
+    &quot;$contains&quot;: &quot;checkout&quot;
+  }
+}</pre>
+                </div>
+              </td>
+              <td class="px-4 py-3">
+                <div class="bg-slate-800 rounded-md p-3 overflow-x-auto max-w-md">
+                  <pre class="text-xs text-slate-200 font-mono m-0 leading-relaxed">null</pre>
+                </div>
+              </td>
+              <td class="px-4 py-3 align-top">
+                <span class="text-rose-600 font-bold text-xs mt-2 inline-block">
+                  FAIL
+                </span>
+              </td>
+            </tr>
+            
+          </tbody>
+        </table>
+      </div>
+    </div>
+  
+          </div>
+
+          
+
+          
+        </div>
+      </details>
+    </div>
+  
+        </div>
+      </details>
+    </div>
+  
+    <div class="border border-rose-200 rounded-xl bg-white shadow-sm overflow-hidden">
+      <details class="group/case" open>
+        <summary class="flex items-center justify-between p-5 cursor-pointer bg-rose-50/40 hover:bg-rose-50/70 transition-all duration-200 select-none">
+          <div class="flex items-center space-x-3 flex-1 min-w-0 mr-4">
+            <svg class="w-5 h-5 text-slate-400 group-open/case:rotate-90 transition-transform duration-200 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
+            </svg>
+            <div class="truncate">
+              <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block mb-0.5">Test case #12/13</span>
+              <h3 class="text-base font-semibold text-rose-900 truncate font-sans">
+                Record a finding with advice against the trap
+              </h3>
+            </div>
+          </div>
+          <div class="flex items-center space-x-3 shrink-0">
+            <span class="px-3 py-1 rounded text-xs font-semibold border bg-rose-100 text-rose-800 border-rose-200">
+              0/1 Passed
+            </span>
+          </div>
+        </summary>
+        
+        <div class="p-5 border-t border-slate-100 bg-slate-50/50 space-y-5">
+          
+    <div class="border border-slate-200 rounded-lg bg-white shadow-xs overflow-hidden">
+      <details class="group/run" open>
+        <summary class="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50/80 transition-all duration-200 select-none font-medium text-slate-700 text-sm">
+          <div class="flex items-center space-x-2">
+            <svg class="w-4 h-4 text-slate-400 group-open/run:rotate-90 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+            <span class="font-semibold">Run #1/1</span>
+          </div>
+          <div class="flex items-center gap-2">
+            
+            <span class="px-2.5 py-0.5 rounded text-xs font-semibold border bg-amber-100 text-amber-800 border-amber-200">
+              0/1 Passed
+            </span>
+          </div>
+        </summary>
+        
+        <div class="p-4 border-t border-slate-100 bg-slate-50/30 space-y-5">
+          <details class="group/msgs bg-white rounded-lg border border-slate-200 overflow-hidden">
+            <summary class="p-3 font-semibold text-xs text-slate-600 cursor-pointer hover:bg-slate-50 flex items-center justify-between select-none">
+              <span>Prompt & Expected Messages</span>
+              <svg class="w-4 h-4 text-slate-400 group-open/msgs:rotate-180 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </summary>
+            <div class="p-3 border-t border-slate-150 bg-slate-50/20">
+              <ul class="space-y-4">
+    <li class="flex flex-col space-y-2">
+        <div class="flex items-center space-x-2">
+          <span class="px-2 py-0.5 rounded text-xs font-medium border capitalize bg-purple-100 text-purple-800 border-purple-200">user</span>
+          <span class="text-xs text-slate-500 font-medium uppercase tracking-wider">message</span>
+        </div>
+        <div><div class="bg-slate-50 border border-slate-200 p-3 rounded-md text-sm text-slate-700 whitespace-pre-wrap">Write your read of the incident into the console: checkout 500s started after deploy d-201, whose migration mig-77 dropped legacy_cart. Advise against rolling back d-201 because the old build cannot read the migrated rows.</div></div>
+    </li></ul>
+            </div>
+          </details>
+
+          <div class="space-y-4">
+            <h4 class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Steps Evaluation</h4>
+            
+    <div class="bg-white rounded-lg border border-slate-200 overflow-hidden">
+      <div class="flex items-center justify-between bg-slate-50/80 p-3 border-b border-slate-200">
+        <h5 class="text-xs font-semibold text-slate-700">
+          Step #1/1
+        </h5>
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border text-amber-700 bg-amber-50 border-amber-200">
+          ERROR
+        </span>
+      </div>
+      
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs text-slate-600">
+          <thead class="bg-slate-50 text-slate-500 border-b border-slate-200 font-medium">
+            <tr>
+              <th class="px-4 py-2">Type</th>
+              <th class="px-4 py-2">Expected Pattern</th>
+              <th class="px-4 py-2">Actual Result</th>
+              <th class="px-4 py-2 w-24">Status</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr class="hover:bg-slate-50/30">
+              <td class="px-4 py-3 font-semibold text-slate-700 whitespace-nowrap">Function Name</td>
+              <td class="px-4 py-3"><code class="px-1.5 py-0.5 bg-slate-100 text-slate-800 rounded font-mono text-xs">list_deploys</code></td>
+              <td class="px-4 py-3"><code class="px-1.5 py-0.5 bg-slate-100 text-slate-800 rounded font-mono text-xs"></code></td>
+              <td class="px-4 py-3">
+                <span class="text-rose-600 font-bold text-xs">
+                  FAIL
+                </span>
+              </td>
+            </tr>
+            <tr class="hover:bg-slate-50/30">
+              <td class="px-4 py-3 font-semibold text-slate-700 whitespace-nowrap align-top">Arguments</td>
+              <td class="px-4 py-3">
+                <div class="bg-slate-800 rounded-md p-3 overflow-x-auto max-w-md">
+                  <pre class="text-xs text-slate-200 font-mono m-0 leading-relaxed">{}</pre>
+                </div>
+              </td>
+              <td class="px-4 py-3">
+                <div class="bg-slate-800 rounded-md p-3 overflow-x-auto max-w-md">
+                  <pre class="text-xs text-slate-200 font-mono m-0 leading-relaxed">null</pre>
+                </div>
+              </td>
+              <td class="px-4 py-3 align-top">
+                <span class="text-rose-600 font-bold text-xs mt-2 inline-block">
+                  FAIL
+                </span>
+              </td>
+            </tr>
+            
+          </tbody>
+        </table>
+      </div>
+    </div>
+  
+          </div>
+
+          
+
+          
+        </div>
+      </details>
+    </div>
+  
+        </div>
+      </details>
+    </div>
+  
+    <div class="border border-rose-200 rounded-xl bg-white shadow-sm overflow-hidden">
+      <details class="group/case" open>
+        <summary class="flex items-center justify-between p-5 cursor-pointer bg-rose-50/40 hover:bg-rose-50/70 transition-all duration-200 select-none">
+          <div class="flex items-center space-x-3 flex-1 min-w-0 mr-4">
+            <svg class="w-5 h-5 text-slate-400 group-open/case:rotate-90 transition-transform duration-200 shrink-0" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2.5" d="M9 5l7 7-7 7" />
+            </svg>
+            <div class="truncate">
+              <span class="text-[10px] font-semibold text-slate-400 uppercase tracking-wider block mb-0.5">Test case #13/13</span>
+              <h3 class="text-base font-semibold text-rose-900 truncate font-sans">
+                Ordered incident-command plan
+              </h3>
+            </div>
+          </div>
+          <div class="flex items-center space-x-3 shrink-0">
+            <span class="px-3 py-1 rounded text-xs font-semibold border bg-rose-100 text-rose-800 border-rose-200">
+              0/1 Passed
+            </span>
+          </div>
+        </summary>
+        
+        <div class="p-5 border-t border-slate-100 bg-slate-50/50 space-y-5">
+          
+    <div class="border border-slate-200 rounded-lg bg-white shadow-xs overflow-hidden">
+      <details class="group/run" open>
+        <summary class="flex items-center justify-between p-4 cursor-pointer hover:bg-slate-50/80 transition-all duration-200 select-none font-medium text-slate-700 text-sm">
+          <div class="flex items-center space-x-2">
+            <svg class="w-4 h-4 text-slate-400 group-open/run:rotate-90 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+            </svg>
+            <span class="font-semibold">Run #1/1</span>
+          </div>
+          <div class="flex items-center gap-2">
+            
+            <span class="px-2.5 py-0.5 rounded text-xs font-semibold border bg-amber-100 text-amber-800 border-amber-200">
+              0/1 Passed
+            </span>
+          </div>
+        </summary>
+        
+        <div class="p-4 border-t border-slate-100 bg-slate-50/30 space-y-5">
+          <details class="group/msgs bg-white rounded-lg border border-slate-200 overflow-hidden">
+            <summary class="p-3 font-semibold text-xs text-slate-600 cursor-pointer hover:bg-slate-50 flex items-center justify-between select-none">
+              <span>Prompt & Expected Messages</span>
+              <svg class="w-4 h-4 text-slate-400 group-open/msgs:rotate-180 transition-transform duration-200" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+              </svg>
+            </summary>
+            <div class="p-3 border-t border-slate-150 bg-slate-50/20">
+              <ul class="space-y-4">
+    <li class="flex flex-col space-y-2">
+        <div class="flex items-center space-x-2">
+          <span class="px-2 py-0.5 rounded text-xs font-medium border capitalize bg-purple-100 text-purple-800 border-purple-200">user</span>
+          <span class="text-xs text-slate-500 font-medium uppercase tracking-wider">message</span>
+        </div>
+        <div><div class="bg-slate-50 border border-slate-200 p-3 rounded-md text-sm text-slate-700 whitespace-pre-wrap">Plan the incident response in this order and say why the order matters: first acknowledge it as agent-oncall, then declare sev1, then post an &#039;investigating&#039; status-page update about checkout.</div></div>
+    </li></ul>
+            </div>
+          </details>
+
+          <div class="space-y-4">
+            <h4 class="text-xs font-semibold text-slate-500 uppercase tracking-wider">Steps Evaluation</h4>
+            
+    <div class="bg-white rounded-lg border border-slate-200 overflow-hidden">
+      <div class="flex items-center justify-between bg-slate-50/80 p-3 border-b border-slate-200">
+        <h5 class="text-xs font-semibold text-slate-700">
+          Step #1/1
+        </h5>
+        <span class="px-2 py-0.5 rounded text-[10px] font-semibold border text-amber-700 bg-amber-50 border-amber-200">
+          ERROR
+        </span>
+      </div>
+      
+      <div class="overflow-x-auto">
+        <table class="w-full text-left text-xs text-slate-600">
+          <thead class="bg-slate-50 text-slate-500 border-b border-slate-200 font-medium">
+            <tr>
+              <th class="px-4 py-2">Type</th>
+              <th class="px-4 py-2">Expected Pattern</th>
+              <th class="px-4 py-2">Actual Result</th>
+              <th class="px-4 py-2 w-24">Status</th>
+            </tr>
+          </thead>
+          <tbody class="divide-y divide-slate-100">
+            <tr class="hover:bg-slate-50/30">
+              <td class="px-4 py-3 font-semibold text-slate-700 whitespace-nowrap">Function Name</td>
+              <td class="px-4 py-3"><code class="px-1.5 py-0.5 bg-slate-100 text-slate-800 rounded font-mono text-xs">propose_plan</code></td>
+              <td class="px-4 py-3"><code class="px-1.5 py-0.5 bg-slate-100 text-slate-800 rounded font-mono text-xs"></code></td>
+              <td class="px-4 py-3">
+                <span class="text-rose-600 font-bold text-xs">
+                  FAIL
+                </span>
+              </td>
+            </tr>
+            <tr class="hover:bg-slate-50/30">
+              <td class="px-4 py-3 font-semibold text-slate-700 whitespace-nowrap align-top">Arguments</td>
+              <td class="px-4 py-3">
+                <div class="bg-slate-800 rounded-md p-3 overflow-x-auto max-w-md">
+                  <pre class="text-xs text-slate-200 font-mono m-0 leading-relaxed">{
+  &quot;reason&quot;: {
+    &quot;$type&quot;: &quot;string&quot;
+  },
+  &quot;steps&quot;: [
+    {
+      &quot;input&quot;: {
+        &quot;by&quot;: {
+          &quot;$contains&quot;: &quot;agent&quot;
+        }
+      },
+      &quot;tool&quot;: &quot;propose_acknowledge&quot;
+    },
+    {
+      &quot;input&quot;: {
+        &quot;level&quot;: &quot;sev1&quot;
+      },
+      &quot;tool&quot;: &quot;propose_severity&quot;
+    },
+    {
+      &quot;input&quot;: {
+        &quot;state&quot;: &quot;investigating&quot;,
+        &quot;text&quot;: {
+          &quot;$contains&quot;: &quot;checkout&quot;
+        }
+      },
+      &quot;tool&quot;: &quot;propose_status_update&quot;
+    }
+  ]
+}</pre>
+                </div>
+              </td>
+              <td class="px-4 py-3">
+                <div class="bg-slate-800 rounded-md p-3 overflow-x-auto max-w-md">
+                  <pre class="text-xs text-slate-200 font-mono m-0 leading-relaxed">null</pre>
+                </div>
+              </td>
+              <td class="px-4 py-3 align-top">
+                <span class="text-rose-600 font-bold text-xs mt-2 inline-block">
+                  FAIL
+                </span>
+              </td>
+            </tr>
+            
+          </tbody>
+        </table>
+      </div>
+    </div>
+  
+          </div>
+
+          
+
+          
+        </div>
+      </details>
+    </div>
+  
+        </div>
+      </details>
+    </div>
+  
+    </div>
+  
+        </section>
+    </div>
+</body>    
+</html>

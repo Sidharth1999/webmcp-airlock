@@ -1,0 +1,378 @@
+{
+  "config": {
+    "url": "https://release-airlock.vercel.app/?template=retry-storm",
+    "evalsFile": "study/chrome-evals/airlock-triage.evals.json",
+    "backend": "vercel",
+    "model": "openai:gpt-5.6-terra",
+    "runs": 1,
+    "outputDir": "study/chrome-evals/runs/gpt-5.6-terra",
+    "reporter": [
+      "console",
+      "json",
+      "html"
+    ],
+    "chromeChannel": "chrome"
+  },
+  "results": {
+    "results": [
+      {
+        "test": {
+          "name": "Incident status on arrival",
+          "messages": [
+            {
+              "role": "user",
+              "type": "message",
+              "content": "What's the current incident status?"
+            }
+          ],
+          "expectedCall": [
+            {
+              "functionName": "airlock_status",
+              "arguments": {}
+            }
+          ]
+        },
+        "response": null,
+        "outcome": "error",
+        "runIndex": 1,
+        "stepIndex": 1
+      },
+      {
+        "test": {
+          "name": "Recent deploys",
+          "messages": [
+            {
+              "role": "user",
+              "type": "message",
+              "content": "Show me the recent deploys."
+            }
+          ],
+          "expectedCall": [
+            {
+              "functionName": "list_deploys",
+              "arguments": {}
+            }
+          ]
+        },
+        "response": null,
+        "outcome": "error",
+        "runIndex": 1,
+        "stepIndex": 1
+      },
+      {
+        "test": {
+          "name": "Latest logs",
+          "messages": [
+            {
+              "role": "user",
+              "type": "message",
+              "content": "Pull the latest service log lines."
+            }
+          ],
+          "expectedCall": [
+            {
+              "functionName": "read_logs",
+              "arguments": {}
+            }
+          ]
+        },
+        "response": null,
+        "outcome": "error",
+        "runIndex": 1,
+        "stepIndex": 1
+      },
+      {
+        "test": {
+          "name": "Change surface (flags, env, routes, migrations)",
+          "messages": [
+            {
+              "role": "user",
+              "type": "message",
+              "content": "Which feature flags are on right now, and which migrations have been applied?"
+            }
+          ],
+          "expectedCall": [
+            {
+              "functionName": "list_changes",
+              "arguments": {}
+            }
+          ]
+        },
+        "response": null,
+        "outcome": "error",
+        "runIndex": 1,
+        "stepIndex": 1
+      },
+      {
+        "test": {
+          "name": "Localize the failing route",
+          "messages": [
+            {
+              "role": "user",
+              "type": "message",
+              "content": "Which route is failing and when did it start?"
+            }
+          ],
+          "expectedCall": [
+            {
+              "functionName": "airlock_status",
+              "arguments": {},
+              "optional": true
+            },
+            {
+              "functionName": "traffic_history",
+              "arguments": {}
+            }
+          ]
+        },
+        "response": null,
+        "outcome": "error",
+        "runIndex": 1,
+        "stepIndex": 1
+      },
+      {
+        "test": {
+          "name": "Missing tool: ask the surface why",
+          "messages": [
+            {
+              "role": "user",
+              "type": "message",
+              "content": "I don't see a rollback tool. Why is it missing?"
+            }
+          ],
+          "expectedCall": [
+            {
+              "functionName": "explain_surface",
+              "arguments": {}
+            }
+          ]
+        },
+        "response": null,
+        "outcome": "error",
+        "runIndex": 1,
+        "stepIndex": 1
+      },
+      {
+        "test": {
+          "name": "Acknowledge the incident",
+          "messages": [
+            {
+              "role": "user",
+              "type": "message",
+              "content": "Take ownership of this incident as agent-oncall so the others stand down."
+            }
+          ],
+          "expectedCall": [
+            {
+              "functionName": "propose_acknowledge",
+              "arguments": {
+                "by": {
+                  "$contains": "agent"
+                }
+              }
+            }
+          ]
+        },
+        "response": null,
+        "outcome": "error",
+        "runIndex": 1,
+        "stepIndex": 1
+      },
+      {
+        "test": {
+          "name": "Declare severity",
+          "messages": [
+            {
+              "role": "user",
+              "type": "message",
+              "content": "Declare this a sev1."
+            }
+          ],
+          "expectedCall": [
+            {
+              "functionName": "propose_severity",
+              "arguments": {
+                "level": "sev1"
+              }
+            }
+          ]
+        },
+        "response": null,
+        "outcome": "error",
+        "runIndex": 1,
+        "stepIndex": 1
+      },
+      {
+        "test": {
+          "name": "Escalate to the database on-call",
+          "messages": [
+            {
+              "role": "user",
+              "type": "message",
+              "content": "Page the database on-call."
+            }
+          ],
+          "expectedCall": [
+            {
+              "functionName": "propose_escalate",
+              "arguments": {
+                "team": {
+                  "$contains": "database"
+                }
+              }
+            }
+          ]
+        },
+        "response": null,
+        "outcome": "error",
+        "runIndex": 1,
+        "stepIndex": 1
+      },
+      {
+        "test": {
+          "name": "Silence alerts",
+          "messages": [
+            {
+              "role": "user",
+              "type": "message",
+              "content": "Silence alerting while we work this."
+            }
+          ],
+          "expectedCall": [
+            {
+              "functionName": "propose_silence_alerts",
+              "arguments": {
+                "silenced": true
+              }
+            }
+          ]
+        },
+        "response": null,
+        "outcome": "error",
+        "runIndex": 1,
+        "stepIndex": 1
+      },
+      {
+        "test": {
+          "name": "Status page: investigating",
+          "messages": [
+            {
+              "role": "user",
+              "type": "message",
+              "content": "Post on the public status page that we are investigating errors on checkout."
+            }
+          ],
+          "expectedCall": [
+            {
+              "functionName": "propose_status_update",
+              "arguments": {
+                "state": "investigating",
+                "text": {
+                  "$contains": "checkout"
+                }
+              }
+            }
+          ]
+        },
+        "response": null,
+        "outcome": "error",
+        "runIndex": 1,
+        "stepIndex": 1
+      },
+      {
+        "test": {
+          "name": "Record a finding with advice against the trap",
+          "messages": [
+            {
+              "role": "user",
+              "type": "message",
+              "content": "Write your read of the incident into the console: checkout 500s started after deploy d-201, whose migration mig-77 dropped legacy_cart. Advise against rolling back d-201 because the old build cannot read the migrated rows."
+            }
+          ],
+          "expectedCall": [
+            {
+              "functionName": "list_deploys",
+              "arguments": {},
+              "optional": true
+            },
+            {
+              "functionName": "read_logs",
+              "arguments": {},
+              "optional": true
+            },
+            {
+              "functionName": "record_finding",
+              "arguments": {
+                "summary": {
+                  "$contains": "d-201"
+                },
+                "advisesAgainst": {
+                  "$contains": "d-201"
+                }
+              }
+            }
+          ]
+        },
+        "response": null,
+        "outcome": "error",
+        "runIndex": 1,
+        "stepIndex": 1
+      },
+      {
+        "test": {
+          "name": "Ordered incident-command plan",
+          "messages": [
+            {
+              "role": "user",
+              "type": "message",
+              "content": "Plan the incident response in this order and say why the order matters: first acknowledge it as agent-oncall, then declare sev1, then post an 'investigating' status-page update about checkout."
+            }
+          ],
+          "expectedCall": [
+            {
+              "functionName": "propose_plan",
+              "arguments": {
+                "reason": {
+                  "$type": "string"
+                },
+                "steps": [
+                  {
+                    "tool": "propose_acknowledge",
+                    "input": {
+                      "by": {
+                        "$contains": "agent"
+                      }
+                    }
+                  },
+                  {
+                    "tool": "propose_severity",
+                    "input": {
+                      "level": "sev1"
+                    }
+                  },
+                  {
+                    "tool": "propose_status_update",
+                    "input": {
+                      "state": "investigating",
+                      "text": {
+                        "$contains": "checkout"
+                      }
+                    }
+                  }
+                ]
+              }
+            }
+          ]
+        },
+        "response": null,
+        "outcome": "error",
+        "runIndex": 1,
+        "stepIndex": 1
+      }
+    ],
+    "testCount": 13,
+    "passCount": 0,
+    "failCount": 0,
+    "errorCount": 13
+  }
+}

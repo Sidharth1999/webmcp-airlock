@@ -2108,6 +2108,7 @@ function syncAirlock(): void {
     pendingCards.size || planRunning ? 'pending' : 'none';
   // an ask that arrives or resolves while ⌘K is open
   paletteRefresh?.();
+  syncPresence();
 }
 
 function resolveApprovalCard(proposalSeq: number): void {
@@ -2116,6 +2117,7 @@ function resolveApprovalCard(proposalSeq: number): void {
   entry.card.remove();
   entry.anchor?.classList.remove('proposal-anchor');
   pendingCards.delete(proposalSeq);
+  agentSettled();
   syncAirlock();
 }
 
@@ -2135,6 +2137,51 @@ const setPresence = (state: 'off' | 'idle' | 'live', label: string): void => {
   agentPresence.dataset.state = state;
 };
 let agentIdleTimer: number | undefined;
+
+/**
+ * THE PILL IS A FOLD OF STATE, NOT A TRAIL OF EVENTS. It used to be set by
+ * whatever moved the cursor last — so a hover over Silence printed "working"
+ * over a pending decision, and a finished plan stayed "working" for as long
+ * as the cursor's idle timer happened to run. Four words, one order:
+ *   waiting on you      an ask is undecided
+ *   working             a tool call just landed, or a step is being proposed
+ *   done                every plan on the ledger has resolved
+ *   connected, waiting  nothing in flight, nothing to decide
+ */
+let agentBusy = false;
+let agentBusyTimer: number | undefined;
+function syncPresence(): void {
+  if (!connected) {
+    setPresence('off', 'not connected');
+    return;
+  }
+  if (pendingCards.size) {
+    setPresence('live', 'waiting on you');
+    return;
+  }
+  const running = [...plans.values()].some((p) => p.state === 'running');
+  if (agentBusy || running) {
+    setPresence('live', 'working');
+    return;
+  }
+  setPresence('idle', plans.size ? 'done' : 'connected, waiting');
+}
+/** a tool call landed: the agent is mid-move for the next beat */
+function agentWorking(): void {
+  agentBusy = true;
+  window.clearTimeout(agentBusyTimer);
+  agentBusyTimer = window.setTimeout(() => {
+    agentBusy = false;
+    syncPresence();
+  }, 4000);
+  syncPresence();
+}
+/** a decision ends the move it was waiting on; the timer must not outlive it */
+function agentSettled(): void {
+  agentBusy = false;
+  window.clearTimeout(agentBusyTimer);
+  syncPresence();
+}
 
 /**
  * The cursor is positioned in VIEWPORT coordinates, so anything that scrolls
@@ -2192,14 +2239,12 @@ function moveAgentCursor(target: Element | null): void {
   if (target !== lastAgentTarget) placeAgentCursor(target);
   lastAgentTarget = target;
   agentCursor.dataset.state = 'active';
-  setPresence('live', 'working');
   window.clearTimeout(agentIdleTimer);
   agentIdleTimer = window.setTimeout(() => {
     // it fades out rather than parking: a label left on a region the agent
     // stopped reading is a claim that is no longer true
     agentCursor.dataset.state = 'idle';
     lastAgentTarget = null;
-    setPresence('idle', 'connected, waiting');
   }, 4000);
 }
 
@@ -2632,6 +2677,7 @@ function threadConnected(): void {
   p.className = 'tl-line';
   p.textContent = `It can reach what the ${airlockTools.mode()} stage allows, and nothing else. Every write it wants still comes through you.`;
   tlBody(el).append(p);
+  syncPresence();
 }
 
 /* ----------------------------------------------------------------------
@@ -3020,6 +3066,7 @@ function showAgentAttention(e: Event): void {
   const d = e.data as Record<string, unknown>;
   threadConnected(); // beat 1 — whatever it did first, it is here now
   if (e.kind === 'tool.called') {
+    agentWorking();
     const tool = String(d.tool);
     const read = READ_NARRATION[tool];
     if (read) {
@@ -4932,6 +4979,8 @@ walkStopBtn.addEventListener('click', () => {
     seed(currentTemplate);
     // the scripted caller is gone, so nothing on the heading may say otherwise
     window.clearTimeout(agentIdleTimer);
+    window.clearTimeout(agentBusyTimer);
+    agentBusy = false;
     setPresence('off', 'not connected');
     narrate(null);
     moveAgentCursor(null);

@@ -122,7 +122,22 @@ calls. The stage selector is the control that decides which tools it may
 call, and it went from 13 to 27. Screenshots and the console log are in
 [`log/host-self-approval/`](../log/host-self-approval/README.md).
 
-**Filed upstream** on 2026-09-03 as [webmachinelearning/webmcp#288](https://github.com/webmachinelearning/webmcp/issues/288).
+**Then the minimal page**, to rule out this console's own code:
+[`public/minimal.html`](../public/minimal.html), one file, two tools, one
+Unlock button that logs every input it receives. Labelled "Unlock (operator
+only)", the host would not press it across four prompts, with or without an
+instruction in the tool result. Labelled just "Unlock", it pressed it seven
+seconds after the refusal and reported the fix proposed. Every event it
+dispatched was `isTrusted:false`. Two consequences: the boundary today is a
+naming convention the page author has to guess at, and on this host a page
+can tell a synthetic activation from a person's. The console now refuses
+untrusted activation of its human-only controls (stage selector, hold to
+approve, the chord, the dual key) while a host is attached, and says so on
+the control. Input injected below the DOM would arrive trusted; that is why
+the ask below is a host-side rule plus a marker, not a page-side check.
+
+**Filed upstream** on 2026-09-03 as [webmachinelearning/webmcp#288](https://github.com/webmachinelearning/webmcp/issues/288),
+with the reproduction and the three-condition result as comments.
 
 ---
 

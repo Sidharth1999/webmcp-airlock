@@ -54,6 +54,8 @@ export interface PlayOpts {
   template: string;
   /** re-seed the console into a different scenario */
   seedTemplate: (id: string) => void;
+  /** The stage switch, called directly: a scripted click on the tab is synthetic and a hosted page refuses those. */
+  setMode?: (mode: string) => void;
   /** stop: nothing further is invoked once this fires */
   signal?: AbortSignal;
   /** where the play is, for the one line on screen that says so */
@@ -317,6 +319,10 @@ export async function play(scene: Scene, opts: PlayOpts): Promise<void> {
     },
     click(testId) {
       stopIf(signal);
+      if (testId.startsWith('mode-') && opts.setMode) {
+        opts.setMode(testId.slice('mode-'.length));
+        return;
+      }
       document.querySelector<HTMLElement>(`[data-testid="${testId}"]`)?.click();
     },
     logSeqs() {

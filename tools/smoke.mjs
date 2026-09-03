@@ -1727,6 +1727,38 @@ try {
     'the second key: a click does not engage it, a hold does, and the write lands under key: operator · hold',
     hh3ClickRefused && hh3Engaged && hh3Landed && /key: operator · hold$/.test((await hhVia(hh3)) ?? '')
   );
+
+  // 2026-09-03: the minimal page showed the host's clicks are synthetic
+  // (`isTrusted:false`). While a host is attached, a human-only control
+  // ignores synthetic activation and says so; the operator's own click (a
+  // trusted one, which is what Playwright's mouse produces) still works.
+  const hhModeBefore = await hh.evaluate(() => document.querySelector('#mode-switch [aria-pressed="true"]')?.dataset.mode);
+  await hh.evaluate(() => document.querySelector('[data-testid="mode-triage"]').click());
+  await hh.waitForTimeout(150);
+  const hhSynthFlag = await hh.evaluate(() => document.querySelector('[data-testid="mode-triage"]')?.dataset.synthetic === '1');
+  const hhModeAfterSynthetic = await hh.evaluate(() => document.querySelector('#mode-switch [aria-pressed="true"]')?.dataset.mode);
+  await hh.getByTestId('mode-triage').click();
+  await hh.waitForTimeout(300);
+  const hhModeAfterTrusted = await hh.evaluate(() => document.querySelector('#mode-switch [aria-pressed="true"]')?.dataset.mode);
+  check(
+    'hosted: a synthetic click on the stage tab is refused and marked, a trusted click moves the stage',
+    hhModeBefore === 'recovery' && hhModeAfterSynthetic === 'recovery' && hhSynthFlag && hhModeAfterTrusted === 'triage'
+  );
+  await hh.getByTestId('mode-recovery').click();
+  await hh.waitForTimeout(300);
+  const hh4 = await hhPropose();
+  await hh.evaluate((sq) => {
+    const b = document.querySelector(`[data-testid="approve-${sq}"]`);
+    b.dispatchEvent(new PointerEvent('pointerdown', { button: 0, bubbles: true, pointerType: 'mouse' }));
+  }, hh4);
+  await hh.waitForTimeout(150);
+  const hh4NotHolding = await hh.evaluate((sq) => {
+    const b = document.querySelector(`[data-testid="approve-${sq}"]`);
+    return b.dataset.holding !== '1' && b.dataset.synthetic === '1';
+  }, hh4);
+  await hh.waitForTimeout(900);
+  const hh4StillPending = (await hhPending(hh4)) === 1;
+  check('hosted: a synthetic pointerdown on Hold to approve starts no hold and the proposal stays pending', hh4NotHolding && hh4StillPending);
   await hh.close();
 
   check('no page errors', pageErrors.length === 0);

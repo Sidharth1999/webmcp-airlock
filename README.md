@@ -29,8 +29,11 @@ a human clicks approve, and not before.
 > DOM can complete the page's human-in-the-loop step by itself, and nothing in
 > the spec says it must not. Approval became a held gesture that night; the
 > next morning the same host, asked only to "investigate and resolve", moved
-> the response stage itself to unlock the tools it wanted. Filed with the
-> screenshots and the console's own log as
+> the response stage itself to unlock the tools it wanted. On a one-file page
+> with a single button, it pressed "Unlock" seven seconds after a refusal and
+> left "Unlock (operator only)" alone; every event was `isTrusted:false`, so
+> this console now refuses synthetic activation of its human-only controls.
+> Filed with the screenshots, the logs and the repro page as
 > [webmachinelearning/webmcp#288](https://github.com/webmachinelearning/webmcp/issues/288); the argument is in
 > [`docs/spec-feedback.md`](docs/spec-feedback.md), point 7, the evidence in
 > [`log/host-self-approval/`](log/host-self-approval/README.md).
@@ -340,7 +343,7 @@ from the source: [`docs/webmcp-surface.md`](docs/webmcp-surface.md).
 npm run typecheck     # TypeScript, strict
 npm test              # 229 unit + property tests
 npm run lint:sim      # determinism ban over src/sim
-npm run smoke         # 142 hit-tested Playwright gates against the real page
+npm run smoke         # 144 hit-tested Playwright gates against the real page
 npm run corpus        # regenerate + re-verify all 91 scenario variants
 npm run driver        # both scenarios, unattended, end to end
 npm run docs:tools    # regenerate docs/webmcp-surface.md from the tool specs

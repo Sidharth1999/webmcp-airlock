@@ -1934,6 +1934,7 @@ function armHold(el: HTMLElement, done: (via: 'hold' | 'key-hold') => void): Hol
   };
   el.addEventListener('pointerdown', (ev) => {
     if (ev.button !== 0) return;
+    if (refuseSynthetic(ev, el, 'hold')) return;
     start('pointer');
   });
   const release = (): void => {
@@ -1952,6 +1953,24 @@ function armHold(el: HTMLElement, done: (via: 'hold' | 'key-hold') => void): Hol
 function nudgeHold(el: HTMLElement): void {
   el.dataset.nudge = '1';
   window.setTimeout(() => delete el.dataset.nudge, 700);
+}
+
+/**
+ * A human-only control activated by an event the browser did not mark
+ * trusted, while a host is on the line. A host that automates the page
+ * dispatches synthetic events (observed: ChatGPT's in-app browser, every
+ * event `isTrusted:false`, log/host-self-approval/); the operator's own
+ * pointer and keyboard never do. Refuse, say so on the control, and leave a
+ * console line so the refusal is visible from the host side too. Not a
+ * guarantee: input injected below the DOM arrives trusted. See
+ * docs/spec-feedback.md, point 7.
+ */
+function refuseSynthetic(ev: { isTrusted: boolean; type: string }, el: HTMLElement, what: string): boolean {
+  if (ev.isTrusted || !hostAttached()) return false;
+  el.dataset.synthetic = '1';
+  window.setTimeout(() => delete el.dataset.synthetic, 1200);
+  console.warn(`airlock: ${what} ignored a synthetic ${ev.type} — a person has to do this`);
+  return true;
 }
 
 /**
@@ -2081,6 +2100,7 @@ function addApprovalCard(e: Event): void {
     keyToggle.addEventListener('keydown', (ev) => {
       if (ev.key !== ' ' || keyLabel.dataset.hold !== '1' || keyToggle.checked) return;
       ev.preventDefault();
+      if (refuseSynthetic(ev, keyLabel, 'dual key')) return;
       if (!ev.repeat) keyHold.start('key');
     });
     keyToggle.addEventListener('keyup', (ev) => {
@@ -4999,6 +5019,7 @@ document.addEventListener('keydown', (e) => {
     }
     if (btn.dataset.hold === '1') {
       // a host is attached: the chord is held, like the button (see armHold)
+      if (refuseSynthetic(e, btn, 'approve')) return;
       if (!e.repeat) holds.get(btn)?.start('key');
       return;
     }
@@ -5252,6 +5273,7 @@ function switchMode(to: Mode, input?: SwitchInput): void {
 document.querySelector('#mode-switch')!.addEventListener('click', (e) => {
   const btn = (e.target as HTMLElement).closest<HTMLButtonElement>('[data-mode]');
   if (!btn) return;
+  if (refuseSynthetic(e, btn, 'response stage')) return;
   const pe = e as PointerEvent;
   switchMode(btn.dataset.mode as Mode, {
     trusted: e.isTrusted,
@@ -5318,6 +5340,7 @@ async function startWalk(scene: Scene): Promise<void> {
       toggleRun: () => runBtn.click(),
       template: scene.template,
       seedTemplate: (id) => seed(id),
+      setMode: (m) => switchMode(m as Mode),
       signal: ctl.signal,
       onState: (state, detail) => {
         if (walkCtl === ctl) setWalk(state, detail);
@@ -5436,6 +5459,7 @@ if (import.meta.env.DEV && params.has('review')) {
       toggleRun: () => runBtn.click(),
       template: TEMPLATE_ID,
       seedTemplate: (id) => seed(id),
+      setMode: (m) => switchMode(m as Mode),
     })
   );
 }

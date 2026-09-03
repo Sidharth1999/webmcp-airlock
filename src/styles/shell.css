@@ -1612,6 +1612,14 @@ body {
 .ap-approve[data-hold='1']:hover:not(:disabled) { border-color: var(--actor-agent); }
 [data-holding='1'] > .ap-fill { transform: scaleX(1); transition: transform 700ms linear; }
 [data-nudge='1'] { border-color: var(--actor-agent); box-shadow: 0 0 0 1.5px var(--actor-agent-dim); }
+/* a human-only control activated by a synthetic event while a host is attached: refused, and it says so */
+[data-synthetic='1'] { position: relative; border-color: var(--actor-agent); box-shadow: 0 0 0 1.5px var(--actor-agent-dim); }
+[data-synthetic='1']::after {
+  content: 'a person has to press this';
+  position: absolute; left: 0; top: calc(100% + 4px); white-space: nowrap;
+  font: 500 10.5px/1.3 var(--font-mono, ui-monospace, monospace); letter-spacing: .02em;
+  color: var(--actor-agent); pointer-events: none; z-index: 5;
+}
 .ap-key[data-hold='1'] {
   position: relative; overflow: hidden;
   padding: 2px var(--sp-2); margin-inline: calc(-1 * var(--sp-2));

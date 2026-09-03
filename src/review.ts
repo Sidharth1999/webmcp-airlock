@@ -235,6 +235,7 @@ export async function run(opts: {
   template: string;
   /** re-seed the console into a different scenario */
   seedTemplate: (id: string) => void;
+  setMode?: (mode: string) => void;
 }): Promise<void> {
   const id = new URLSearchParams(location.search).get('review') ?? '';
   const scene = SCENES.find((s) => s.id === id) ?? SCENES[0]!;

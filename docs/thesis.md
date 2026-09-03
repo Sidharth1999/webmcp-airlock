@@ -64,9 +64,11 @@ would otherwise need.
 - **That a computer-use host cannot bypass the human.** ChatGPT's in-app
   browser both calls the tools and drives the DOM; on a real run it clicked
   Approve itself, and with the held gesture in place the next morning it
-  moved the response stage instead to unlock more tools. The held gesture
-  removes the one-shot click and the record says which gesture happened;
-  only a host-side rule closes the hole. See
+  moved the response stage instead to unlock more tools. On a one-file page
+  it pressed a button labelled "Unlock" and left "Unlock (operator only)"
+  alone, every event `isTrusted:false`. The console now refuses synthetic
+  activation of human-only controls while a host is attached; input injected
+  below the DOM would still pass, so only a host-side rule closes the hole. See
   [`spec-feedback.md`](spec-feedback.md), point 7, filed upstream as
   [webmachinelearning/webmcp#288](https://github.com/webmachinelearning/webmcp/issues/288).
 - **That this runs against real infrastructure.** It is a deterministic

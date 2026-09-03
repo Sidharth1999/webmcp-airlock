@@ -1,5 +1,27 @@
 # STATUS — live audit log
 
+## CHECKPOINT 2026-09-03 03:40 EDT — public repo live, seven-step walkthrough on the live URL, thesis + evals pages
+
+- **Public repo:** https://github.com/Sidharth1999/webmcp-airlock (MIT in About,
+  README hero). Built by `tools/export-public.sh` (now excluded from the tree
+  because its pattern list tripped its own gate); CI workflow NOT pushed (gh
+  token lacks `workflow` scope). Later changes are synced by patch
+  (`git diff <last-export> HEAD` minus .github/_handoff/log/export script).
+- **Merged** `worktree-agent-a486fef8f932a32c3` (`a043eeb`): plan + provenance
+  scenes moved to `src/walkthrough.ts`; dock control "Watch the full response"
+  (`#walk-full`) plays the seven steps with the shop open; `?walk=film|plan|
+  provenance` boot param. +136 lines of smoke gates (adds only) → **142 gates**;
+  229 tests; corpus 91/91 byte-identical; smoke ALONE GREEN. Deployed.
+- **Docs:** `docs/thesis.md` (claim, what a server MCP can/cannot do, validation
+  table, what is NOT claimed, sources) and `docs/evals.md` (every number with
+  its command and caveat). Linked from README.
+- Demo recorded `~/airlock_demo.mov` (2:43, audio ok). Devpost form: Sid must
+  clear the CAPTCHA on "Start project"; then fill from
+  `_handoff/2026-09-02-devpost-fields.md`; `<VIDEO-URL>` pending YouTube.
+
+---
+
+
 ## CHECKPOINT 2026-09-02 ~23:20 EDT — every trap is recoverable; merged, verified, deployed
 
 Merged `worktree-agent-ad52f28395e88b950` (`761cd9a`, `4ccc789`): a cap ≤150

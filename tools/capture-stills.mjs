@@ -127,8 +127,60 @@ const thumb = async (p, anchorSel, name, { above = 8, prev = false } = {}) => {
   // ends; a thumbnail of a row in it ends there too.
   const body = await p.locator('#tool-rail .dock-body').boundingBox();
   const floor = Math.ceil(body ? Math.min(body.y + body.height, p._vp.height) : p._vp.height);
-  const y = Math.max(0, Math.min(floor - h, Math.max(0, Math.round(top - above))));
-  await saveThumb(p, { x, y, width: w, height: h }, name, ' at 3x');
+
+  // BOTH EDGES ARE ROW BOUNDARIES OR THE FRAME LOOKS BROKEN. The height is
+  // fixed by 3:2, so the only freedom is where the window sits — and a window
+  // parked at `top - above` puts its FLOOR wherever it lands, which is how a
+  // step's second line ended up sliced in half along the bottom edge. Snap:
+  // of the row boundaries near the anchor, take the one whose opposite edge
+  // lands closest to a boundary too, so neither cut runs through text.
+  const bounds = await p.evaluate(() =>
+    [
+      ...new Set(
+        [...document.querySelectorAll('#tool-rail .tl-ev, #tool-rail .tl-ask, #tool-rail .pl-step')].flatMap(
+          (n) => {
+            const r = n.getBoundingClientRect();
+            return r.height > 2 ? [Math.round(r.top), Math.round(r.bottom)] : [];
+          }
+        )
+      ),
+    ].sort((a, b) => a - b)
+  );
+  // The ledger's rows are CONTIGUOUS — no gaps to hide a cut in — so a window
+  // of one fixed height can rarely land both its edges on a boundary. Let the
+  // height float by up to 5% instead: `sips` resamples the frame to an exact
+  // 1200x800 regardless, and 5% of vertical scale is invisible where a line of
+  // text sawn in half is not.
+  const wantTop = Math.max(0, Math.round(top - above));
+  let y = wantTop;
+  let hh = h;
+  let best = Infinity;
+  for (const t of bounds) {
+    if (t < 0 || t > wantTop + 2) continue; // never open BELOW the anchor
+    for (const b of bounds) {
+      const span = b - t;
+      if (span < h * 0.95 || span > h * 1.05) continue;
+      const cost = Math.abs(t - wantTop) + Math.abs(span - h) * 0.5;
+      if (cost < best) (best = cost), (y = t), (hh = span);
+    }
+  }
+  if (best === Infinity) hh = h;
+
+  // The floor still wins over the snap, but PUSHING THE WINDOW UP to obey it
+  // is what sliced the row above through its own strikethrough. Give the
+  // scroller the shortfall instead: the ledger slides down, the window keeps
+  // its clean top edge, and nothing has to be cut to make the arithmetic work.
+  if (y + hh > floor) {
+    const moved = await p.evaluate((d) => {
+      const b = document.querySelector('#tool-rail .dock-body');
+      const before = b.scrollTop;
+      b.scrollTop = Math.max(0, before - d);
+      return before - b.scrollTop;
+    }, y + hh - floor);
+    if (moved) await p.waitForTimeout(250);
+    y = Math.max(0, Math.min(floor - hh, y + moved));
+  }
+  await saveThumb(p, { x, y, width: w, height: hh }, name, ' at 3x');
 };
 
 const invoke = (p, name, input = {}) =>
@@ -357,9 +409,9 @@ if (want('provenance')) {
 
   // thumb-e: the same ask from the review scene. The dock is a fixed 410 wide
   // and the ask is taller than a 3:2 window of that width, so the window is
-  // the dock's own column and it holds the TOP of the story — the step marker
-  // on the spine, the title, 'a deploy · needs your key' in the machine slot,
-  // the cost, and the whole amber evidence block. It stops in the gap between
+  // the dock's own column and it holds the TOP of the story — the title,
+  // 'a deploy · needs your key' in the machine slot, the cost, the work it
+  // came from, and the whole amber evidence block. It stops in the gap between
   // that block and the key rung: reaching further would either slice the rung
   // or push the frame out of the dock and into a sliver of the console, and
   // the rung's checkbox is not what this frame is about.
@@ -370,14 +422,24 @@ if (want('provenance')) {
   const prov = await t.locator('.tl-ask .ap-prov').first().boundingBox();
   const key = await t.locator('.tl-ask .ap-key').first().boundingBox();
   if (!rail || !row || !prov || !key) throw new Error('provenance thumb: no rail, row, evidence or key box');
-  // 408, not 410: a 3:2 window whose sides are both even at 4x, so `sips`
-  // resamples to exactly 1200x800 with no aspect drift
-  const w = Math.min(408, Math.round(t._vp.width - rail.x));
-  const h = Math.round(w / 1.5);
-  const x0 = Math.max(0, Math.min(t._vp.width - w, Math.round(rail.x)));
+  // THE GAP SETS THE HEIGHT, and 3:2 then sets the width — not the other way
+  // round. A full-dock 410 window used to land its floor just below the key
+  // rung's top; the ask lost a line when the held-gesture wording moved into
+  // the dock, the gap rose to ~430, and a fixed 410 started slicing the rung.
+  // So: floor in the middle of the evidence/rung gap, top at the row, width
+  // from that height, and the window RIGHT-ALIGNED to the viewport — the
+  // amber block's own right edge is a border, and cutting it reads as damage,
+  // while the 38px spine gutter on the left is empty and costs nothing.
   const y0 = Math.max(0, Math.round(row.y));
-  if (prov.y + prov.height > y0 + h) throw new Error('provenance thumb: the evidence block does not fit');
+  const floor = Math.round((prov.y + prov.height + key.y) / 2);
+  const h = floor - y0;
+  const w = Math.round(h * 1.5);
+  const x0 = Math.max(0, t._vp.width - w);
+  if (prov.y < y0 || prov.y + prov.height > y0 + h)
+    throw new Error('provenance thumb: the evidence block does not fit');
   if (key.y < y0 + h) throw new Error('provenance thumb: the frame slices the key rung');
+  if (x0 > row.x || x0 + w < row.x + row.width)
+    throw new Error(`provenance thumb: the frame cuts the row's own width (${x0}..${x0 + w} vs ${row.x}..${row.x + row.width})`);
   await saveThumb(t, { x: x0, y: y0, width: w, height: h }, 'thumb-e-the-page-knows-where-the-idea-came-from', ' at 4x');
   await t.close();
 }

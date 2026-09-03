@@ -194,6 +194,8 @@ rebuilding the console, at which point it is a WebMCP page.
 
 **Live:** `https://release-airlock.vercel.app` — no install, no agent needed.
 
+**Demo video (2:43):** https://youtu.be/gqN-fXtGodk
+
 **Local:**
 
 ```bash

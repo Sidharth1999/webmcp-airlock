@@ -22,7 +22,7 @@ on 2026-09-01) are the four section heads marked ◆. Everything else is
 optional colour and can be cut first.
 
 Placeholders to fill before submitting: `https://release-airlock.vercel.app`, `https://github.com/Sidharth1999/webmcp-airlock`,
-`<VIDEO-URL>`.
+`https://youtu.be/gqN-fXtGodk`.
 
 ---
 
@@ -35,7 +35,7 @@ without you.** The page itself decides what the agent can see, what it can
 propose, and what its proposal has to show you before you decide, because the
 page is where the operator, the evidence, and the levers already are.
 
-Live: `https://release-airlock.vercel.app` · Source (MIT): `https://github.com/Sidharth1999/webmcp-airlock` · Video: `<VIDEO-URL>`
+Live: `https://release-airlock.vercel.app` · Source (MIT): `https://github.com/Sidharth1999/webmcp-airlock` · Video: `https://youtu.be/gqN-fXtGodk`
 
 ---
 
